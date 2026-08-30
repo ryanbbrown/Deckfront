@@ -18,6 +18,18 @@ Timing: this runs inside the health-50 identity window, before any 50-health evi
 - D6. Both allowlists (`strategy-search-image-files.json`, `strategy-search-scientific-files.json`) shrink to exactly the surviving files; `rust/goldfish/kingdoms.json` is regenerated only if the registered kingdom set changes (it should stay at 160).
 - D7. `.plans/` history is untouched. Superseded docs move per the archive rule only when they are decision records; operator docs of deleted routes are deleted.
 
+## Review-inherited items (from `.reviews/implementations/health-50-deep-beam-removal/…-synthesis-v1.md`)
+
+- R1. Explicit additions to the deletion set: `src/sim/responseOracleCalibration.ts` (its relabeled deep-beam provenance is false provenance and must not survive), `src/sim/responseOracleReferenceExtension.ts`, `scripts/successive_halving_double_oracle_pilot.ts`, and every test of a deleted module.
+- R2. Bump the saved-game schema version in `src/server` so pre-change 40-health saves are rejected with a clear error; no migration.
+- R3. `scripts/generate_balance_corpus.ts` prose: the suite health sentence becomes 50 or derives from the manifest.
+- R4. `rust/goldfish/tests/matrix_step.rs`: print the six equilibrium weights once, confirm the two-distinct-weight collapse is a genuine 50-health result, and either restore a symbolic assertion or keep the literal with a one-line reason. Stop and report if the matrix looks degenerate.
+- R5. `docs/strategy-search-evidence.md`: the 40-health Kingdom 009 matrix section is marked superseded or removed.
+- R6. `src/sim/balanceSuiteDesign.ts`: the authored continuity row drops `sourceId` and `sourceDigest`; manifests regenerate.
+- R7. `src/sim/orderedGoldfishProduct.ts`: drop the dead `_kingdomId` parameter, the `legacy` name prefix, and the unused aliases; update surviving call sites.
+- R8. Rename the stale `kingdom009Space` identifier in `test/sim/orderedGoldfishBenchmark.test.ts`.
+- Residual, deferred past this plan: `src/server/pretrained-opponents.json` is a playtest-only AI catalog from 40-health evidence; it is regenerated and fingerprint-bound with the first 50-health evidence after the rules settle.
+
 ## Validation
 
 `npm run verify:native` (must fully pass), `npm run modal:test`, `npm run test:native`, `npm test` (must be fully green — zero failures, no carve-outs), `npm run typecheck`, `npm run lint`, `git diff --check`. Unpaid operator proof: the Goldfish v2 `plan` and the PSRO `plan` commands for one kingdom still print tokens from the committed tree.
