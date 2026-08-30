@@ -4,7 +4,7 @@ import threading
 import time
 import unittest
 
-from volume_download import fetch_file, fetch_files, list_files
+from volume_download import fetch_file, fetch_files, list_files, retry_resource_exhausted
 
 
 class Volume:
@@ -57,6 +57,42 @@ class ListingVolume:
 
 
 class VolumeDownloadTests(unittest.TestCase):
+    def test_retry_resource_exhausted_retries_rate_limits_then_succeeds(self):
+        results = [ResourceExhaustedError("one"), ResourceExhaustedError("two"), "complete"]
+        calls = []
+        def operation():
+            calls.append(len(calls) + 1)
+            result = results.pop(0)
+            if isinstance(result, Exception):
+                raise result
+            return result
+        sleeps = []
+        self.assertEqual(retry_resource_exhausted(operation, sleeps.append), "complete")
+        self.assertEqual(calls, [1, 2, 3])
+        self.assertEqual(sleeps, [2, 4])
+
+    def test_retry_resource_exhausted_raises_after_six_attempts(self):
+        calls = []
+        def operation():
+            calls.append(len(calls) + 1)
+            raise ResourceExhaustedError(str(calls[-1]))
+        sleeps = []
+        with self.assertRaisesRegex(ResourceExhaustedError, "6"):
+            retry_resource_exhausted(operation, sleeps.append)
+        self.assertEqual(calls, [1, 2, 3, 4, 5, 6])
+        self.assertEqual(sleeps, [2, 4, 8, 16, 32])
+
+    def test_retry_resource_exhausted_does_not_retry_other_errors(self):
+        calls = []
+        def operation():
+            calls.append(len(calls) + 1)
+            raise OSError("not a rate limit")
+        sleeps = []
+        with self.assertRaisesRegex(OSError, "not a rate limit"):
+            retry_resource_exhausted(operation, sleeps.append)
+        self.assertEqual(calls, [1])
+        self.assertEqual(sleeps, [])
+
     def test_list_files_retries_rate_limits_then_succeeds(self):
         entries = [object(), object()]
         volume = ListingVolume([ResourceExhaustedError("one"),

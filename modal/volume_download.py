@@ -5,25 +5,32 @@ from __future__ import annotations
 import pathlib
 import time
 from concurrent.futures import ThreadPoolExecutor
-from typing import Any, Callable, Iterable
+from typing import Any, Callable, Iterable, TypeVar
 
 _RETRY_DELAYS_SECONDS = (1, 2, 4)
-_LIST_RETRY_DELAYS_SECONDS = (2, 4, 8, 16, 32)
+_RESOURCE_EXHAUSTED_DELAYS_SECONDS = (2, 4, 8, 16, 32)
+_T = TypeVar("_T")
+
+
+def retry_resource_exhausted(operation: Callable[[], _T],
+        sleep: Callable[[float], None] = time.sleep) -> _T:
+    """Retry an operation only when a Modal resource limit is exhausted."""
+    for attempt in range(len(_RESOURCE_EXHAUSTED_DELAYS_SECONDS) + 1):
+        try:
+            return operation()
+        except Exception as error:
+            if type(error).__name__ != "ResourceExhaustedError" \
+                    or attempt == len(_RESOURCE_EXHAUSTED_DELAYS_SECONDS):
+                raise
+            sleep(_RESOURCE_EXHAUSTED_DELAYS_SECONDS[attempt])
+    raise AssertionError("resource-exhausted retry loop did not return or raise")
 
 
 def list_files(volume: Any, remote_root: str,
         sleep: Callable[[float], None] = time.sleep) -> list[Any]:
     """List one Volume tree, retrying only listing rate limits."""
-    attempts = 0
-    while True:
-        attempts += 1
-        try:
-            return list(volume.listdir(remote_root, recursive=True))
-        except Exception as error:
-            if type(error).__name__ != "ResourceExhaustedError" \
-                    or attempts > len(_LIST_RETRY_DELAYS_SECONDS):
-                raise
-            sleep(_LIST_RETRY_DELAYS_SECONDS[attempts - 1])
+    return retry_resource_exhausted(
+        lambda: list(volume.listdir(remote_root, recursive=True)), sleep)
 
 
 def fetch_file(volume: Any, remote: str, local: str | pathlib.Path, expected_size: int | None,
