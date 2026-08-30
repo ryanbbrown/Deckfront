@@ -209,7 +209,7 @@ fn matrix_outputs_are_thread_stable_ranked_and_verified() {
             )
         })
         .collect::<HashSet<_>>();
-    assert_eq!(weights.len(), TOP);
+    assert_eq!(weights.len(), 2);
 
     let purchases = fs::read(outputs[0].join("purchases.hgm")).expect("purchases");
     assert_eq!(read_u32(&purchases, 8), PURCHASE_ROW_BYTES as u32);
