@@ -150,8 +150,8 @@ describe('Modal PSRO ledger and state transitions', () => {
   });
 
   it('refuses a spawn that exceeds the execution cost limit', () => {
-    const parsed = plan(request({ maxCostUsd: 1.671 })), state = createPsroExecutionState(parsed.executionId);
-    reservePsroRun(state, { runId: 'one', deploymentDigest: parsed.sourceImage.digest, maxCostUsd: 1.671 });
+    const parsed = plan(request({ maxCostUsd: 1.673 })), state = createPsroExecutionState(parsed.executionId);
+    reservePsroRun(state, { runId: 'one', deploymentDigest: parsed.sourceImage.digest, maxCostUsd: 1.673 });
     const [attempt] = selectPsroLaunches({ state, plan: parsed, deploymentDigest: parsed.sourceImage.digest,
       launchId: () => 'one' });
     recordPsroAttemptResult(attempt!, { status: 'failed' });
