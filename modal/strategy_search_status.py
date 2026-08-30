@@ -82,8 +82,10 @@ def fail_compute_preflight(campaign_execution_id: str, source_digest: str,
 def prepare_execution(bundle: dict[str, Any], compute_preflight: dict[str, Any]) -> dict[str, Any]:
     required = {"schemaVersion", "campaignExecutionId", "executionRoot", "request", "sourceImage",
         "partitions", "jobs", "tasks", "controller"}
-    if set(bundle) != required or bundle["schemaVersion"] != 3:
-        raise ValueError("strategy-search launch bundle is malformed")
+    if set(bundle) != required or bundle["schemaVersion"] != 3 \
+            or bundle.get("controller", {}).get("route") != "goldfish-only-v2" \
+            or bundle.get("partitions") != {}:
+        raise ValueError("Goldfish v2 launch bundle is malformed")
     preflight_fields = {"ready", "sourceDigest", "readyMs", "computeAppName", "preflightElapsedMs"}
     source_digest = bundle["sourceImage"]["digest"]
     expected_app = f"hexdeck-strategy-{source_digest[:24]}"
@@ -113,7 +115,7 @@ def prepare_execution(bundle: dict[str, Any], compute_preflight: dict[str, Any])
         "controllerFence": 0, "controller": None, "status": "ready", "report": None,
         "startedMs": started_ms, "usefulWorkStartedMs": None,
         "computePreflight": compute_preflight, "utilizationIntervals": [],
-        "route": bundle.get("controller", {}).get("route", "full-strategy-search"),
+        "route": "goldfish-only-v2",
         "costGuard": bundle.get("controller", {}).get("costGuard"),
         "admissionFailures": 0, "publisherCommitMs": 0.0,
         "admissionLimitCpus": bundle["request"]["maxActiveCpus"]}

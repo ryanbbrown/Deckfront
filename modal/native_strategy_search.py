@@ -1,10 +1,9 @@
-"""Restart-safe Modal launcher for strategy-search and competitive scoring."""
+"""Restart-safe Modal launcher for Goldfish and PSRO jobs."""
 
 from __future__ import annotations
 
 import builtins
 import concurrent.futures
-import fcntl
 import hashlib
 import json
 import math
@@ -14,11 +13,8 @@ import queue
 import re
 import resource
 import shutil
-import socket
-import struct
 import subprocess
 import sys
-import tarfile
 import tempfile
 import threading
 import time
@@ -28,16 +24,6 @@ from typing import Any
 
 import modal
 
-CPU_RATE_PER_CORE_HOUR = 0.0473
-MEMORY_RATE_PER_GIB_HOUR = 0.008
-GROSS_BUDGET_USD = 25.0
-MAX_PHYSICAL_CORES = 192
-MAX_FULL_RUNS = 3
-MAX_RETRIES = 2
-COMPETITIVE_SCORER_VERSION = "native-competitive-v1"
-COMPETITIVE_RUN_CAP_USD = 2.0
-COMPETITIVE_TARGET_BLOCKS = 65_536
-COMPETITIVE_ARTIFACT_MAGIC = b"HPS1"
 CAMPAIGN_CHECKPOINT_EVENT = "strategy-search-checkpoint"
 CAMPAIGN_STAGE_STOP_EVENT = "strategy-search-stage-stop"
 CAMPAIGN_STAGES = {"goldfish", "matrix", "psro"}
@@ -60,7 +46,6 @@ PSRO_MODAL_MEMORY_RATE_PER_GIB_SECOND = 0.00000222
 PSRO_MODAL_COMMIT_INTERVAL_SECONDS = 600
 CAMPAIGN_RUST_GOLDFISH_BIN = os.environ.get(
     "HEXDECK_GOLDFISH_BIN", "/workspace/rust/target/release/hexdeck-goldfish")
-LEDGER_PATH = pathlib.Path.home() / ".hexdeck-modal-cost-ledger.json"
 
 LOCAL_PROJECT_ROOT = pathlib.Path(__file__).resolve().parent.parent
 RUNTIME_WORKSPACE_ROOT = pathlib.Path(os.environ.get("HEXDECK_STRATEGY_WORKSPACE", "/workspace"))
@@ -79,16 +64,11 @@ for _relative in _SOURCE_IMAGE_FILES:
 app = modal.App("hexdeck-native-strategy-search")
 volume = modal.Volume.from_name("hexdeck-native-strategy-results", create_if_missing=True)
 image = modal.Image.from_registry("rust:1.98.0-slim-bookworm", add_python="3.12") \
-    .apt_install("ca-certificates", "curl", "build-essential", "time") \
-    .run_commands(
-        "curl -fsSL https://deb.nodesource.com/setup_22.x | bash -",
-        "apt-get install -y nodejs && node --version",
-    )
-_NODE_DEPENDENCY_FILES = {"package.json", "package-lock.json"}
+    .apt_install("ca-certificates", "build-essential", "time")
 _RUST_IMAGE_FILES = {relative for relative in _SOURCE_IMAGE_FILES
     if relative.startswith("rust/") and relative != "rust/rust-toolchain.toml"}
-_APPLICATION_IMAGE_FILES = set(_SOURCE_IMAGE_FILES) - _NODE_DEPENDENCY_FILES - _RUST_IMAGE_FILES
-if _NODE_DEPENDENCY_FILES | _RUST_IMAGE_FILES | _APPLICATION_IMAGE_FILES != set(_SOURCE_IMAGE_FILES):
+_APPLICATION_IMAGE_FILES = set(_SOURCE_IMAGE_FILES) - _RUST_IMAGE_FILES
+if _RUST_IMAGE_FILES | _APPLICATION_IMAGE_FILES != set(_SOURCE_IMAGE_FILES):
     raise RuntimeError("strategy-search image layers differ from the source allowlist")
 
 
@@ -110,26 +90,10 @@ def _ignore_image_paths_except(allowed: set[str]):
 
 if modal.is_local():
     image = image.add_local_dir(PROJECT_ROOT, remote_path="/workspace", copy=True,
-        ignore=_ignore_image_paths_except(_NODE_DEPENDENCY_FILES))
-    image = image.run_commands("cd /workspace && npm ci")
-    image = image.add_local_dir(PROJECT_ROOT, remote_path="/workspace", copy=True,
         ignore=_ignore_image_paths_except(_RUST_IMAGE_FILES))
     image = image.run_commands("cd /workspace/rust && cargo build --release")
     image = image.add_local_dir(PROJECT_ROOT, remote_path="/workspace", copy=True,
         ignore=_ignore_image_paths_except(_APPLICATION_IMAGE_FILES))
-
-
-def projected_cost_usd(
-    shard_count: int, cpu: int, memory_gib: float, timeout_seconds: int,
-    max_containers: int = 1, retries: int = MAX_RETRIES
-) -> float:
-    attempts = retries + 1
-    shard_timeout = timeout_seconds + 30
-    shard_hourly = cpu * CPU_RATE_PER_CORE_HOUR + memory_gib * MEMORY_RATE_PER_GIB_HOUR
-    shard_cost = shard_count * attempts * shard_timeout / 3600 * shard_hourly
-    controller_seconds = attempts * math.ceil(shard_count / max_containers) * shard_timeout + 300
-    controller_cost = controller_seconds / 3600 * (CPU_RATE_PER_CORE_HOUR + MEMORY_RATE_PER_GIB_HOUR)
-    return shard_cost + controller_cost
 
 
 def _called_process_details(error: subprocess.CalledProcessError) -> str:
@@ -177,446 +141,6 @@ def _atomic_json(path: pathlib.Path, value: Any) -> None:
         pass
 
 
-def reserve_cost(run_id: str, projected: float, full_run: bool, config: dict[str, Any]) -> dict[str, Any]:
-    LEDGER_PATH.parent.mkdir(parents=True, exist_ok=True)
-    lock_path = LEDGER_PATH.with_suffix(".lock")
-    with lock_path.open("a+") as lock:
-        fcntl.flock(lock, fcntl.LOCK_EX)
-        ledger = {"schemaVersion": 1, "grossBudgetUsd": GROSS_BUDGET_USD, "runs": {}}
-        if LEDGER_PATH.exists():
-            ledger = json.loads(LEDGER_PATH.read_text())
-        existing = ledger["runs"].get(run_id)
-        if existing:
-            if existing["config"] != config:
-                raise RuntimeError(f"run {run_id} exists with different configuration")
-            return existing
-        reserved = sum(float(run["reservedUsd"]) for run in ledger["runs"].values())
-        full_runs = sum(bool(run["fullRun"]) for run in ledger["runs"].values())
-        if reserved + projected > GROSS_BUDGET_USD:
-            raise RuntimeError(
-                f"cumulative reservation ${reserved + projected:.4f} exceeds ${GROSS_BUDGET_USD:.2f}"
-            )
-        if full_run and full_runs >= MAX_FULL_RUNS:
-            raise RuntimeError(f"full-space run limit {MAX_FULL_RUNS} is exhausted")
-        entry = {
-            "runId": run_id,
-            "createdAt": int(time.time()),
-            "reservedUsd": round(projected, 8),
-            "actualUsd": 0.0,
-            "fullRun": full_run,
-            "status": "reserved",
-            "config": config,
-        }
-        ledger["runs"][run_id] = entry
-        _atomic_json(LEDGER_PATH, ledger)
-        return entry
-
-
-def claim_controller(run_id: str, controller_timeout: int) -> bool:
-    lock_path = LEDGER_PATH.with_suffix(".lock")
-    with lock_path.open("a+") as lock:
-        fcntl.flock(lock, fcntl.LOCK_EX)
-        ledger = json.loads(LEDGER_PATH.read_text())
-        entry = ledger["runs"][run_id]
-        now = int(time.time())
-        if entry["status"] in {"launching", "launched", "complete"}:
-            stale = entry["status"] == "launching" and now - entry.get("launchingAt", now) > controller_timeout
-            if not stale:
-                return False
-        entry["status"] = "launching"
-        entry["launchingAt"] = now
-        _atomic_json(LEDGER_PATH, ledger)
-        return True
-
-
-def update_run_status(run_id: str, status: str) -> None:
-    lock_path = LEDGER_PATH.with_suffix(".lock")
-    with lock_path.open("a+") as lock:
-        fcntl.flock(lock, fcntl.LOCK_EX)
-        ledger = json.loads(LEDGER_PATH.read_text())
-        ledger["runs"][run_id]["status"] = status
-        _atomic_json(LEDGER_PATH, ledger)
-
-
-def record_controller_call(run_id: str, call_id: str) -> None:
-    lock_path = LEDGER_PATH.with_suffix(".lock")
-    with lock_path.open("a+") as lock:
-        fcntl.flock(lock, fcntl.LOCK_EX)
-        ledger = json.loads(LEDGER_PATH.read_text())
-        ledger["runs"][run_id].update({"status": "launched", "controllerCallId": call_id})
-        _atomic_json(LEDGER_PATH, ledger)
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-def adaptive_competitive_shards(
-    candidate_count: int, schedule_count: int, max_containers: int,
-    target_blocks: int = COMPETITIVE_TARGET_BLOCKS
-) -> list[dict[str, int]]:
-    if min(candidate_count, schedule_count, max_containers, target_blocks) < 1:
-        raise ValueError("competitive shard dimensions must be positive")
-    desired = min(max_containers, math.ceil(candidate_count * schedule_count / target_blocks))
-    if candidate_count >= desired:
-        candidate_span = math.ceil(candidate_count / desired)
-        schedule_span = schedule_count
-    else:
-        candidate_span = 1
-        schedule_waves = max(1, math.ceil(desired / candidate_count))
-        schedule_span = math.ceil(schedule_count / schedule_waves)
-    shards = []
-    for candidate_start in range(0, candidate_count, candidate_span):
-        for schedule_start in range(0, schedule_count, schedule_span):
-            shards.append({
-                "shard_id": len(shards),
-                "candidate_start": candidate_start,
-                "candidate_end": min(candidate_count, candidate_start + candidate_span),
-                "schedule_start": schedule_start,
-                "schedule_end": min(schedule_count, schedule_start + schedule_span),
-            })
-    return shards
-
-
-def _competitive_input_hash(value: dict[str, Any]) -> str:
-    held = {key: value[key] for key in value if key != "inputHash"}
-    return hashlib.sha256(json.dumps(held, sort_keys=True, separators=(",", ":")).encode()).hexdigest()
-
-
-def validate_competitive_input(value: Any) -> dict[str, Any]:
-    try:
-        payload = value["loadRequest"]["payload"]
-        schedule = value["schedule"]
-        valid = (
-            value["schemaVersion"] == 1
-            and value["loadRequest"]["type"] == "load_competitive"
-            and payload["protocolVersion"] == 1
-            and payload["scorerVersion"] == COMPETITIVE_SCORER_VERSION
-            and payload["startingDraftEnabled"] is False
-            and isinstance(payload["strategies"], list)
-            and value["candidateCount"] > 0
-            and value["candidateCount"] <= len(payload["strategies"])
-            and isinstance(schedule, list) and len(schedule) > 0
-            and all(isinstance(block["seed"], int) and block["seed"] >= 0
-                    and isinstance(block["opponentIndex"], int)
-                    and 0 <= block["opponentIndex"] < len(payload["strategies"])
-                    for block in schedule)
-            and re.fullmatch(r"[A-Za-z0-9._-]+", value["lookId"]) is not None
-            and value["inputHash"] == _competitive_input_hash(value)
-        )
-        if not valid:
-            raise ValueError("competitive input failed its schema or digest check")
-        return value
-    except (KeyError, TypeError, ValueError) as error:
-        if isinstance(error, ValueError):
-            raise
-        raise ValueError("competitive input failed its schema or digest check") from error
-
-
-def projected_competitive_cost_usd(
-    candidate_count: int, schedule_count: int, cpu: int, memory_gib: int,
-    timeout_seconds: int, max_containers: int, target_blocks: int = COMPETITIVE_TARGET_BLOCKS
-) -> float:
-    shards = adaptive_competitive_shards(
-        candidate_count, schedule_count, max_containers, target_blocks)
-    return projected_cost_usd(len(shards), cpu, memory_gib, timeout_seconds, max_containers)
-
-
-def validate_competitive_launch(
-    *, candidate_count: int, schedule_count: int, cpu: int, memory_gib: int,
-    threads: int, max_containers: int, timeout_seconds: int, max_cost_usd: float,
-    target_blocks: int = COMPETITIVE_TARGET_BLOCKS
-) -> dict[str, Any]:
-    if min(candidate_count, schedule_count, cpu, memory_gib, threads,
-           max_containers, timeout_seconds, target_blocks) < 1:
-        raise ValueError("competitive counts and resource limits must be positive")
-    if threads > cpu:
-        raise ValueError("Rust threads cannot exceed the CPU request")
-    if max_containers > 48 or 1 + cpu * max_containers > MAX_PHYSICAL_CORES:
-        raise ValueError("competitive fleet exceeds the 48-container or physical-core limit")
-    if max_cost_usd > COMPETITIVE_RUN_CAP_USD:
-        raise ValueError(f"competitive run cap cannot exceed ${COMPETITIVE_RUN_CAP_USD:.0f}")
-    projected = projected_competitive_cost_usd(candidate_count, schedule_count, cpu,
-        memory_gib, timeout_seconds, max_containers, target_blocks)
-    if projected > max_cost_usd:
-        raise ValueError(f"worst-case cost ${projected:.4f} exceeds run cap ${max_cost_usd:.4f}")
-    shards = adaptive_competitive_shards(candidate_count, schedule_count,
-        max_containers, target_blocks)
-    waves = math.ceil(len(shards) / max_containers)
-    return {"projected": projected, "shards": shards,
-            "controller_timeout": (MAX_RETRIES + 1) * waves * (timeout_seconds + 30) + 300,
-            "aggregate_cpu": 1 + cpu * max_containers}
-
-
-def _competitive_artifact_path(spec: dict[str, Any]) -> pathlib.Path:
-    return pathlib.Path("/results") / spec["run_id"] / "looks" / spec["look_id"] \
-        / f"shard-{spec['shard_id']:06d}.hps"
-
-
-def _competitive_artifact_digest(header: dict[str, Any], payload: bytes) -> str:
-    held = {key: header[key] for key in header if key != "digest"}
-    encoded = json.dumps(held, sort_keys=True, separators=(",", ":")).encode()
-    return hashlib.sha256(encoded + payload).hexdigest()
-
-
-def _write_competitive_artifact(
-    path: pathlib.Path, header: dict[str, Any], score_bytes: bytes, played: bytes
-) -> None:
-    if len(score_bytes) != len(played):
-        raise ValueError("competitive score and played byte lengths differ")
-    payload = score_bytes + played
-    value = {**header, "scoreCount": len(score_bytes)}
-    value["digest"] = _competitive_artifact_digest(value, payload)
-    encoded = json.dumps(value, sort_keys=True, separators=(",", ":")).encode()
-    path.parent.mkdir(parents=True, exist_ok=True)
-    with tempfile.NamedTemporaryFile("wb", dir=path.parent, delete=False) as held:
-        held.write(COMPETITIVE_ARTIFACT_MAGIC)
-        held.write(struct.pack(">I", len(encoded)))
-        held.write(encoded)
-        held.write(payload)
-        held.flush()
-        os.fsync(held.fileno())
-        temporary = pathlib.Path(held.name)
-    os.replace(temporary, path)
-
-
-def _read_competitive_artifact(path: pathlib.Path) -> tuple[dict[str, Any], bytes, bytes]:
-    raw = path.read_bytes()
-    if len(raw) < 8 or raw[:4] != COMPETITIVE_ARTIFACT_MAGIC:
-        raise ValueError("competitive artifact magic is invalid")
-    header_length = struct.unpack(">I", raw[4:8])[0]
-    header = json.loads(raw[8:8 + header_length])
-    payload = raw[8 + header_length:]
-    score_count = header["scoreCount"]
-    if len(payload) != score_count * 2:
-        raise ValueError("competitive artifact byte length is invalid")
-    if header["digest"] != _competitive_artifact_digest(header, payload):
-        raise ValueError("competitive artifact digest is invalid")
-    return header, payload[:score_count], payload[score_count:]
-
-
-def valid_competitive_artifact(path: pathlib.Path, spec: dict[str, Any]) -> bool:
-    try:
-        header, scores, played = _read_competitive_artifact(path)
-        expected = (spec["candidate_end"] - spec["candidate_start"]) \
-            * (spec["schedule_end"] - spec["schedule_start"])
-        return (
-            header["schemaVersion"] == 1
-            and header["runId"] == spec["run_id"]
-            and header["lookId"] == spec["look_id"]
-            and header["inputHash"] == spec["input_hash"]
-            and header["shardId"] == spec["shard_id"]
-            and header["candidateStart"] == spec["candidate_start"]
-            and header["candidateEnd"] == spec["candidate_end"]
-            and header["scheduleStart"] == spec["schedule_start"]
-            and header["scheduleEnd"] == spec["schedule_end"]
-            and header["scoreCount"] == expected
-            and all(score <= 4 for score in scores)
-            and all(value == 2 for value in played)
-        )
-    except (OSError, KeyError, TypeError, ValueError, json.JSONDecodeError):
-        return False
-
-
-def assemble_competitive_artifacts(
-    artifacts: list[tuple[pathlib.Path, dict[str, Any]]], output: pathlib.Path,
-    candidate_count: int, schedule_count: int, header: dict[str, Any]
-) -> str:
-    total = candidate_count * schedule_count
-    scores = bytearray(total)
-    played = bytearray(total)
-    seen = bytearray(total)
-    for path, spec in artifacts:
-        if not valid_competitive_artifact(path, spec):
-            raise ValueError(f"invalid competitive shard artifact {path}")
-        _, shard_scores, shard_played = _read_competitive_artifact(path)
-        source = 0
-        for candidate in range(spec["candidate_start"], spec["candidate_end"]):
-            for schedule in range(spec["schedule_start"], spec["schedule_end"]):
-                target = candidate * schedule_count + schedule
-                if seen[target]:
-                    raise ValueError("competitive shard artifacts overlap")
-                scores[target] = shard_scores[source]
-                played[target] = shard_played[source]
-                seen[target] = 1
-                source += 1
-    if not all(seen):
-        raise ValueError("competitive shard artifacts do not cover the complete look")
-    _write_competitive_artifact(output, header, bytes(scores), bytes(played))
-    complete_header, _, _ = _read_competitive_artifact(output)
-    return complete_header["digest"]
-
-
-_competitive_process: subprocess.Popen[str] | None = None
-_competitive_process_key = ""
-
-
-def _competitive_request(request: dict[str, Any], process_key: str,
-                         threads: int, cpu: int) -> dict[str, Any]:
-    global _competitive_process, _competitive_process_key
-    if _competitive_process is None or _competitive_process.poll() is not None \
-            or _competitive_process_key != process_key:
-        if _competitive_process is not None and _competitive_process.poll() is None:
-            _competitive_process.terminate()
-            _competitive_process.wait(timeout=10)
-        executable = "/workspace/rust/target/release/hexdeck-goldfish"
-        _competitive_process = subprocess.Popen(
-            [executable, "--threads", str(threads), "--cpu-request", str(cpu)],
-            stdin=subprocess.PIPE, stdout=subprocess.PIPE, stderr=subprocess.PIPE,
-            text=True, bufsize=1)
-        _competitive_process_key = process_key
-    assert _competitive_process.stdin is not None and _competitive_process.stdout is not None
-    _competitive_process.stdin.write(json.dumps(request, separators=(",", ":")) + "\n")
-    _competitive_process.stdin.flush()
-    response_line = _competitive_process.stdout.readline()
-    if not response_line:
-        stderr = _competitive_process.stderr.read() if _competitive_process.stderr else ""
-        raise RuntimeError(f"competitive Rust process returned no response: {stderr[-2000:]}")
-    response = json.loads(response_line)
-    if not response.get("ok"):
-        raise RuntimeError(str(response.get("error")))
-    return response["result"]
-
-
-@app.function(image=image, cpu=1, memory=1024, timeout=300, volumes={"/results": volume})
-def stage_competitive_input(run_id: str, content: str, expected_hash: str) -> dict[str, Any]:
-    value = validate_competitive_input(json.loads(content))
-    if value["inputHash"] != expected_hash:
-        raise ValueError("staged competitive input hash differs from launch hash")
-    path = pathlib.Path("/results") / run_id / "competitive-input.json"
-    _atomic_json(path, value)
-    volume.commit()
-    return {"inputHash": value["inputHash"], "candidateCount": value["candidateCount"],
-            "scheduleCount": len(value["schedule"])}
-
-
-@app.function(image=image, cpu=4, memory=4096, timeout=3600, volumes={"/results": volume})
-@modal.concurrent(max_inputs=1)
-def competitive_score_shard(spec: dict[str, Any]) -> dict[str, Any]:
-    volume.reload()
-    output = _competitive_artifact_path(spec)
-    if valid_competitive_artifact(output, spec):
-        header, _, _ = _read_competitive_artifact(output)
-        return {"status": "success", "shardId": spec["shard_id"],
-                "digest": header["digest"], "reused": True}
-    input_path = pathlib.Path("/results") / spec["run_id"] / "competitive-input.json"
-    value = validate_competitive_input(json.loads(input_path.read_text()))
-    if value["inputHash"] != spec["input_hash"] or value["lookId"] != spec["look_id"]:
-        raise RuntimeError("competitive shard input does not match its specification")
-    process_key = hashlib.sha256(json.dumps(value["loadRequest"], sort_keys=True).encode()).hexdigest()
-    _competitive_request(value["loadRequest"], process_key, spec["threads"], spec["cpu"])
-    blocks = []
-    for candidate_index in range(spec["candidate_start"], spec["candidate_end"]):
-        for schedule_index in range(spec["schedule_start"], spec["schedule_end"]):
-            held = value["schedule"][schedule_index]
-            blocks.append({"candidateIndex": candidate_index,
-                           "opponentIndex": held["opponentIndex"], "seed": held["seed"]})
-    started = time.monotonic()
-    result = _competitive_request({"type": "score_competitive", "payload": {
-        "loadId": value["loadRequest"]["payload"]["loadId"], "blocks": blocks}},
-        process_key, spec["threads"], spec["cpu"])
-    if result["aborts"]:
-        raise RuntimeError("competitive shard returned an abort")
-    scores = bytes(result["scoreBytes"])
-    played = bytes(result["played"])
-    header = {"schemaVersion": 1, "runId": spec["run_id"], "lookId": spec["look_id"],
-        "inputHash": spec["input_hash"], "shardId": spec["shard_id"],
-        "candidateStart": spec["candidate_start"], "candidateEnd": spec["candidate_end"],
-        "scheduleStart": spec["schedule_start"], "scheduleEnd": spec["schedule_end"],
-        "scorerVersion": COMPETITIVE_SCORER_VERSION, "requestedCpu": spec["cpu"],
-        "threads": spec["threads"], "elapsedMs": round((time.monotonic() - started) * 1000, 3)}
-    _write_competitive_artifact(output, header, scores, played)
-    if not valid_competitive_artifact(output, spec):
-        raise RuntimeError("competitive shard artifact failed validation")
-    volume.commit()
-    held, _, _ = _read_competitive_artifact(output)
-    return {"status": "success", "shardId": spec["shard_id"],
-            "digest": held["digest"], "reused": False,
-            "containerIdentity": os.environ.get("MODAL_TASK_ID", socket.gethostname())}
-
-
-@app.function(image=image, cpu=1, memory=1024, timeout=86400, volumes={"/results": volume})
-def competitive_controller(config: dict[str, Any]) -> dict[str, Any]:
-    specs = [{**config, **shard} for shard in adaptive_competitive_shards(
-        config["candidate_count"], config["schedule_count"], config["max_containers"],
-        config["target_blocks"])]
-    completed: dict[int, dict[str, Any]] = {}
-    remote = competitive_score_shard.with_options(cpu=config["cpu"],
-        memory=config["memory_gib"] * 1024, timeout=config["timeout_seconds"] + 30,
-        max_containers=config["max_containers"], retries=0)
-    for attempt in range(MAX_RETRIES + 1):
-        pending = [spec for spec in specs if spec["shard_id"] not in completed]
-        if not pending:
-            break
-        for reply in remote.map(pending, order_outputs=False, return_exceptions=True):
-            if isinstance(reply, dict) and reply.get("status") == "success":
-                completed[reply["shardId"]] = reply
-        if len(completed) < len(specs) and attempt < MAX_RETRIES:
-            time.sleep(min(30, 2 ** attempt))
-    if len(completed) != len(specs):
-        raise RuntimeError(f"{len(specs) - len(completed)} competitive shards failed")
-    ordered = [completed[index] for index in range(len(specs))]
-    volume.reload()
-    root = pathlib.Path("/results") / config["run_id"] / "looks" / config["look_id"]
-    complete_path = root / "complete.hps"
-    complete_digest = assemble_competitive_artifacts(
-        [(_competitive_artifact_path(spec), spec) for spec in specs], complete_path,
-        config["candidate_count"], config["schedule_count"],
-        {"schemaVersion": 1, "runId": config["run_id"], "lookId": config["look_id"],
-         "inputHash": config["input_hash"], "candidateCount": config["candidate_count"],
-         "scheduleCount": config["schedule_count"], "buildVersion": config["build_version"],
-         "ruleFingerprint": config["rule_fingerprint"], "requestedCpu": config["cpu"],
-         "threads": config["threads"], "scorerVersion": COMPETITIVE_SCORER_VERSION})
-    manifest = {"schemaVersion": 1, "status": "success", "runId": config["run_id"],
-        "lookId": config["look_id"], "inputHash": config["input_hash"],
-        "candidateCount": config["candidate_count"], "scheduleCount": config["schedule_count"],
-        "completeDigest": complete_digest,
-        "completeArtifact": f"hexdeck-native-strategy-results:/{config['run_id']}/looks/{config['look_id']}/complete.hps",
-        "shards": [{**spec, "digest": ordered[index]["digest"]}
-                   for index, spec in enumerate(specs)]}
-    path = root / "manifest.json"
-    _atomic_json(path, manifest)
-    volume.commit()
-    return manifest
-
 
 def _strategy_search_path(relative: str) -> pathlib.Path:
     if not isinstance(relative, str) or not relative or relative.startswith("/") or "\\" in relative \
@@ -637,66 +161,23 @@ def _strategy_search_sha256(path: pathlib.Path) -> str:
     return digest.hexdigest()
 
 
-def _strategy_search_subprocess_command(entry: str, kingdom_id: str, arguments: list[str]) -> list[str]:
-    return ["npx", "tsx", "scripts/strategy_search_subprocess.ts", "--entry", entry,
-        "--kingdom", kingdom_id, "--", *arguments]
-
-
-def _strategy_search_validate_psro_score_receipt(publication: dict[str, Any], artifact: pathlib.Path) -> bool:
-    transition_path = publication.get("transitionPath")
-    score_task = publication.get("scoreTask")
-    if not transition_path or not isinstance(score_task, dict):
-        raise RuntimeError("PSRO score receipt has no sealed look context")
-    with tempfile.TemporaryDirectory() as directory:
-        root = pathlib.Path(directory)
-        task, output = root / "task.json", root / "validation.json"
-        _atomic_json(task, score_task)
-        _run_checked(_strategy_search_subprocess_command("psro-score-receipt-validator",
-            publication["kingdomId"], ["--out", str(output), "--transition",
-                str(_strategy_search_path(transition_path)), "--task", str(task), "--chunk", str(artifact)]),
-            "strategy-search PSRO score receipt validation", cwd="/workspace",
-            text=True, capture_output=True, timeout=120)
-        result = _strategy_search_load(output)
-    if not isinstance(result, dict) or set(result) != {"valid"} or not isinstance(result["valid"], bool):
-        raise RuntimeError("PSRO score receipt validator returned malformed output")
-    return result["valid"]
-
-
 def _strategy_search_validate_publication(publication: dict[str, Any], temporary: pathlib.Path) -> None:
     stage = publication["stage"]
     goldfish_kinds = {"goldfish-one": "stage-one", "goldfish-two": "stage-two",
         "goldfish-one-reduce": "top", "goldfish-two-reduce": "reservoir"}
-    if stage in goldfish_kinds:
-        command = [CAMPAIGN_RUST_GOLDFISH_BIN, "verify", "--kingdom", publication["kingdomId"],
-            "--kind", goldfish_kinds[stage], "--file", str(temporary)]
-        if stage in {"goldfish-one", "goldfish-two"}:
-            expected = publication.get("range")
-            if not expected:
-                raise RuntimeError("Goldfish publication has no semantic range")
-            command += ["--start", str(expected["start"]), "--end", str(expected["end"])]
-        if stage in {"goldfish-two", "goldfish-two-reduce"}:
-            command += ["--top", str(_strategy_search_path(publication["topPath"]))]
-        _run_checked(command, f"strategy-search {stage} artifact validation",
-            text=True, capture_output=True, timeout=600)
-        return
-    if stage == "psro-score":
-        if not _strategy_search_validate_psro_score_receipt(publication, temporary):
-            raise RuntimeError("strategy-search PSRO score chunk does not match its sealed look")
-        return
-    if stage in {"matrix-reduce", "psro-reduce"}:
-        _run_checked(_strategy_search_subprocess_command("validator", publication["kingdomId"], [
-            "--stage", stage, "--file", str(temporary), "--evidence-id", publication["evidenceId"],
-            "--kingdom", publication["kingdomId"], "--evidence-root",
-            str(_strategy_search_path(f"evidence/{publication['evidenceId']}"))]),
-            f"strategy-search {stage} artifact validation", cwd="/workspace",
-            text=True, capture_output=True, timeout=600)
-        return
-    value = json.loads(temporary.read_text())
-    transition_valid = stage == "psro-decision" and isinstance(value, dict) \
-        and value.get("kind") in {"score", "admission-row", "complete"} \
-        and isinstance(value.get("checkpoint"), dict) and value["checkpoint"].get("schemaVersion") == 1
-    if not isinstance(value, dict) or not value.get("schemaVersion") and not transition_valid:
-        raise RuntimeError(f"strategy-search {stage} runtime artifact is malformed")
+    if stage not in goldfish_kinds:
+        raise RuntimeError(f"strategy-search stage is not supported: {stage}")
+    command = [CAMPAIGN_RUST_GOLDFISH_BIN, "verify", "--kingdom", publication["kingdomId"],
+        "--kind", goldfish_kinds[stage], "--file", str(temporary)]
+    if stage in {"goldfish-one", "goldfish-two"}:
+        expected = publication.get("range")
+        if not expected:
+            raise RuntimeError("Goldfish publication has no semantic range")
+        command += ["--start", str(expected["start"]), "--end", str(expected["end"])]
+    if stage in {"goldfish-two", "goldfish-two-reduce"}:
+        command += ["--top", str(_strategy_search_path(publication["topPath"]))]
+    _run_checked(command, f"strategy-search {stage} artifact validation",
+        text=True, capture_output=True, timeout=600)
 
 
 def _strategy_search_source_digest(files: list[dict[str, Any]]) -> str:
@@ -850,8 +331,8 @@ def strategy_search_publisher(request: dict[str, Any]) -> dict[str, Any]:
             raise RuntimeError("saved execution scientific identity differs")
         if saved.get("computePreflight", {}).get("sourceDigest") != request["sourceDigest"]:
             raise RuntimeError("saved execution compute identity differs")
-        requested_route = request.get("route", "full-strategy-search")
-        if saved.get("route", "full-strategy-search") != requested_route \
+        if request.get("route") != GOLDFISH_MODAL_ROUTE \
+                or saved.get("route") != GOLDFISH_MODAL_ROUTE \
                 or saved.get("costGuard") != request.get("costGuard"):
             raise RuntimeError("saved execution route or cost guard differs")
         saved["maxActiveCpus"] = request["maxActiveCpus"]
@@ -898,20 +379,6 @@ def strategy_search_publisher(request: dict[str, Any]) -> dict[str, Any]:
         return state
     if operation == "status":
         return _strategy_search_load(_strategy_search_execution_file(request["campaignExecutionId"]))
-    if operation == "evidence-complete":
-        evidence_id = request["evidenceId"]
-        state = _strategy_search_load(_strategy_search_evidence_state(evidence_id))
-        completion = state.get("completion") if state else None
-        if not completion:
-            return {"complete": False}
-        receipts = completion.get("receipts", {})
-        if set(receipts) != {"goldfish-one-reduce", "goldfish-two-reduce", "matrix-reduce", "psro-reduce"}:
-            return {"complete": False}
-        for stage, receipt in receipts.items():
-            artifact = _strategy_search_path(receipt["artifactPath"])
-            if not artifact.exists() or _strategy_search_sha256(artifact) != receipt["sha256"]:
-                raise RuntimeError(f"complete evidence receipt differs for {stage}")
-        return {"complete": True, "receipts": receipts}
     if operation == "goldfish-evidence-complete":
         evidence_id = request["evidenceId"]
         state = _strategy_search_load(_strategy_search_evidence_state(evidence_id))
@@ -926,7 +393,7 @@ def strategy_search_publisher(request: dict[str, Any]) -> dict[str, Any]:
             if not artifact.exists() or _strategy_search_sha256(artifact) != receipt["sha256"]:
                 raise RuntimeError(f"complete Goldfish receipt differs for {stage}")
         return {"complete": True, "receipts": receipts}
-    if operation in {"evidence-finalize", "goldfish-evidence-finalize"}:
+    if operation == "goldfish-evidence-finalize":
         evidence_id = request["evidenceId"]
         state_file = _strategy_search_evidence_state(evidence_id)
         state = _strategy_search_load(state_file)
@@ -939,12 +406,11 @@ def strategy_search_publisher(request: dict[str, Any]) -> dict[str, Any]:
             if not artifact.exists() or _strategy_search_sha256(artifact) != receipt["sha256"]:
                 raise RuntimeError(f"cannot finalize evidence with invalid {stage} artifact")
             receipts[stage] = receipt
-        completion_key = "goldfishCompletion" if operation == "goldfish-evidence-finalize" else "completion"
-        state[completion_key] = {"completedMs": request.get("nowMs", int(time.time() * 1000)),
+        state["goldfishCompletion"] = {"completedMs": request.get("nowMs", int(time.time() * 1000)),
             "receipts": receipts}
         _atomic_json(state_file, state)
         volume.commit()
-        return state[completion_key]
+        return state["goldfishCompletion"]
     if operation == "execution-fail":
         state_file = _strategy_search_execution_file(request["campaignExecutionId"])
         state = _strategy_search_load(state_file)
@@ -953,9 +419,7 @@ def strategy_search_publisher(request: dict[str, Any]) -> dict[str, Any]:
         failed_ms = request.get("nowMs", int(time.time() * 1000))
         attempts = [attempt for job in state.get("jobs", []) for attempt in job.get("attempts", [])]
         cost_rates = (GOLDFISH_MODAL_CPU_RATE_PER_CORE_SECOND * 3600,
-            GOLDFISH_MODAL_MEMORY_RATE_PER_GIB_SECOND * 3600) \
-            if state.get("route") == GOLDFISH_MODAL_ROUTE else \
-            (CPU_RATE_PER_CORE_HOUR, MEMORY_RATE_PER_GIB_HOUR)
+            GOLDFISH_MODAL_MEMORY_RATE_PER_GIB_SECOND * 3600)
         costs = [_strategy_search_attempt_cost(attempt, failed_ms, *cost_rates) for attempt in attempts
             if attempt.get("status") != "admission-failed"]
         state.update({"status": "failed", "failedMs": failed_ms,
@@ -987,25 +451,6 @@ def strategy_search_publisher(request: dict[str, Any]) -> dict[str, Any]:
                 destination = _strategy_search_path(receipt["artifactPath"])
                 if not destination.exists() or _strategy_search_sha256(destination) != receipt["sha256"]:
                     raise RuntimeError("publication receipt has no matching artifact")
-                if item.get("stage") == "psro-score" \
-                        and not _strategy_search_validate_psro_score_receipt(item, destination):
-                    preserved_relative = f"evidence/{evidence_id}/invalidated/psro-score/{task_id}/" \
-                        f"{receipt['sha256']}.json"
-                    preserved = _strategy_search_path(preserved_relative)
-                    if preserved.exists() and _strategy_search_sha256(preserved) != receipt["sha256"]:
-                        raise RuntimeError("preserved PSRO score receipt conflicts")
-                    if not preserved.exists():
-                        preserved.parent.mkdir(parents=True, exist_ok=True)
-                        shutil.copyfile(destination, preserved)
-                        volume.commit()
-                    destination.unlink()
-                    invalid = {**receipt, "preservedArtifactPath": preserved_relative,
-                        "invalidatedMs": now, "reason": "sealed-look-mismatch"}
-                    state.setdefault("invalidReceipts", {}).setdefault(task_id, []).append(invalid)
-                    del state["receipts"][task_id]
-                    state["leases"].pop(task_id, None)
-                    state["intents"].pop(task_id, None)
-                    receipt = None
                 if receipt:
                     results[task_id] = {"complete": True, "receipt": receipt}
                     continue
@@ -1459,89 +904,9 @@ def strategy_search_psro_job(config: dict[str, Any]) -> dict[str, Any]:
     return _strategy_search_psro_job_impl(config)
 
 
-@app.function(image=image, cpu=4, memory=8192, timeout=900, retries=0,
-              scaledown_window=300, volumes={"/results": volume})
-@modal.concurrent(max_inputs=1)
-def strategy_search_downstream_job(config: dict[str, Any]) -> dict[str, Any]:
-    volume.reload()
-    worker_started_ms = int(time.time() * 1000)
-    stage_started = time.monotonic()
-    output = _strategy_search_path(config["temporaryPath"])
-    output.parent.mkdir(parents=True, exist_ok=True)
-    work = output.parent / "input"
-    work.mkdir(parents=True, exist_ok=True)
-    stage = config["stage"]
-    if stage == "matrix-manifest":
-        command = _strategy_search_subprocess_command("matrix-manifest", config["kingdomId"], [
-            "--evidence-id", config["evidenceId"], "--kingdom", config["kingdomId"],
-            "--reservoir", str(_strategy_search_path(config["reservoirPath"])),
-            "--reservoir-sha256", config["reservoirSha256"],
-            "--seed-namespace", "strategy-search-matrix-v2", "--out", str(output)])
-    elif stage == "matrix-score":
-        command = _strategy_search_subprocess_command("matrix-score", config["kingdomId"], [
-            "--manifest", str(_strategy_search_path(config["manifestPath"])),
-            "--task-index", str(config["taskIndex"]), "--task-count", str(config["taskCount"]),
-            "--workers", str(config["cpu"]), "--out", str(output)])
-    elif stage == "matrix-reduce":
-        chunks = work / "chunks.json"
-        _atomic_json(chunks, [str(_strategy_search_path(held)) for held in config["chunkPaths"]])
-        command = _strategy_search_subprocess_command("matrix-reduce", config["kingdomId"], [
-            "--manifest", str(_strategy_search_path(config["manifestPath"])),
-            "--chunks", str(chunks), "--task-count", str(config["taskCount"]), "--out", str(output)])
-    else:
-        entry = "parallel-psro"
-        arguments = ["--mode", config["operation"], "--out", str(output)]
-        if config["operation"] != "finalize":
-            arguments += ["--target-tasks", str(config["targetTasks"])]
-        transition = None
-        if config.get("transitionPath"):
-            transition_path = _strategy_search_path(config["transitionPath"])
-            transition = _strategy_search_load(transition_path)
-            arguments += ["--transition", str(transition_path)]
-        if stage == "psro-decision" and config["operation"] == "init":
-            arguments += ["--evidence-id", config["evidenceId"], "--kingdom", config["kingdomId"],
-                "--reservoir", str(_strategy_search_path(config["reservoirPath"])),
-                "--matrix", str(_strategy_search_path(config["matrixPath"]))]
-        elif config["operation"] in {"score", "reduce-score"}:
-            if config["operation"] == "score":
-                task = work / "task.json"
-                _atomic_json(task, config["scoreTask"])
-                arguments += ["--task", str(task), "--workers", str(config["cpu"])]
-            else:
-                chunks = work / "chunks.json"
-                _atomic_json(chunks, [str(_strategy_search_path(held)) for held in config["chunkPaths"]])
-                arguments += ["--chunks", str(chunks)]
-        elif config["operation"] in {"admission-score", "admission-reduce"}:
-            if config["operation"] == "admission-score":
-                arguments += ["--task-index", str(config["taskIndex"]), "--workers", str(config["cpu"])]
-            else:
-                chunks = work / "chunks.json"
-                _atomic_json(chunks, [str(_strategy_search_path(held)) for held in config["chunkPaths"]])
-                arguments += ["--chunks", str(chunks)]
-        elif config["operation"] == "finalize":
-            transition_file = work / "transition.json"
-            _atomic_json(transition_file, transition)
-            arguments = ["--mode", "finalize", "--out", str(output), "--transition", str(transition_file),
-                "--matrix", str(_strategy_search_path(config["matrixPath"]))]
-        command = _strategy_search_subprocess_command(entry, config["kingdomId"], arguments)
-    result = _strategy_search_run_subprocess(command, config)
-    validated_sha256 = _strategy_search_sha256(output)
-    _strategy_search_validate_publication(config, output)
-    commit_started = time.monotonic()
-    volume.commit()
-    commit_ms = (time.monotonic() - commit_started) * 1000
-    result["modalWorkerElapsedMs"] = (time.monotonic() - stage_started) * 1000
-    result["elapsedMs"] = result["modalWorkerElapsedMs"] \
-        + max(0, worker_started_ms - config["enqueuedEpochMs"])
-    result["workerFinishedEpochMs"] = int(time.time() * 1000)
-    return {**result, "sha256": validated_sha256, "validatedSha256": validated_sha256,
-        "workerStartedEpochMs": worker_started_ms, "workerFinishedEpochMs": result["workerFinishedEpochMs"],
-        "temporaryVolumeWriteCommitMs": commit_ms, "temporaryPath": config["temporaryPath"]}
-
-
 def _strategy_search_attempt_cost(attempt: dict[str, Any], until_ms: int,
-                                  cpu_rate_per_core_hour: float = CPU_RATE_PER_CORE_HOUR,
-                                  memory_rate_per_gib_hour: float = MEMORY_RATE_PER_GIB_HOUR) -> dict[str, Any]:
+                                  cpu_rate_per_core_hour: float = GOLDFISH_MODAL_CPU_RATE_PER_CORE_SECOND * 3600,
+                                  memory_rate_per_gib_hour: float = GOLDFISH_MODAL_MEMORY_RATE_PER_GIB_SECOND * 3600) -> dict[str, Any]:
     elapsed_ms = attempt.get("modalWorkerElapsedMs")
     measured = isinstance(elapsed_ms, (int, float)) and elapsed_ms >= 0
     if not measured:
@@ -1550,73 +915,6 @@ def _strategy_search_attempt_cost(attempt: dict[str, Any], until_ms: int,
         + attempt["memoryMiB"] / 1024 * memory_rate_per_gib_hour)
     return {"elapsedMs": elapsed_ms, "costUsd": cost,
         "basis": "worker-measured" if measured else "submitted-upper-bound"}
-
-
-def _strategy_search_score_look_utilization(state: dict[str, Any], until_ms: int) -> list[dict[str, Any]]:
-    tasks = {task["taskId"]: task for task in state.get("tasks", [])}
-    groups: dict[tuple[str, str, str, str], list[dict[str, Any]]] = {}
-    for job in state.get("jobs", []):
-        if job.get("stage") not in {"matrix-score", "psro-score"}:
-            continue
-        metadata = tasks.get(job["taskId"], {}).get("metadata", {})
-        look_id = metadata.get("lookDescriptorHash", "matrix")
-        key = (job["evidenceId"], job["kingdomId"], job["stage"], look_id)
-        groups.setdefault(key, []).append(job)
-    def peak(jobs: list[dict[str, Any]], start_key: str, end_key: str) -> int:
-        deltas: dict[int, int] = {}
-        for job in jobs:
-            for attempt in job.get("attempts", []):
-                start = attempt.get(start_key)
-                if not isinstance(start, int):
-                    continue
-                end = attempt.get(end_key, until_ms)
-                if not isinstance(end, int) or end < start:
-                    continue
-                deltas[start] = deltas.get(start, 0) + attempt["cpu"]
-                deltas[end] = deltas.get(end, 0) - attempt["cpu"]
-        running = maximum = 0
-        for held in sorted(deltas):
-            running += deltas[held]
-            maximum = max(maximum, running)
-        return maximum
-    def distribution(values: list[float]) -> dict[str, float] | None:
-        if not values:
-            return None
-        held = sorted(values)
-        percentile = lambda fraction: held[round((len(held) - 1) * fraction)]
-        return {"min": held[0], "p50": percentile(0.5), "p95": percentile(0.95), "max": held[-1]}
-    result = []
-    for (evidence_id, kingdom_id, stage, look_id), jobs in sorted(groups.items()):
-        attempts = [attempt for job in jobs for attempt in job.get("attempts", [])]
-        worker_durations = [attempt["workerFinishedMs"] - attempt["workerStartedMs"] for attempt in attempts
-            if isinstance(attempt.get("workerStartedMs"), int)
-            and isinstance(attempt.get("workerFinishedMs"), int)]
-        queue_delays = [attempt["workerStartedMs"] - attempt["submittedMs"] for attempt in attempts
-            if isinstance(attempt.get("submittedMs"), int) and isinstance(attempt.get("workerStartedMs"), int)]
-        task_ids = {job["taskId"] for job in jobs}
-        reduce_stage = "matrix-reduce" if stage == "matrix-score" else "psro-decision"
-        reducer = next((job for job in state.get("jobs", []) if job.get("stage") == reduce_stage
-            and set(job.get("dependencyTaskIds", [])) == task_ids), None)
-        reducer_attempts = reducer.get("attempts", []) if reducer else []
-        reducer_finished = max((attempt.get("finishedMs", 0) for attempt in reducer_attempts), default=0)
-        worker_finished = max((attempt.get("workerFinishedMs", 0) for attempt in attempts), default=0)
-        first_submitted = min((attempt.get("submittedMs", until_ms) for attempt in attempts), default=until_ms)
-        last_finished = max(reducer_finished,
-            max((attempt.get("finishedMs", 0) for attempt in attempts), default=0))
-        reduction_worker_ms = sum(attempt.get("modalWorkerElapsedMs",
-            max(0, attempt.get("workerFinishedMs", 0) - attempt.get("workerStartedMs", 0)))
-            for attempt in reducer_attempts)
-        result.append({"evidenceId": evidence_id, "kingdomId": kingdom_id, "stage": stage,
-            "lookId": look_id, "taskCount": len(jobs),
-            "requestedCpus": sum(tasks.get(job["taskId"], {}).get("cpu", job.get("cpus", 4)) for job in jobs),
-            "peakSubmittedCpus": peak(jobs, "submittedMs", "finishedMs"),
-            "peakRunningCpus": peak(jobs, "workerStartedMs", "workerFinishedMs"),
-            "admissionFailureCount": sum(attempt.get("status") == "admission-failed" for attempt in attempts),
-            "workerDurationMs": distribution(worker_durations), "queueDelayMs": distribution(queue_delays),
-            "coordinationAndReductionMs": max(0, reducer_finished - worker_finished) if reducer_finished else None,
-            "reductionWorkerMs": reduction_worker_ms if reducer_attempts else None,
-            "totalWallMs": max(0, last_finished - first_submitted) if last_finished else None})
-    return result
 
 
 def _strategy_search_exception_diagnostic(error: BaseException) -> dict[str, str]:
@@ -1681,10 +979,7 @@ def _strategy_search_ready_jobs(state: dict[str, Any]) -> list[dict[str, Any]]:
     complete = {job["taskId"] for job in state["jobs"] if job["status"] == "complete"}
     ready = []
     now = int(time.time() * 1000)
-    priority = {"psro-decision": 0, "matrix-reduce": 0, "admission-row-reduce": 0,
-        "psro-reduce": 0, "matrix-manifest": 1, "matrix-score": 1, "psro-score": 1,
-        "admission-row-score": 1, "goldfish-one-reduce": 2, "goldfish-two-reduce": 2,
-        "goldfish-two": 3, "goldfish-one": 4}
+    priority = {"goldfish-one-reduce": 0, "goldfish-two-reduce": 1}
     for job in state["jobs"]:
         if job["status"] == "retry-backoff" and job.get("retryNotBeforeMs", 0) <= now:
             job["status"] = "ready"
@@ -1721,55 +1016,12 @@ def _strategy_search_task_config(bundle: dict[str, Any], state: dict[str, Any], 
         **controller_fields, "launchId": launch_id, "temporaryPath": temporary,
         "sourceImage": bundle["sourceImage"], "cpu": task["cpu"], "memoryMiB": task["memoryMiB"],
         "timeoutSeconds": task["timeoutSeconds"], "stage": job["stage"]}
-    if bundle["controller"].get("route") == GOLDFISH_MODAL_ROUTE \
-            and job["stage"] in {"goldfish-one-reduce", "goldfish-two-reduce"}:
-        config["mode"] = "kingdom-one" if job["stage"] == "goldfish-one-reduce" else "kingdom-two"
-        if job["stage"] == "goldfish-two-reduce":
-            config["topPath"] = f"evidence/{job['evidenceId']}/goldfish/top-500000.hgf"
-    elif job["stage"] == "goldfish-one":
-        config.update({"mode": "score-one", "range": job["range"]})
-    elif job["stage"] == "goldfish-two":
-        config.update({"mode": "score-two", "range": job["range"],
-            "topPath": f"evidence/{job['evidenceId']}/goldfish/top-500000.hgf"})
-    elif job["stage"] in {"goldfish-one-reduce", "goldfish-two-reduce"}:
-        dependencies = [next(held for held in state["jobs"] if held["taskId"] == dependency)
-                        for dependency in job["dependencyTaskIds"]]
-        config.update({"mode": "reduce-one" if job["stage"] == "goldfish-one-reduce" else "reduce-two",
-            "manifest": [held["receipt"]["artifactPath"] for held in dependencies]})
-        if job["stage"] == "goldfish-two-reduce":
-            config["topPath"] = f"evidence/{job['evidenceId']}/goldfish/top-500000.hgf"
-    elif job["stage"] == "matrix-manifest":
-        reservoir_job = next(held for held in state["jobs"]
-            if held["evidenceId"] == job["evidenceId"] and held["stage"] == "goldfish-two-reduce")
-        config.update({"reservoirPath": f"evidence/{job['evidenceId']}/goldfish/reservoir.hgf",
-            "reservoirSha256": reservoir_job["receipt"]["sha256"]})
-    elif job["stage"] == "matrix-score":
-        manifest_job = next(held for held in state["jobs"]
-            if held["evidenceId"] == job["evidenceId"] and held["stage"] == "matrix-manifest")
-        config.update({"manifestPath": manifest_job["receipt"]["artifactPath"],
-            "taskIndex": task.get("metadata", {}).get("taskIndex", job["range"]["start"]),
-            "taskCount": task.get("metadata", {})["taskCount"]})
-    elif job["stage"] == "matrix-reduce":
-        dependencies = [next(held for held in state["jobs"] if held["taskId"] == dependency)
-                        for dependency in job["dependencyTaskIds"]]
-        manifest_job = next(held for held in state["jobs"]
-            if held["evidenceId"] == job["evidenceId"] and held["stage"] == "matrix-manifest")
-        config.update({"manifestPath": manifest_job["receipt"]["artifactPath"],
-            "chunkPaths": [held["receipt"]["artifactPath"] for held in dependencies],
-            "taskCount": len(dependencies)})
-    else:
-        metadata = task.get("metadata", {})
-        config.update(metadata)
-        config["targetTasks"] = max(1, min(50, state["maxActiveCpus"] // 4))
-        if job["stage"] == "psro-decision" and metadata.get("operation") == "init":
-            config.update({"reservoirPath": f"evidence/{job['evidenceId']}/goldfish/reservoir.hgf",
-                "matrixPath": f"evidence/{job['evidenceId']}/matrix/evidence.json"})
-        if metadata.get("operation") in {"reduce-score", "admission-reduce"}:
-            dependencies = [next(held for held in state["jobs"] if held["taskId"] == dependency)
-                            for dependency in job["dependencyTaskIds"]]
-            config["chunkPaths"] = [held["receipt"]["artifactPath"] for held in dependencies]
-        if metadata.get("operation") == "finalize":
-            config["matrixPath"] = f"evidence/{job['evidenceId']}/matrix/evidence.json"
+    if bundle["controller"].get("route") != GOLDFISH_MODAL_ROUTE \
+            or job["stage"] not in {"goldfish-one-reduce", "goldfish-two-reduce"}:
+        raise RuntimeError("Goldfish-only controller received an unsupported task")
+    config["mode"] = "kingdom-one" if job["stage"] == "goldfish-one-reduce" else "kingdom-two"
+    if job["stage"] == "goldfish-two-reduce":
+        config["topPath"] = f"evidence/{job['evidenceId']}/goldfish/top-500000.hgf"
     job.update({"status": "launching", "launchId": launch_id, "taskFence": prepared["fence"],
         "temporaryPath": temporary, "cpu": task["cpu"], "leaseUntilMs": prepared["leaseUntilMs"]})
     return config
@@ -1930,233 +1182,10 @@ def _strategy_search_validate_goldfish_only_bundle(bundle: dict[str, Any]) -> di
         "orderedEvidenceIds": ordered_evidence_ids}
 
 
-def _strategy_search_materialize_goldfish(state: dict[str, Any], bundle: dict[str, Any]) -> bool:
-    worker_cpus = bundle["controller"].get("goldfishWorkerCores", 4)
-    score_memory_mib = bundle["controller"].get("goldfishScoreMemoryMiB", 4096)
-    score_timeout_seconds = bundle["controller"].get("goldfishScoreTimeoutSeconds", 180)
-    reducer_cpus = bundle["controller"].get("goldfishReducerCores", 4)
-    reduce_memory_mib = bundle["controller"].get("goldfishReduceMemoryMiB", 8192)
-    window = max(1, state["maxActiveCpus"] // worker_cpus) * bundle["controller"].get("readyWindowWaves", 2)
-    unlaunched = sum(job["stage"] in {"goldfish-one", "goldfish-two", "matrix-score",
-            "psro-score", "admission-row-score"}
-        and job["status"] in {"blocked", "ready"} for job in state["jobs"])
-    changed = False
-    kingdom_by_evidence = {}
-    for job in state["jobs"]:
-        kingdom_by_evidence[job["evidenceId"]] = job["kingdomId"]
-    partition_entries = []
-    reused = set(state.get("reusedEvidenceIds", []))
-    for key, partition in sorted(state["partitions"].items()):
-        evidence_id, stage = key.split(":", 1)
-        if evidence_id in reused:
-            continue
-        if stage == "goldfish-two":
-            reduce_one_id = _strategy_search_goldfish_task_id(evidence_id, "goldfish-one-reduce", None)
-            if not any(job["taskId"] == reduce_one_id and job["status"] == "complete" for job in state["jobs"]):
-                continue
-        existing = {(job["range"]["start"], job["range"]["end"]) for job in state["jobs"]
-            if job["evidenceId"] == evidence_id and job["stage"] == stage and job.get("range")}
-        missing = [held for held in partition["jobs"] if (held["start"], held["end"]) not in existing]
-        partition_entries.append([evidence_id, stage, missing, 0])
-    while unlaunched < window and any(entry[3] < len(entry[2]) for entry in partition_entries):
-        for entry in partition_entries:
-            if unlaunched >= window or entry[3] >= len(entry[2]):
-                continue
-            evidence_id, stage, ranges, cursor = entry
-            held = ranges[cursor]
-            entry[3] += 1
-            kingdom_id = kingdom_by_evidence[evidence_id]
-            task_id = _strategy_search_goldfish_task_id(evidence_id, stage, held)
-            dependency = [] if stage == "goldfish-one" else [
-                _strategy_search_goldfish_task_id(evidence_id, "goldfish-one-reduce", None)]
-            state["jobs"].append({"taskId": task_id, "evidenceId": evidence_id,
-                "kingdomId": kingdom_id, "stage": stage, "range": held, "cpus": worker_cpus,
-                "status": "blocked" if dependency else "ready", "dependencyTaskIds": dependency,
-                "launchIntentId": None, "callId": None, "leaseUntilMs": None, "attemptCount": 0})
-            state["tasks"].append({"taskId": task_id, "kingdomId": kingdom_id,
-                "evidenceId": evidence_id, "stage": stage, "range": held, "cpu": worker_cpus,
-                "memoryMiB": score_memory_mib, "timeoutSeconds": score_timeout_seconds,
-                "dependencyTaskIds": dependency,
-                "artifactPath": f"evidence/{evidence_id}/tasks/{stage}/{held['start']}-{held['end']}.hgs"})
-            unlaunched += 1
-            changed = True
-    for key, partition in sorted(state["partitions"].items()):
-        evidence_id, stage = key.split(":", 1)
-        if evidence_id in reused:
-            continue
-        score_ids = [_strategy_search_goldfish_task_id(evidence_id, stage, held) for held in partition["jobs"]]
-        if not all(any(job["taskId"] == task_id for job in state["jobs"]) for task_id in score_ids):
-            continue
-        reduce_stage = "goldfish-one-reduce" if stage == "goldfish-one" else "goldfish-two-reduce"
-        reduce_id = _strategy_search_goldfish_task_id(evidence_id, reduce_stage, None)
-        if any(job["taskId"] == reduce_id for job in state["jobs"]):
-            continue
-        kingdom_id = kingdom_by_evidence[evidence_id]
-        state["jobs"].append({"taskId": reduce_id, "evidenceId": evidence_id,
-            "kingdomId": kingdom_id, "stage": reduce_stage, "range": None, "cpus": reducer_cpus,
-            "status": "blocked", "dependencyTaskIds": score_ids, "launchIntentId": None,
-            "callId": None, "leaseUntilMs": None, "attemptCount": 0})
-        reduce_timeout = bundle["controller"].get("goldfishReduceOneTimeoutSeconds", 300) \
-            if stage == "goldfish-one" else bundle["controller"].get("goldfishReduceTwoTimeoutSeconds", 180)
-        state["tasks"].append({"taskId": reduce_id, "kingdomId": kingdom_id,
-            "evidenceId": evidence_id, "stage": reduce_stage, "range": None, "cpu": reducer_cpus,
-            "memoryMiB": reduce_memory_mib, "timeoutSeconds": reduce_timeout,
-            "dependencyTaskIds": score_ids, "artifactPath": f"evidence/{evidence_id}/goldfish/"
-                + ("top-500000.hgf" if stage == "goldfish-one" else "reservoir.hgf")})
-        changed = True
-    return changed
-
-
-def _strategy_search_dynamic_id(evidence_id: str, stage: str, semantic: Any) -> str:
-    return hashlib.sha256(json.dumps({"evidenceId": evidence_id, "stage": stage, "semantic": semantic},
-        sort_keys=True, separators=(",", ":")).encode()).hexdigest()
-
-
-def _strategy_search_append_dynamic(state: dict[str, Any], *, evidence_id: str, kingdom_id: str,
-                                    stage: str, cpus: int, memory_mib: int, timeout_seconds: int,
-                                    dependencies: list[str], artifact_path: str,
-                                    semantic: Any, metadata: dict[str, Any],
-                                    range_value: dict[str, int] | None = None) -> str:
-    task_id = _strategy_search_dynamic_id(evidence_id, stage, semantic)
-    existing = next((held for held in state["jobs"] if held["taskId"] == task_id), None)
-    if existing:
-        return task_id
-    status = "blocked" if dependencies else "ready"
-    state["jobs"].append({"taskId": task_id, "evidenceId": evidence_id, "kingdomId": kingdom_id,
-        "stage": stage, "range": range_value, "cpus": cpus, "status": status,
-        "dependencyTaskIds": dependencies, "launchIntentId": None, "callId": None,
-        "leaseUntilMs": None, "attemptCount": 0})
-    state["tasks"].append({"taskId": task_id, "kingdomId": kingdom_id, "evidenceId": evidence_id,
-        "stage": stage, "range": range_value, "cpu": cpus, "memoryMiB": memory_mib,
-        "timeoutSeconds": timeout_seconds, "dependencyTaskIds": dependencies,
-        "artifactPath": artifact_path, "metadata": metadata})
-    return task_id
-
-
-def _strategy_search_materialize_adaptive(state: dict[str, Any], bundle: dict[str, Any]) -> bool:
-    partitions = state.get("dynamicScorePartitions", {})
-    if not partitions:
-        return False
-    window = max(1, state["maxActiveCpus"] // 4) * bundle["controller"].get("readyWindowWaves", 2)
-    unlaunched = sum(job["stage"] in {"goldfish-one", "goldfish-two", "matrix-score",
-            "psro-score", "admission-row-score"}
-        and job["status"] in {"blocked", "ready"} for job in state["jobs"])
-    changed = False
-    entries = [partitions[key] for key in sorted(partitions)]
-    while unlaunched < window:
-        added = False
-        for partition in entries:
-            if unlaunched >= window:
-                break
-            for task in partition["tasks"]:
-                if partition["kind"] == "score":
-                    start, end = task["candidateStart"], task["candidateEnd"]
-                    schedule_start, schedule_end = task["scheduleStart"], task["scheduleEnd"]
-                    semantic = {"look": partition["descriptorHash"],
-                        "candidateStart": start, "candidateEnd": end,
-                        "scheduleStart": schedule_start, "scheduleEnd": schedule_end}
-                    stage, operation = "psro-score", "score"
-                    artifact = f"{partition['root']}/{partition['descriptorHash']}/" \
-                        f"score-{start}-{end}-blocks-{schedule_start}-{schedule_end}.json"
-                    metadata = {"operation": operation, "transitionPath": partition["transitionPath"],
-                        "scoreTask": task, "scoreBlocks": schedule_end - schedule_start,
-                        "lookDescriptorHash": partition["descriptorHash"]}
-                    timeout = max(60, math.ceil(task["expectedTaskMs"] * 2 / 1000 + 30))
-                else:
-                    start, end = task["opponentStart"], task["opponentEnd"]
-                    semantic = {"row": partition["descriptorHash"],
-                        "opponentStart": start, "opponentEnd": end}
-                    stage, operation, timeout = "admission-row-score", "admission-score", 120
-                    artifact = f"{partition['root']}/{partition['descriptorHash']}/row-{start}-{end}.json"
-                    metadata = {"operation": operation, "transitionPath": partition["transitionPath"],
-                        "taskIndex": task["taskIndex"]}
-                task_id = _strategy_search_dynamic_id(partition["evidenceId"], stage, semantic)
-                if any(job["taskId"] == task_id for job in state["jobs"]):
-                    continue
-                _strategy_search_append_dynamic(state, evidence_id=partition["evidenceId"],
-                    kingdom_id=partition["kingdomId"], stage=stage, cpus=4, memory_mib=8192,
-                    timeout_seconds=timeout, dependencies=[partition["parentTaskId"]],
-                    artifact_path=artifact, semantic=semantic, metadata=metadata,
-                    range_value={"start": start, "end": end})
-                unlaunched += 1
-                changed = True
-                added = True
-                break
-        if not added:
-            break
-    for partition in entries:
-        if partition["reducerCreated"]:
-            continue
-        score_ids = []
-        for task in partition["tasks"]:
-            if partition["kind"] == "score":
-                semantic = {"look": partition["descriptorHash"],
-                    "candidateStart": task["candidateStart"], "candidateEnd": task["candidateEnd"],
-                    "scheduleStart": task["scheduleStart"], "scheduleEnd": task["scheduleEnd"]}
-                stage = "psro-score"
-            else:
-                semantic = {"row": partition["descriptorHash"],
-                    "opponentStart": task["opponentStart"], "opponentEnd": task["opponentEnd"]}
-                stage = "admission-row-score"
-            score_ids.append(_strategy_search_dynamic_id(partition["evidenceId"], stage, semantic))
-        if not all(any(job["taskId"] == task_id for job in state["jobs"]) for task_id in score_ids):
-            continue
-        if partition["kind"] == "score":
-            semantic = {"reduceLook": partition["descriptorHash"]}
-            operation = "reduce-score"
-        else:
-            semantic = {"reduceRow": partition["descriptorHash"]}
-            operation = "admission-reduce"
-        _strategy_search_append_dynamic(state, evidence_id=partition["evidenceId"],
-            kingdom_id=partition["kingdomId"], stage="psro-decision", cpus=1, memory_mib=4096,
-            timeout_seconds=120, dependencies=score_ids,
-            artifact_path=f"{partition['root']}/{partition['descriptorHash']}/transition.json",
-            semantic=semantic, metadata={"operation": operation,
-                "transitionPath": partition["transitionPath"]})
-        partition["reducerCreated"] = True
-        changed = True
-    return changed
-
-
-def _strategy_search_expand_transition(state: dict[str, Any], job: dict[str, Any]) -> bool:
-    if job["stage"] != "psro-decision" or job.get("expanded") or job.get("status") != "complete":
-        return False
-    transition_path = job["receipt"]["artifactPath"]
-    volume.reload()
-    transition = _strategy_search_load(_strategy_search_path(transition_path))
-    if not isinstance(transition, dict) or transition.get("kind") not in {
-            "score", "admission-row", "complete"}:
-        raise RuntimeError("PSRO decision returned an invalid transition")
-    evidence_id, kingdom_id = job["evidenceId"], job["kingdomId"]
-    root = f"evidence/{evidence_id}/psro/runtime"
-    if transition["kind"] == "score":
-        descriptor_hash = transition["look"]["descriptorHash"]
-        state.setdefault("dynamicScorePartitions", {})[descriptor_hash] = {
-            "kind": "score", "evidenceId": evidence_id, "kingdomId": kingdom_id,
-            "parentTaskId": job["taskId"], "transitionPath": transition_path,
-            "root": root, "descriptorHash": descriptor_hash,
-            "scoreBlocks": transition["look"]["scheduleEnd"] - transition["look"]["scheduleStart"],
-            "tasks": transition["tasks"], "reducerCreated": False}
-    elif transition["kind"] == "admission-row":
-        row_hash = transition["row"]["descriptorHash"]
-        state.setdefault("dynamicScorePartitions", {})[row_hash] = {
-            "kind": "admission-row", "evidenceId": evidence_id, "kingdomId": kingdom_id,
-            "parentTaskId": job["taskId"], "transitionPath": transition_path,
-            "root": root, "descriptorHash": row_hash,
-            "tasks": transition["row"]["tasks"], "reducerCreated": False}
-    else:
-        _strategy_search_append_dynamic(state, evidence_id=evidence_id, kingdom_id=kingdom_id,
-            stage="psro-reduce", cpus=1, memory_mib=8192, timeout_seconds=180,
-            dependencies=[job["taskId"]], artifact_path=f"evidence/{evidence_id}/psro/evidence.json",
-            semantic={"final": transition["checkpoint"]["evidenceHash"]}, metadata={"operation": "finalize",
-                "transitionPath": transition_path})
-    job["expanded"] = True
-    return True
-
-
 def _strategy_search_controller_impl(bundle: dict[str, Any]) -> dict[str, Any]:
     goldfish_plan = _strategy_search_validate_goldfish_only_bundle(bundle)
-    goldfish_only = goldfish_plan is not None
+    if goldfish_plan is None:
+        raise ValueError("Only the Goldfish v2 route is supported")
     verify_strategy_search_source(bundle["sourceImage"])
     initialized = strategy_search_publisher.remote({"operation": "execution-init",
         "campaignExecutionId": bundle["campaignExecutionId"],
@@ -2164,7 +1193,7 @@ def _strategy_search_controller_impl(bundle: dict[str, Any]) -> dict[str, Any]:
         "partitions": bundle["partitions"], "jobs": bundle["jobs"], "tasks": bundle["tasks"],
         "maxActiveCpus": bundle["request"]["maxActiveCpus"],
         "sourceDigest": bundle["sourceImage"]["digest"],
-        "route": GOLDFISH_MODAL_ROUTE if goldfish_only else "full-strategy-search",
+        "route": GOLDFISH_MODAL_ROUTE,
         "costGuard": bundle["controller"].get("costGuard")})
     if initialized["status"] == "complete":
         return initialized["report"]
@@ -2176,8 +1205,7 @@ def _strategy_search_controller_impl(bundle: dict[str, Any]) -> dict[str, Any]:
     reused_evidence_ids = set(state.get("reusedEvidenceIds", []))
     for evidence_id in {job["evidenceId"] for job in state["jobs"]}:
         complete_evidence = strategy_search_publisher.remote({
-            "operation": "goldfish-evidence-complete" if goldfish_only else "evidence-complete",
-            "evidenceId": evidence_id})
+            "operation": "goldfish-evidence-complete", "evidenceId": evidence_id})
         if complete_evidence.get("complete"):
             reused_evidence_ids.add(evidence_id)
             for job in state["jobs"]:
@@ -2232,21 +1260,9 @@ def _strategy_search_controller_impl(bundle: dict[str, Any]) -> dict[str, Any]:
     last_saved_ms = int(time.time() * 1000)
     while True:
         now_ms = int(time.time() * 1000)
-        if goldfish_only and now_ms - state["startedMs"] > bundle["controller"]["maxWallSeconds"] * 1000:
+        if now_ms - state["startedMs"] > bundle["controller"]["maxWallSeconds"] * 1000:
             timeout_error = TimeoutError("Goldfish-only scientific wall timeout expired")
             fail_active_wave(_strategy_search_exception_diagnostic(timeout_error), "goldfish-only-timeout")
-        recovered_transitions = [] if goldfish_only else [_strategy_search_expand_transition(state, job)
-            for job in list(state["jobs"]) if job["stage"] == "psro-decision"
-            and job.get("status") == "complete" and not job.get("expanded")]
-        materialized = any(recovered_transitions)
-        if not goldfish_only:
-            materialized = _strategy_search_materialize_adaptive(state, bundle) or materialized
-        materialized = _strategy_search_materialize_goldfish(state, bundle) or materialized
-        if materialized:
-            state = strategy_search_publisher.remote({"operation": "execution-save",
-                "campaignExecutionId": bundle["campaignExecutionId"], "fence": state["controllerFence"],
-                "ownerId": owner_id, "nowMs": now_ms, "leaseMs": 120000, "state": state})
-            last_saved_ms = now_ms
         transition_before = [(job["taskId"], job["status"], job.get("callId"), job.get("attemptCount", 0),
             len(job.get("attempts", []))) for job in state["jobs"]]
         if now_ms > interval_started:
@@ -2323,45 +1339,23 @@ def _strategy_search_controller_impl(bundle: dict[str, Any]) -> dict[str, Any]:
                     "finishedMs": int(time.time() * 1000)})
                 job.pop("activeConfig", None)
                 del active[task_id]
-            expansion_results = [_strategy_search_expand_transition(state,
-                next(held for held in state["jobs"] if held["taskId"] == task_id))
-                for task_id, _config, _result in finished]
-            expanded = any(expansion_results)
             for task_id, _config, _result in finished:
                 completed_job = next(held for held in state["jobs"] if held["taskId"] == task_id)
-                final_stage = "goldfish-two-reduce" if goldfish_only else "psro-reduce"
-                if completed_job["stage"] != final_stage:
+                if completed_job["stage"] != "goldfish-two-reduce":
                     continue
                 evidence_id = completed_job["evidenceId"]
-                final_stages = ["goldfish-one-reduce", "goldfish-two-reduce"] if goldfish_only else \
-                    ["goldfish-one-reduce", "goldfish-two-reduce", "matrix-reduce", "psro-reduce"]
+                final_stages = ["goldfish-one-reduce", "goldfish-two-reduce"]
                 finals = {stage: next(held["taskId"] for held in state["jobs"]
                     if held["evidenceId"] == evidence_id and held["stage"] == stage)
                     for stage in final_stages}
                 strategy_search_publisher.remote({
-                    "operation": "goldfish-evidence-finalize" if goldfish_only else "evidence-finalize",
+                    "operation": "goldfish-evidence-finalize",
                     "evidenceId": evidence_id, "taskIds": finals, "nowMs": int(time.time() * 1000)})
-            if expanded:
-                _strategy_search_materialize_adaptive(state, bundle)
-                state = strategy_search_publisher.remote({"operation": "execution-save",
-                    "campaignExecutionId": bundle["campaignExecutionId"], "fence": state["controllerFence"],
-                    "ownerId": owner_id, "nowMs": int(time.time() * 1000), "leaseMs": 120000,
-                    "state": state})
-                last_saved_ms = int(time.time() * 1000)
         orphan_reserved_cpus = sum(job.get("cpu", 0) for job in state["jobs"]
             if job.get("lastError") == "controller-refenced-task"
             and job.get("leaseUntilMs", 0) > int(time.time() * 1000))
         allocated = orphan_reserved_cpus + sum(config["cpu"] for _, config in active.values())
         ready_jobs = _strategy_search_ready_jobs(state)
-        first_goldfish = next((job for job in ready_jobs if job["stage"] in {"goldfish-one", "goldfish-two"}), None)
-        if first_goldfish and not any(config["stage"] in {"goldfish-one", "goldfish-two"}
-                for _, config in active.values()) and ready_jobs and ready_jobs[0] is not first_goldfish:
-            first_task = next(held for held in state["tasks"] if held["taskId"] == ready_jobs[0]["taskId"])
-            goldfish_task = next(held for held in state["tasks"] if held["taskId"] == first_goldfish["taskId"])
-            if allocated + first_task["cpu"] + goldfish_task["cpu"] <= state["maxActiveCpus"]:
-                first_job = ready_jobs[0]
-                ready_jobs = [first_job, first_goldfish] \
-                    + [job for job in ready_jobs if job is not first_job and job is not first_goldfish]
         selected, planned_allocated = [], allocated
         reducer_memory = sum(config.get("memoryMiB", 0) for _task_id, (_call, config) in active.items()
             if config["stage"].endswith("reduce"))
@@ -2382,15 +1376,10 @@ def _strategy_search_controller_impl(bundle: dict[str, Any]) -> dict[str, Any]:
             for job, task in selected:
                 launch_id = uuid.uuid4().hex + uuid.uuid4().hex
                 temporary = f"executions/{bundle['campaignExecutionId']}/temporary/{launch_id}/{job['taskId']}"
-                temporary += ".hgs" if job["stage"] in {"goldfish-one", "goldfish-two"} \
-                    else ".hgf" if job["stage"] in {"goldfish-one-reduce", "goldfish-two-reduce"} else ".json"
+                temporary += ".hgf"
                 item = {"taskId": job["taskId"], "evidenceId": job["evidenceId"],
                     "launchId": launch_id, "temporaryPath": temporary, "artifactPath": task["artifactPath"],
                     "stage": job["stage"], "kingdomId": job["kingdomId"]}
-                if job["stage"] == "psro-score":
-                    metadata = task.get("metadata", {})
-                    item.update({"transitionPath": metadata.get("transitionPath"),
-                        "scoreTask": metadata.get("scoreTask")})
                 preparation_items.append(item)
             lease_ms = (max(task["timeoutSeconds"] for _job, task in selected) + 600) * 1000
             prepared = strategy_search_publisher.remote({"operation": "prepare-launch-batch",
@@ -2405,17 +1394,13 @@ def _strategy_search_controller_impl(bundle: dict[str, Any]) -> dict[str, Any]:
                 if preparation.get("complete"):
                     job.update({"status": "complete", "receipt": preparation["receipt"],
                         "finishedMs": int(time.time() * 1000)})
-                    if _strategy_search_expand_transition(state, job):
-                        _strategy_search_materialize_adaptive(state, bundle)
                     continue
                 if preparation.get("busy"):
                     job.update({"status": "retry-backoff", "retryNotBeforeMs": min(
                         preparation["leaseUntilMs"], int(time.time() * 1000) + 5000)})
                     continue
                 config = _strategy_search_task_config(bundle, state, job, owner_id, preparation)
-                function = strategy_search_goldfish_job if job["stage"] in {
-                    "goldfish-one", "goldfish-two", "goldfish-one-reduce", "goldfish-two-reduce"} \
-                    else strategy_search_downstream_job
+                function = strategy_search_goldfish_job
                 config["enqueuedEpochMs"] = int(time.time() * 1000)
                 pending_launches.append((job, task, config, function))
             def spawn_task(item: tuple[dict[str, Any], dict[str, Any], dict[str, Any], Any]) -> tuple[Any, Any]:
@@ -2487,10 +1472,6 @@ def _strategy_search_controller_impl(bundle: dict[str, Any]) -> dict[str, Any]:
             interval_reason = "failure-or-retry-backoff"
         elif reducer_admission_blocked:
             interval_reason = "reducer-admission-limit"
-        elif any(job["status"] == "ready" and job["stage"] in {"matrix-manifest", "matrix-score",
-                "matrix-reduce", "psro-decision", "psro-score", "admission-row-score",
-                "admission-row-reduce", "psro-reduce"} for job in state["jobs"]):
-            interval_reason = "reserved-ready-downstream"
         elif any(job["status"] == "ready" and job.get("cpu", 4) > state["maxActiveCpus"] - allocated
                  for job in state["jobs"]):
             interval_reason = "minimum-useful-job-size"
@@ -2511,33 +1492,19 @@ def _strategy_search_controller_impl(bundle: dict[str, Any]) -> dict[str, Any]:
                 "ownerId": owner_id, "nowMs": int(time.time() * 1000), "leaseMs": 120000, "state": state})
             last_saved_ms = now_ms
         if all(job["status"] == "complete" for job in state["jobs"]):
-            if goldfish_only and _strategy_search_materialize_goldfish(state, bundle):
-                state = strategy_search_publisher.remote({"operation": "execution-save",
-                    "campaignExecutionId": bundle["campaignExecutionId"], "fence": state["controllerFence"],
-                    "ownerId": owner_id, "nowMs": int(time.time() * 1000), "leaseMs": 120000,
-                    "state": state})
-                continue
-            if not goldfish_only and _strategy_search_materialize_adaptive(state, bundle):
-                state = strategy_search_publisher.remote({"operation": "execution-save",
-                    "campaignExecutionId": bundle["campaignExecutionId"], "fence": state["controllerFence"],
-                    "ownerId": owner_id, "nowMs": int(time.time() * 1000), "leaseMs": 120000,
-                    "state": state})
-                continue
-            final_stage = "goldfish-two-reduce" if goldfish_only else "psro-reduce"
-            final_evidence = {job["evidenceId"] for job in state["jobs"] if job["stage"] == final_stage}
+            final_evidence = {job["evidenceId"] for job in state["jobs"]
+                if job["stage"] == "goldfish-two-reduce"}
             final_evidence.update(state.get("reusedEvidenceIds", []))
             expected_evidence = {job["evidenceId"] for job in state["jobs"]}
             if final_evidence != expected_evidence:
-                expected_name = "reservoir" if goldfish_only else "final PSRO evidence"
-                raise RuntimeError(f"strategy-search reached an empty queue before {expected_name}")
-            if goldfish_only:
-                for evidence_id in final_evidence - set(state.get("reusedEvidenceIds", [])):
-                    finals = {stage: next(job["taskId"] for job in state["jobs"]
-                        if job["evidenceId"] == evidence_id and job["stage"] == stage)
-                        for stage in ["goldfish-one-reduce", "goldfish-two-reduce"]}
-                    strategy_search_publisher.remote({"operation": "goldfish-evidence-finalize",
-                        "evidenceId": evidence_id, "taskIds": finals,
-                        "nowMs": int(time.time() * 1000)})
+                raise RuntimeError("strategy-search reached an empty queue before the reservoir")
+            for evidence_id in final_evidence - set(state.get("reusedEvidenceIds", [])):
+                finals = {stage: next(job["taskId"] for job in state["jobs"]
+                    if job["evidenceId"] == evidence_id and job["stage"] == stage)
+                    for stage in ["goldfish-one-reduce", "goldfish-two-reduce"]}
+                strategy_search_publisher.remote({"operation": "goldfish-evidence-finalize",
+                    "evidenceId": evidence_id, "taskIds": finals,
+                    "nowMs": int(time.time() * 1000)})
             break
         time.sleep(bundle["controller"]["pollIntervalSeconds"])
     finished_ms = int(time.time() * 1000)
@@ -2551,8 +1518,7 @@ def _strategy_search_controller_impl(bundle: dict[str, Any]) -> dict[str, Any]:
     attempts = [attempt for job in state["jobs"] for attempt in job.get("attempts", [])]
     attempt_costs = []
     cost_rates = (GOLDFISH_MODAL_CPU_RATE_PER_CORE_SECOND * 3600,
-        GOLDFISH_MODAL_MEMORY_RATE_PER_GIB_SECOND * 3600) if goldfish_only else \
-        (CPU_RATE_PER_CORE_HOUR, MEMORY_RATE_PER_GIB_HOUR)
+        GOLDFISH_MODAL_MEMORY_RATE_PER_GIB_SECOND * 3600)
     for attempt in attempts:
         if attempt.get("status") == "admission-failed":
             attempt.update({"costUsd": 0.0, "costBasis": "not-admitted"})
@@ -2570,10 +1536,7 @@ def _strategy_search_controller_impl(bundle: dict[str, Any]) -> dict[str, Any]:
         * (cost_rates[0] + 8 * cost_rates[1])
     compute_cost = measured_attempt_cost + unmeasured_failure_cost + controller_cost + publisher_cost
     stage_wall = {}
-    report_stages = ["goldfish-one-reduce", "goldfish-two-reduce"] \
-        if goldfish_only else ["goldfish-one", "goldfish-one-reduce", "goldfish-two", "goldfish-two-reduce",
-            "matrix-manifest", "matrix-score", "matrix-reduce", "psro-decision", "psro-score",
-            "admission-row-score", "admission-row-reduce", "psro-reduce"]
+    report_stages = ["goldfish-one-reduce", "goldfish-two-reduce"]
     for stage in report_stages:
         held = [job for job in state["jobs"] if job["stage"] == stage and job.get("firstStartedMs")]
         stage_wall[stage] = max((job.get("finishedMs", job["firstStartedMs"]) for job in held), default=0) \
@@ -2618,23 +1581,16 @@ def _strategy_search_controller_impl(bundle: dict[str, Any]) -> dict[str, Any]:
     bytes_written = sum(held.stat().st_size for held in artifacts)
     bytes_read = sum(_strategy_search_path(dependency["receipt"]["artifactPath"]).stat().st_size
         for job in state["jobs"] if not job.get("reused")
-        and job["stage"] in {"goldfish-one-reduce", "goldfish-two", "goldfish-two-reduce",
-            "matrix-manifest", "matrix-score", "matrix-reduce", "psro-decision", "psro-score",
-            "admission-row-score", "admission-row-reduce", "psro-reduce"}
+        and job["stage"] == "goldfish-two-reduce"
         for dependency in [next(held for held in state["jobs"] if held["taskId"] == task_id)
                            for task_id in job["dependencyTaskIds"]] if dependency.get("receipt"))
-    bytes_read += sum(_strategy_search_path(f"evidence/{job['evidenceId']}/goldfish/reservoir.hgf").stat().st_size
-        for job in state["jobs"] if not job.get("reused") and job["stage"] == "psro-decision"
-        and job.get("expanded") is not True)
     io_ms = sum(held.get("intermediateSerializationAndReadMs", 0)
         + held.get("temporaryVolumeWriteCommitMs", 0) + held.get("publicationCommitMs", 0)
         for held in phase_reports)
     scientific_ms = sum(held.get("generationMs", 0) + held.get("scoringMs", 0)
         + held.get("intermediateSerializationAndReadMs", 0) + held.get("temporaryVolumeWriteCommitMs", 0)
         + held.get("publicationCommitMs", 0) + held.get("reductionComputeMs", 0) for held in phase_reports)
-    scored_candidates = sum(job["range"]["end"] - job["range"]["start"] for job in state["jobs"]
-        if job["stage"] in {"goldfish-one", "goldfish-two"})
-    scored_candidates += sum(job.get("result", {}).get("rustReports", {}).get("score", {}).get("rowCount", 0)
+    scored_candidates = sum(job.get("result", {}).get("rustReports", {}).get("score", {}).get("rowCount", 0)
         for job in state["jobs"] if job["stage"] in {"goldfish-one-reduce", "goldfish-two-reduce"}
         and job.get("result", {}).get("rustReports"))
     scoring_ms = sum(held.get("scoringMs", 0) for held in phase_reports)
@@ -2664,45 +1620,22 @@ def _strategy_search_controller_impl(bundle: dict[str, Any]) -> dict[str, Any]:
     for evidence_id in evidence_ids:
         held = [job for job in state["jobs"] if job["evidenceId"] == evidence_id]
         starts = [job["firstStartedMs"] for job in held if job.get("firstStartedMs")]
-        final_stage = "goldfish-two-reduce" if goldfish_only else "psro-reduce"
-        final = next((job for job in held if job["stage"] == final_stage), None)
+        final = next((job for job in held if job["stage"] == "goldfish-two-reduce"), None)
         per_kingdom_completion[evidence_id] = {
             "kingdomId": held[0]["kingdomId"] if held else None,
             "wallMs": max(0, final.get("finishedMs", finished_ms) - min(starts)) if final and starts else 0,
             "completedMs": final.get("finishedMs") if final else None}
-    score_attempts = []
-    for job in state["jobs"]:
-        if job["stage"] not in {"matrix-score", "psro-score"}:
-            continue
-        for attempt in job.get("attempts", []):
-            if isinstance(attempt.get("workerStartedMs"), int) and isinstance(attempt.get("workerFinishedMs"), int):
-                score_attempts.append({"stage": job["stage"], "kingdomId": job["kingdomId"],
-                    "startMs": attempt["workerStartedMs"], "endMs": attempt["workerFinishedMs"],
-                    "cpus": attempt["cpu"]})
-    cross_kingdom_score_overlap = any(left["stage"] == right["stage"]
-        and left["kingdomId"] != right["kingdomId"]
-        and left["startMs"] < right["endMs"] and right["startMs"] < left["endMs"]
-        for index, left in enumerate(score_attempts) for right in score_attempts[index + 1:])
-    psro_candidate_blocks = sum((job["range"]["end"] - job["range"]["start"])
-        * next(task for task in state["tasks"] if task["taskId"] == job["taskId"])
-            .get("metadata", {}).get("scoreBlocks", 0)
-        for job in state["jobs"] if job["stage"] == "psro-score")
     stage_throughput = {
-        "goldfishCandidatesPerSecond": scored_candidates / (scoring_ms / 1000) if scoring_ms else 0,
-        "matrixGamesPerSecond": 318750 * len(evidence_ids) / (stage_wall.get("matrix-score", 0) / 1000)
-            if stage_wall.get("matrix-score", 0) else 0,
-        "psroCandidateBlocksPerSecond": psro_candidate_blocks / (stage_wall.get("psro-score", 0) / 1000)
-            if stage_wall.get("psro-score", 0) else 0}
+        "goldfishCandidatesPerSecond": scored_candidates / (scoring_ms / 1000) if scoring_ms else 0}
     retry_cost = sum(attempt.get("costUsd", 0) for attempt in attempts
         if attempt.get("status") not in {"complete", "submitted"})
     report = {"schemaVersion": 3, "campaignExecutionId": bundle["campaignExecutionId"],
-        "route": GOLDFISH_MODAL_ROUTE if goldfish_only else "full-strategy-search",
+        "route": GOLDFISH_MODAL_ROUTE,
         "status": "complete", "criticalPathWallMs": critical_elapsed_ms,
-        "scientificStageWallMs": stage_wall if goldfish_only else None,
-        "authorizedCostGuard": bundle["controller"].get("costGuard") if goldfish_only else None,
+        "scientificStageWallMs": stage_wall,
+        "authorizedCostGuard": bundle["controller"].get("costGuard"),
         "stageWallMs": stage_wall, "stageThroughput": stage_throughput,
         "perKingdomCompletion": per_kingdom_completion, "stageBarrierLatency": barrier_latencies,
-        "crossKingdomScoreOverlap": cross_kingdom_score_overlap,
         "maxActiveCpus": state["maxActiveCpus"], "workerCpuLimit": state["maxActiveCpus"],
         "controllerCores": 1, "publisherCores": 1,
         "peakActiveCpus": max((entry["allocatedCpus"] for entry in running_intervals), default=0),
@@ -2719,9 +1652,6 @@ def _strategy_search_controller_impl(bundle: dict[str, Any]) -> dict[str, Any]:
         "finalWriteMs": sum(held.get("finalTop500000WriteMs", 0) + held.get("finalTop20000WriteMs", 0)
                             for held in phase_reports),
         "admissionFailures": admission_failures, "retryCostUsd": retry_cost,
-        "matrixScoreWorkerCount": sum(job["stage"] == "matrix-score" for job in state["jobs"]),
-        "psroScoreWorkerCount": sum(job["stage"] == "psro-score" for job in state["jobs"]),
-        "scoreLookUtilization": _strategy_search_score_look_utilization(state, finished_ms),
         "taskCount": len(state["jobs"]), "retries": sum(job.get("attemptCount", 0) for job in state["jobs"]),
         "actualModalCostUsd": compute_cost,
         "modalCostAccounting": {"measuredAttemptUsd": measured_attempt_cost,
@@ -2758,135 +1688,3 @@ def strategy_search_controller(bundle: dict[str, Any]) -> dict[str, Any]:
         except Exception:
             pass
         raise
-
-
-
-
-
-
-def _competitive_launch_data(
-    content: str, build_version: str, cpu: int, memory_gib: int, threads: int,
-    max_containers: int, timeout_seconds: int, max_cost_usd: float, target_blocks: int
-) -> tuple[dict[str, Any], dict[str, Any], dict[str, Any], str]:
-    value = validate_competitive_input(json.loads(content))
-    payload = value["loadRequest"]["payload"]
-    if payload["threads"] != threads or payload["cpuRequest"] != cpu:
-        raise ValueError("competitive input CPU and thread values differ from launch resources")
-    limits = validate_competitive_launch(candidate_count=value["candidateCount"],
-        schedule_count=len(value["schedule"]), cpu=cpu, memory_gib=memory_gib,
-        threads=threads, max_containers=max_containers, timeout_seconds=timeout_seconds,
-        max_cost_usd=max_cost_usd, target_blocks=target_blocks)
-    config = {"kind": "competitive-psro", "build_version": build_version,
-        "rule_fingerprint": payload["ruleFingerprint"], "input_hash": value["inputHash"],
-        "look_id": value["lookId"], "candidate_count": value["candidateCount"],
-        "schedule_count": len(value["schedule"]), "cpu": cpu, "memory_gib": memory_gib,
-        "threads": threads, "max_containers": max_containers,
-        "timeout_seconds": timeout_seconds, "target_blocks": target_blocks,
-        "controller_timeout": limits["controller_timeout"]}
-    identity = hashlib.sha256(json.dumps(config, sort_keys=True).encode()).hexdigest()[:20]
-    run_id = f"competitive-{build_version[:12]}-{identity}"
-    config["run_id"] = run_id
-    return value, limits, config, run_id
-
-
-def _stage_competitive_input(content: str, value: dict[str, Any], run_id: str) -> None:
-    staged = stage_competitive_input.remote(run_id, content, value["inputHash"])
-    if staged["candidateCount"] != value["candidateCount"] \
-            or staged["scheduleCount"] != len(value["schedule"]):
-        raise RuntimeError("staged competitive input returned the wrong dimensions")
-
-
-def _competitive_controller_call(config: dict[str, Any], entry: dict[str, Any]) -> Any:
-    call_id = entry.get("controllerCallId")
-    if call_id and entry.get("status") in {"launched", "complete"}:
-        return modal.FunctionCall.from_id(call_id)
-    if not claim_controller(config["run_id"], config["controller_timeout"]):
-        raise RuntimeError("competitive controller is launching without a recorded call; retry this command")
-    call = competitive_controller.with_options(
-        timeout=config["controller_timeout"], retries=0).spawn(config)
-    record_controller_call(config["run_id"], call.object_id)
-    return call
-
-
-def _download_competitive_artifact(remote_path: str, output_file: pathlib.Path) -> None:
-    output_file.parent.mkdir(parents=True, exist_ok=True)
-    with tempfile.NamedTemporaryFile("wb", dir=output_file.parent, delete=False) as held:
-        for chunk in volume.read_file(remote_path):
-            held.write(chunk)
-        held.flush()
-        os.fsync(held.fileno())
-        temporary = pathlib.Path(held.name)
-    os.replace(temporary, output_file)
-
-
-@app.local_entrypoint()
-def launch_competitive(
-    input_file: str,
-    build_version: str,
-    cpu: int = 4,
-    memory_gib: int = 4,
-    threads: int = 4,
-    max_containers: int = 16,
-    timeout_seconds: int = 180,
-    max_cost_usd: float = COMPETITIVE_RUN_CAP_USD,
-    target_blocks: int = COMPETITIVE_TARGET_BLOCKS,
-) -> None:
-    content = pathlib.Path(input_file).read_text()
-    value, limits, config, run_id = _competitive_launch_data(content, build_version, cpu,
-        memory_gib, threads, max_containers, timeout_seconds, max_cost_usd, target_blocks)
-    entry = reserve_cost(run_id, limits["projected"], False, config)
-    print(json.dumps({"runId": run_id, "worstCaseCostUsd": limits["projected"],
-        "reservation": entry,
-        "resultLocation": f"hexdeck-native-strategy-results:/{run_id}/looks/{value['lookId']}/manifest.json"},
-        indent=2))
-    _stage_competitive_input(content, value, run_id)
-    call = _competitive_controller_call(config, entry)
-    print(f"detached competitive PSRO call: {call.object_id}")
-
-
-@app.local_entrypoint()
-def run_competitive(
-    input_file: str,
-    output_file: str,
-    build_version: str,
-    cpu: int = 4,
-    memory_gib: int = 4,
-    threads: int = 4,
-    max_containers: int = 16,
-    timeout_seconds: int = 180,
-    max_cost_usd: float = COMPETITIVE_RUN_CAP_USD,
-    target_blocks: int = COMPETITIVE_TARGET_BLOCKS,
-) -> None:
-    content = pathlib.Path(input_file).read_text()
-    value, limits, config, run_id = _competitive_launch_data(content, build_version, cpu,
-        memory_gib, threads, max_containers, timeout_seconds, max_cost_usd, target_blocks)
-    entry = reserve_cost(run_id, limits["projected"], False, config)
-    print(json.dumps({"runId": run_id, "worstCaseCostUsd": limits["projected"],
-        "reservation": entry}, indent=2))
-    _stage_competitive_input(content, value, run_id)
-    call = _competitive_controller_call(config, entry)
-    try:
-        manifest = call.get(timeout=config["controller_timeout"] + 60)
-    except builtins.TimeoutError as error:
-        raise RuntimeError(f"competitive controller {call.object_id} is still running; rerun to resume") from error
-    except Exception:
-        update_run_status(run_id, "reserved")
-        raise
-    if manifest.get("status") != "success" or manifest.get("runId") != run_id \
-            or manifest.get("lookId") != value["lookId"] \
-            or manifest.get("inputHash") != value["inputHash"] \
-            or manifest.get("candidateCount") != value["candidateCount"] \
-            or manifest.get("scheduleCount") != len(value["schedule"]):
-        update_run_status(run_id, "reserved")
-        raise RuntimeError("competitive controller returned an invalid manifest")
-    remote_path = f"{run_id}/looks/{value['lookId']}/complete.hps"
-    local_path = pathlib.Path(output_file)
-    _download_competitive_artifact(remote_path, local_path)
-    header, _, _ = _read_competitive_artifact(local_path)
-    if header["digest"] != manifest["completeDigest"] or header["inputHash"] != value["inputHash"]:
-        local_path.unlink(missing_ok=True)
-        update_run_status(run_id, "reserved")
-        raise RuntimeError("downloaded competitive artifact failed manifest validation")
-    update_run_status(run_id, "complete")
-    print(json.dumps({"runId": run_id, "completeDigest": header["digest"],
-        "outputFile": str(local_path)}, indent=2))

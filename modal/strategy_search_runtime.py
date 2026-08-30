@@ -54,10 +54,9 @@ def _atomic_json(file: pathlib.Path, value: Any) -> None:
 
 
 def _final_artifact_relatives(bundle: dict[str, Any]) -> list[str]:
-    if bundle.get("controller", {}).get("route") == "goldfish-only-v2":
-        return ["goldfish/top-500000.hgf", "goldfish/reservoir.hgf"]
-    return ["goldfish/top-500000.hgf", "goldfish/reservoir.hgf",
-        "matrix/evidence.json", "psro/evidence.json"]
+    if bundle.get("controller", {}).get("route") != "goldfish-only-v2":
+        raise ValueError("only the Goldfish v2 route is supported")
+    return ["goldfish/top-500000.hgf", "goldfish/reservoir.hgf"]
 
 
 def _download_final_artifacts(destination: pathlib.Path, evidence_ids: list[str],
@@ -65,8 +64,7 @@ def _download_final_artifacts(destination: pathlib.Path, evidence_ids: list[str]
     from volume_download import fetch_files
 
     started = time.monotonic()
-    selected = relatives or ["goldfish/top-500000.hgf", "goldfish/reservoir.hgf",
-        "matrix/evidence.json", "psro/evidence.json"]
+    selected = relatives or ["goldfish/top-500000.hgf", "goldfish/reservoir.hgf"]
     production_sizes = {"goldfish/top-500000.hgf": GOLDFISH_TOP_BYTES,
         "goldfish/reservoir.hgf": GOLDFISH_RESERVOIR_BYTES}
     items = []

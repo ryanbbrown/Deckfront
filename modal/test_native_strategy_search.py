@@ -64,118 +64,6 @@ class NativeStrategySearchLauncherTest(unittest.TestCase):
             "sourceImage": {"digest": "c" * 64}, "partitions": {},
             "jobs": jobs, "tasks": tasks, "controller": controller}
 
-    def test_worst_case_includes_all_retry_attempts(self):
-        value = launcher.projected_cost_usd(2, 4, 4, 600, 2)
-        expected = (2 * 3 * (630 / 3600) * (4 * 0.0473 + 4 * 0.008)
-                    + (3 * 1 * 630 + 300) / 3600 * (0.0473 + 0.008))
-        self.assertAlmostEqual(value, expected)
-
-    def test_competitive_shards_adapt_from_candidates_to_schedule_ranges(self):
-        broad = launcher.adaptive_competitive_shards(20_000, 8, 48)
-        self.assertEqual(len(broad), 3)
-        self.assertTrue(all(shard["schedule_start"] == 0 and shard["schedule_end"] == 8
-                            for shard in broad))
-        narrow = launcher.adaptive_competitive_shards(2, 6_400, 16, target_blocks=1_000)
-        self.assertGreater(len(narrow), 2)
-        covered = {(candidate, schedule) for shard in narrow
-                   for candidate in range(shard["candidate_start"], shard["candidate_end"])
-                   for schedule in range(shard["schedule_start"], shard["schedule_end"])}
-        self.assertEqual(covered, {(candidate, schedule) for candidate in range(2)
-                                   for schedule in range(6_400)})
-        self.assertEqual(sum((shard["candidate_end"] - shard["candidate_start"])
-                             * (shard["schedule_end"] - shard["schedule_start"])
-                             for shard in narrow), 2 * 6_400)
-
-    def test_competitive_artifact_is_compact_restart_safe_and_digest_checked(self):
-        spec = {"run_id": "run", "look_id": "look-8", "input_hash": "a" * 64,
-                "shard_id": 0, "candidate_start": 0, "candidate_end": 2,
-                "schedule_start": 0, "schedule_end": 3}
-        header = {"schemaVersion": 1, "runId": "run", "lookId": "look-8",
-                  "inputHash": "a" * 64, "shardId": 0,
-                  "candidateStart": 0, "candidateEnd": 2,
-                  "scheduleStart": 0, "scheduleEnd": 3,
-                  "scorerVersion": launcher.COMPETITIVE_SCORER_VERSION}
-        with tempfile.TemporaryDirectory() as directory:
-            path = pathlib.Path(directory) / "shard.hps"
-            launcher._write_competitive_artifact(path, header, bytes([0, 1, 2, 3, 4, 2]), bytes([2] * 6))
-            self.assertTrue(launcher.valid_competitive_artifact(path, spec))
-            held, scores, played = launcher._read_competitive_artifact(path)
-            self.assertEqual((held["scoreCount"], scores, played),
-                             (6, bytes([0, 1, 2, 3, 4, 2]), bytes([2] * 6)))
-            raw = bytearray(path.read_bytes())
-            raw[-1] ^= 1
-            path.write_bytes(raw)
-            self.assertFalse(launcher.valid_competitive_artifact(path, spec))
-
-    def test_competitive_artifact_assembly_restores_candidate_major_order(self):
-        base = {"run_id": "run", "look_id": "look", "input_hash": "b" * 64}
-        shards = [{**base, **shard} for shard in
-                  launcher.adaptive_competitive_shards(2, 5, 4, target_blocks=3)]
-        with tempfile.TemporaryDirectory() as directory:
-            root = pathlib.Path(directory)
-            artifacts = []
-            for spec in shards:
-                scores = bytes((candidate * 5 + schedule) % 5
-                    for candidate in range(spec["candidate_start"], spec["candidate_end"])
-                    for schedule in range(spec["schedule_start"], spec["schedule_end"]))
-                path = root / f"{spec['shard_id']}.hps"
-                header = {"schemaVersion": 1, "runId": "run", "lookId": "look",
-                    "inputHash": "b" * 64, "shardId": spec["shard_id"],
-                    "candidateStart": spec["candidate_start"], "candidateEnd": spec["candidate_end"],
-                    "scheduleStart": spec["schedule_start"], "scheduleEnd": spec["schedule_end"]}
-                launcher._write_competitive_artifact(path, header, scores, bytes([2] * len(scores)))
-                artifacts.append((path, spec))
-            complete = root / "complete.hps"
-            digest = launcher.assemble_competitive_artifacts(artifacts, complete, 2, 5,
-                {"schemaVersion": 1, "runId": "run", "lookId": "look",
-                 "inputHash": "b" * 64, "candidateCount": 2, "scheduleCount": 5})
-            held, scores, played = launcher._read_competitive_artifact(complete)
-            self.assertEqual(held["digest"], digest)
-            self.assertEqual(scores, bytes([0, 1, 2, 3, 4, 0, 1, 2, 3, 4]))
-            self.assertEqual(played, bytes([2] * 10))
-
-    def test_competitive_cost_controls_keep_the_two_dollar_hard_cap(self):
-        limits = launcher.validate_competitive_launch(candidate_count=20_000, schedule_count=8,
-            cpu=4, memory_gib=4, threads=4, max_containers=16, timeout_seconds=180,
-            max_cost_usd=2)
-        self.assertLessEqual(limits["projected"], 2)
-        with self.assertRaisesRegex(ValueError, "cannot exceed \\$2"):
-            launcher.validate_competitive_launch(candidate_count=20_000, schedule_count=8,
-                cpu=4, memory_gib=4, threads=4, max_containers=16, timeout_seconds=180,
-                max_cost_usd=2.01)
-
-    def test_competitive_launch_identity_is_stable_for_restart(self):
-        value = {"schemaVersion": 1, "candidateCount": 1, "lookId": "screen-8",
-            "loadRequest": {"type": "load_competitive", "payload": {
-                "protocolVersion": 1, "scorerVersion": launcher.COMPETITIVE_SCORER_VERSION,
-                "startingDraftEnabled": False, "strategies": [{"id": "candidate"}],
-                "threads": 4, "cpuRequest": 4, "ruleFingerprint": "rules"}},
-            "schedule": [{"seed": 1, "opponentIndex": 0}]}
-        value["inputHash"] = launcher._competitive_input_hash(value)
-        content = json.dumps(value)
-        first = launcher._competitive_launch_data(content, "build", 4, 4, 4, 16, 180, 2, 65_536)
-        second = launcher._competitive_launch_data(content, "build", 4, 4, 4, 16, 180, 2, 65_536)
-        self.assertEqual(first[2:], second[2:])
-        self.assertTrue(first[3].startswith("competitive-build-"))
-
-    def test_competitive_controller_resume_attaches_to_the_recorded_call(self):
-        expected = object()
-        entry = {"status": "launched", "controllerCallId": "fc-existing"}
-        with patch.object(launcher.modal.FunctionCall, "from_id", return_value=expected) as attach, \
-                patch.object(launcher, "claim_controller") as claim:
-            held = launcher._competitive_controller_call(
-                {"run_id": "run", "controller_timeout": 60}, entry)
-        self.assertIs(held, expected)
-        attach.assert_called_once_with("fc-existing")
-        claim.assert_not_called()
-
-    def test_competitive_download_replaces_output_atomically(self):
-        with tempfile.TemporaryDirectory() as directory:
-            output = pathlib.Path(directory) / "nested" / "complete.hps"
-            with patch.object(launcher.volume, "read_file", return_value=iter([b"HPS1", b"payload"])):
-                launcher._download_competitive_artifact("remote/complete.hps", output)
-            self.assertEqual(output.read_bytes(), b"HPS1payload")
-
     def test_controller_subprocess_failure_exposes_stderr(self):
         failure = subprocess.CalledProcessError(1, ["command"], stderr="exact child failure\n")
         with patch.object(launcher.subprocess, "run", side_effect=failure):
@@ -192,62 +80,11 @@ class NativeStrategySearchLauncherTest(unittest.TestCase):
         self.assertTrue(message.endswith("exact-tail"))
         self.assertLess(len(message), 66 * 1024)
 
-    def test_artifact_validator_failure_exposes_captured_stdout_and_stderr(self):
-        failure = subprocess.CalledProcessError(1, ["validator"], output="validation started\n",
-                                                stderr="Unknown kingdom: balance-tuning-001\n")
-        publication = {"stage": "goldfish-one-reduce", "evidenceId": "b" * 64,
-                       "kingdomId": "balance-tuning-001"}
-        with patch.object(launcher.subprocess, "run", side_effect=failure), \
-                patch.object(launcher, "_strategy_search_path", return_value=pathlib.Path("/evidence")):
-            with self.assertRaises(RuntimeError) as raised:
-                launcher._strategy_search_validate_publication(publication, pathlib.Path("/temporary/top.hgf"))
-        message = str(raised.exception)
-        self.assertIn("[stdout]\nvalidation started", message)
-        self.assertIn("[stderr]\nUnknown kingdom: balance-tuning-001", message)
-
     def test_called_process_diagnostic_is_nonblank_and_includes_captured_output(self):
         failure = subprocess.CalledProcessError(1, ["validator"], output="", stderr="exact validator failure")
         diagnostic = launcher._strategy_search_exception_diagnostic(failure)
         self.assertIn("subprocess.CalledProcessError", diagnostic["error"])
         self.assertIn("exact validator failure", diagnostic["error"])
-
-    def test_reservation_is_atomic_and_resume_does_not_reserve_twice(self):
-        with tempfile.TemporaryDirectory() as directory:
-            ledger = pathlib.Path(directory) / "ledger.json"
-            with patch.object(launcher, "LEDGER_PATH", ledger):
-                config = {"a": 1}
-                first = launcher.reserve_cost("run", 1.25, False, config)
-                second = launcher.reserve_cost("run", 1.25, False, config)
-                self.assertEqual(first, second)
-                held = json.loads(ledger.read_text())
-                self.assertEqual(len(held["runs"]), 1)
-                self.assertEqual(held["runs"]["run"]["reservedUsd"], 1.25)
-
-    def test_reservation_enforces_cumulative_budget_and_three_full_runs(self):
-        with tempfile.TemporaryDirectory() as directory:
-            ledger = pathlib.Path(directory) / "ledger.json"
-            with patch.object(launcher, "LEDGER_PATH", ledger):
-                launcher.reserve_cost("budget-a", 24.5, False, {"run": "a"})
-                launcher.reserve_cost("budget-b", 0.5, False, {"run": "b"})
-                with self.assertRaisesRegex(RuntimeError, "cumulative reservation"):
-                    launcher.reserve_cost("budget-c", 0.01, False, {"run": "c"})
-        with tempfile.TemporaryDirectory() as directory:
-            ledger = pathlib.Path(directory) / "ledger.json"
-            with patch.object(launcher, "LEDGER_PATH", ledger):
-                for index in range(3):
-                    launcher.reserve_cost(f"full-{index}", 1, True, {"run": index})
-                with self.assertRaisesRegex(RuntimeError, "full-space run limit"):
-                    launcher.reserve_cost("full-3", 1, True, {"run": 3})
-
-    def test_controller_claim_blocks_duplicates_and_allows_failed_resume(self):
-        with tempfile.TemporaryDirectory() as directory:
-            ledger = pathlib.Path(directory) / "ledger.json"
-            with patch.object(launcher, "LEDGER_PATH", ledger):
-                launcher.reserve_cost("run", 1.0, False, {"a": 1})
-                self.assertTrue(launcher.claim_controller("run", 60))
-                self.assertFalse(launcher.claim_controller("run", 60))
-                launcher.update_run_status("run", "reserved")
-                self.assertTrue(launcher.claim_controller("run", 60))
 
     def test_atomic_write_keeps_the_previous_checkpoint_when_rename_is_interrupted(self):
         with tempfile.TemporaryDirectory() as directory:
@@ -296,14 +133,6 @@ class NativeStrategySearchLauncherTest(unittest.TestCase):
             with self.assertRaises(ValueError):
                 launcher._strategy_search_validate_goldfish_only_bundle(held)
 
-    def test_goldfish_only_materialization_changes_nothing_for_empty_partitions(self):
-        bundle = self.goldfish_only_bundle()
-        state = {"maxActiveCpus": 512, "partitions": {},
-            "jobs": copy.deepcopy(bundle["jobs"]), "tasks": copy.deepcopy(bundle["tasks"])}
-        before = copy.deepcopy(state)
-        self.assertFalse(launcher._strategy_search_materialize_goldfish(state, bundle))
-        self.assertEqual(state, before)
-
     def test_goldfish_only_task_config_uses_kingdom_modes_top_path_and_batch_lease(self):
         bundle = self.goldfish_only_bundle()
         state = {"controllerFence": 1, "tasks": copy.deepcopy(bundle["tasks"]),
@@ -319,25 +148,6 @@ class NativeStrategySearchLauncherTest(unittest.TestCase):
         self.assertEqual(configs[1]["topPath"],
             f"evidence/{'a' * 64}/goldfish/top-500000.hgf")
         self.assertEqual([config["leaseMs"] for config in configs], [lease_ms, lease_ms])
-
-    def test_full_route_goldfish_reducer_keeps_manifest_mode(self):
-        evidence = "a" * 64
-        dependency = {"taskId": "score", "evidenceId": evidence,
-            "kingdomId": "balance-tuning-005", "stage": "goldfish-two", "status": "complete",
-            "receipt": {"artifactPath": f"evidence/{evidence}/tasks/goldfish-two/0-10.hgs"}}
-        reducer = {"taskId": "reduce", "evidenceId": evidence,
-            "kingdomId": "balance-tuning-005", "stage": "goldfish-two-reduce",
-            "dependencyTaskIds": ["score"]}
-        task = {**reducer, "cpu": 4, "memoryMiB": 8192, "timeoutSeconds": 300}
-        bundle = {"campaignExecutionId": "b" * 64, "sourceImage": {},
-            "controller": {"route": "full-strategy-search"}}
-        state = {"controllerFence": 1, "jobs": [dependency, reducer], "tasks": [task]}
-        config = launcher._strategy_search_task_config(bundle, state, reducer, "owner", {
-            "launchId": "launch", "temporaryPath": "temporary/reservoir.hgf", "fence": 1,
-            "leaseUntilMs": 900_000})
-        self.assertEqual(config["mode"], "reduce-two")
-        self.assertEqual(config["manifest"], [dependency["receipt"]["artifactPath"]])
-        self.assertEqual(config["topPath"], f"evidence/{evidence}/goldfish/top-500000.hgf")
 
     def test_goldfish_only_completion_records_only_verified_final_goldfish_receipts(self):
         with tempfile.TemporaryDirectory() as directory:
@@ -375,9 +185,8 @@ class NativeStrategySearchLauncherTest(unittest.TestCase):
         source = inspect.getsource(launcher)
         self.assertIn("strategy-search-image-files.json", source)
         self.assertNotIn("image.add_local_file", source)
-        self.assertEqual(source.count("image.add_local_dir"), 3)
-        layered = launcher._NODE_DEPENDENCY_FILES | launcher._RUST_IMAGE_FILES \
-            | launcher._APPLICATION_IMAGE_FILES
+        self.assertEqual(source.count("image.add_local_dir"), 2)
+        layered = launcher._RUST_IMAGE_FILES | launcher._APPLICATION_IMAGE_FILES
         self.assertEqual(layered, set(launcher._SOURCE_IMAGE_FILES))
         self.assertFalse(launcher._ignore_image_paths_except({"src/sim/file.ts"})(
             launcher.PROJECT_ROOT / "src"))
@@ -472,31 +281,6 @@ print(json.dumps(result))
                 patch.object(launcher.subprocess, "run", return_value=completed):
             with self.assertRaisesRegex(RuntimeError, "expected usage error"):
                 launcher._strategy_search_psro_readiness_impl({"digest": "a" * 64})
-
-    def test_strategy_search_execution_reuses_pinned_partitions_when_capacity_changes(self):
-        with tempfile.TemporaryDirectory() as directory:
-            root = pathlib.Path(directory)
-            state_file = root / "state.json"
-            def execution_file(_execution_id):
-                return state_file
-            state_file.write_text(json.dumps({"schemaVersion": 2, "campaignExecutionId": "a" * 64,
-                "orderedEvidenceIds": ["b" * 64], "partitions": {"one": [1]},
-                "jobs": [{"taskId": "old"}], "tasks": [{"taskId": "old"}],
-                "maxActiveCpus": 400, "admissionLimitCpus": 400, "revision": 0,
-                "computePreflight": {"sourceDigest": "c" * 64}}))
-            request = {"operation": "execution-init", "campaignExecutionId": "a" * 64,
-                "orderedEvidenceIds": ["b" * 64], "partitions": {"different": [2]},
-                "jobs": [{"taskId": "new"}], "tasks": [{"taskId": "new"}], "maxActiveCpus": 800,
-                "sourceDigest": "c" * 64}
-            with patch.object(launcher, "_strategy_search_execution_file", execution_file), \
-                    patch.object(launcher.volume, "reload"), patch.object(launcher.volume, "commit"):
-                raw = launcher.strategy_search_publisher.get_raw_f()
-                changed = raw(request)
-                with self.assertRaisesRegex(RuntimeError, "compute identity"):
-                    raw({**request, "sourceDigest": "d" * 64})
-            self.assertEqual(changed["partitions"], {"one": [1]})
-            self.assertEqual(changed["jobs"], [{"taskId": "old"}])
-            self.assertEqual(changed["maxActiveCpus"], 800)
 
     def test_strategy_search_controller_startup_is_accepted_only_after_fenced_useful_work(self):
         with tempfile.TemporaryDirectory() as directory:
@@ -705,62 +489,6 @@ print(json.dumps(result))
             self.assertFalse(temporary.exists())
             self.assertEqual(destination.read_bytes(), b"scientific")
 
-    def test_strategy_search_prepare_preserves_stale_psro_receipts_and_rematerializes_only_them(self):
-        with tempfile.TemporaryDirectory() as directory:
-            root = pathlib.Path(directory)
-            evidence, execution_id = "b" * 64, "a" * 64
-            state_file, execution_file = root / "publication.json", root / "execution.json"
-            execution_file.write_text(json.dumps({"revision": 0, "controller": {
-                "ownerId": "owner", "fence": 1, "leaseUntilMs": 100}}))
-            paths, receipts, items = {}, {}, []
-            for index in range(5):
-                task_id, relative = f"score-{index}", f"evidence/{evidence}/score-{index}.json"
-                artifact = root / f"score-{index}.json"
-                artifact.write_text(json.dumps({"schemaVersion": 1, "index": index}))
-                digest = launcher._strategy_search_sha256(artifact)
-                paths[relative] = artifact
-                receipts[task_id] = {"taskId": task_id, "evidenceId": evidence,
-                    "artifactPath": relative, "sha256": digest, "fence": 1}
-                items.append({"taskId": task_id, "evidenceId": evidence, "stage": "psro-score",
-                    "kingdomId": "kingdom", "transitionPath": "transition.json",
-                    "scoreTask": {"taskIndex": index, "candidateStart": index, "candidateEnd": index + 1,
-                        "scheduleStart": 0, "scheduleEnd": 8, "expectedTaskMs": 1},
-                    "launchId": f"launch-{index}", "temporaryPath": f"temporary/{index}",
-                    "artifactPath": relative})
-            other_relative = f"evidence/{evidence}/matrix-score.json"
-            other_artifact = root / "matrix-score.json"
-            other_artifact.write_text(json.dumps({"schemaVersion": 1, "matrix": True}))
-            paths[other_relative] = other_artifact
-            receipts["other-task"] = {"taskId": "other-task", "evidenceId": evidence,
-                "artifactPath": other_relative, "sha256": launcher._strategy_search_sha256(other_artifact), "fence": 1}
-            items.append({"taskId": "other-task", "evidenceId": evidence, "stage": "matrix-score",
-                "kingdomId": "kingdom", "launchId": "other-launch", "temporaryPath": "temporary/other",
-                "artifactPath": other_relative})
-            state_file.write_text(json.dumps({"schemaVersion": 1, "evidenceId": evidence,
-                "leases": {}, "intents": {}, "receipts": receipts}))
-            def held_path(relative):
-                return paths.setdefault(relative, root / relative.replace("/", "_"))
-            raw = launcher.strategy_search_publisher.get_raw_f()
-            with patch.object(launcher, "_strategy_search_evidence_state", return_value=state_file), \
-                    patch.object(launcher, "_strategy_search_execution_file", return_value=execution_file), \
-                    patch.object(launcher, "_strategy_search_path", side_effect=held_path), \
-                    patch.object(launcher, "_strategy_search_validate_psro_score_receipt",
-                        side_effect=[False] * 5), \
-                    patch.object(launcher.volume, "reload"), patch.object(launcher.volume, "commit"):
-                result = raw({"operation": "prepare-launch-batch", "campaignExecutionId": execution_id,
-                    "controllerOwnerId": "owner", "controllerFence": 1, "ownerId": "owner",
-                    "nowMs": 1, "leaseMs": 100, "items": items})
-            self.assertTrue(all(not result[f"score-{index}"]["complete"] for index in range(5)))
-            self.assertTrue(result["other-task"]["complete"])
-            saved = json.loads(state_file.read_text())
-            self.assertEqual(set(saved["receipts"]), {"other-task"})
-            self.assertEqual(set(saved["invalidReceipts"]), {f"score-{index}" for index in range(5)})
-            for index in range(5):
-                task_id = f"score-{index}"
-                self.assertFalse(paths[items[index]["artifactPath"]].exists())
-                preserved = saved["invalidReceipts"][task_id][0]["preservedArtifactPath"]
-                self.assertTrue(paths[preserved].exists())
-
     def test_strategy_search_task_identity_normalizes_modal_object_key_order(self):
         evidence = "b" * 64
         forward = launcher._strategy_search_goldfish_task_id(evidence, "goldfish-one",
@@ -771,103 +499,6 @@ print(json.dumps(result))
             "range": {"start": 0, "end": 10}}, separators=(",", ":")).encode()).hexdigest()
         self.assertEqual(forward, expected)
         self.assertEqual(reversed_keys, expected)
-
-    def test_strategy_search_expands_one_sealed_psro_look_into_bounded_score_and_reduce_jobs(self):
-        evidence = "b" * 64
-        transition = {"kind": "score", "checkpoint": {"evidenceHash": "c" * 64},
-            "look": {"descriptorHash": "d" * 64, "scheduleStart": 0, "scheduleEnd": 8},
-            "tasks": [{"taskIndex": 0, "candidateStart": 0, "candidateEnd": 100,
-                "scheduleStart": 0, "scheduleEnd": 8, "expectedTaskMs": 15000},
-                {"taskIndex": 1, "candidateStart": 100, "candidateEnd": 200,
-                    "scheduleStart": 0, "scheduleEnd": 8, "expectedTaskMs": 15000}]}
-        job = {"taskId": "decision", "evidenceId": evidence, "kingdomId": "kingdom",
-            "stage": "psro-decision", "status": "complete",
-            "receipt": {"artifactPath": "transition.json"}}
-        state = {"maxActiveCpus": 400, "jobs": [job], "tasks": []}
-        with patch.object(launcher, "_strategy_search_path", return_value=pathlib.Path("transition.json")), \
-                patch.object(launcher, "_strategy_search_load", return_value=transition), \
-                patch.object(launcher.volume, "reload"):
-            self.assertTrue(launcher._strategy_search_expand_transition(state, job))
-            self.assertFalse(launcher._strategy_search_expand_transition(state, job))
-        self.assertTrue(launcher._strategy_search_materialize_adaptive(state,
-            {"controller": {"readyWindowWaves": 2}}))
-        scores = [held for held in state["jobs"] if held["stage"] == "psro-score"]
-        self.assertEqual(len(scores), 2)
-        reducer = next(held for held in state["jobs"]
-            if held["stage"] == "psro-decision" and held["taskId"] != "decision")
-        self.assertEqual(reducer["dependencyTaskIds"], [held["taskId"] for held in scores])
-        self.assertEqual(len(state["jobs"]), 4)
-
-    def test_strategy_search_materializes_only_two_adaptive_score_waves(self):
-        evidence = "b" * 64
-        tasks = [{"taskIndex": index, "candidateStart": index * 10,
-            "candidateEnd": (index + 1) * 10, "scheduleStart": 0, "scheduleEnd": 8,
-            "expectedTaskMs": 20000} for index in range(10)]
-        state = {"maxActiveCpus": 8, "jobs": [], "tasks": [], "dynamicScorePartitions": {
-            "d" * 64: {"kind": "score", "evidenceId": evidence, "kingdomId": "kingdom",
-                "parentTaskId": "parent", "transitionPath": "transition", "root": "root",
-                "descriptorHash": "d" * 64, "scoreBlocks": 8, "tasks": tasks,
-                "reducerCreated": False}}}
-        bundle = {"controller": {"readyWindowWaves": 2}}
-        self.assertTrue(launcher._strategy_search_materialize_adaptive(state, bundle))
-        first = [job for job in state["jobs"] if job["stage"] == "psro-score"]
-        self.assertEqual(len(first), 4)
-        self.assertFalse(any(job["stage"] == "psro-decision" for job in state["jobs"]))
-        for job in first:
-            job["status"] = "complete"
-        self.assertTrue(launcher._strategy_search_materialize_adaptive(state, bundle))
-        self.assertEqual(len([job for job in state["jobs"] if job["stage"] == "psro-score"]), 8)
-
-    def test_strategy_search_reports_running_and_submitted_cpus_for_each_score_look(self):
-        jobs, tasks = [], []
-        for index in range(2):
-            task_id = f"score-{index}"
-            jobs.append({"taskId": task_id, "evidenceId": "b" * 64, "kingdomId": "kingdom",
-                "stage": "psro-score", "attempts": [{"submittedMs": 10 + index * 10,
-                    "finishedMs": 90 - index * 10, "workerStartedMs": 20 + index * 10,
-                    "workerFinishedMs": 80 - index * 10, "cpu": 4}]})
-            tasks.append({"taskId": task_id, "metadata": {"lookDescriptorHash": "c" * 64}})
-        jobs.append({"taskId": "reduce", "evidenceId": "b" * 64, "kingdomId": "kingdom",
-            "stage": "psro-decision", "dependencyTaskIds": ["score-0", "score-1"],
-            "attempts": [{"submittedMs": 90, "finishedMs": 100, "workerStartedMs": 91,
-                "workerFinishedMs": 99, "modalWorkerElapsedMs": 8, "cpu": 1}]})
-        result = launcher._strategy_search_score_look_utilization({"jobs": jobs, "tasks": tasks}, 100)
-        self.assertEqual(result, [{"evidenceId": "b" * 64, "kingdomId": "kingdom",
-            "stage": "psro-score", "lookId": "c" * 64, "taskCount": 2, "requestedCpus": 8,
-            "peakSubmittedCpus": 8, "peakRunningCpus": 8, "admissionFailureCount": 0,
-            "workerDurationMs": {"min": 40, "p50": 40, "p95": 60, "max": 60},
-            "queueDelayMs": {"min": 10, "p50": 10, "p95": 10, "max": 10},
-            "coordinationAndReductionMs": 20, "reductionWorkerMs": 8, "totalWallMs": 90}])
-
-    def test_strategy_search_materializes_only_two_global_goldfish_waves_and_then_reducer(self):
-        evidence = "b" * 64
-        ranges = [{"start": index * 10, "end": (index + 1) * 10} for index in range(10)]
-        state = {"maxActiveCpus": 8, "partitions": {
-            f"{evidence}:goldfish-one": {"jobs": ranges},
-            f"{evidence}:goldfish-two": {"jobs": [{"start": 0, "end": 10}]}
-        }, "jobs": [{"taskId": "matrix", "evidenceId": evidence, "kingdomId": "kingdom",
-            "stage": "matrix-manifest", "status": "blocked"}], "tasks": []}
-        bundle = {"controller": {"readyWindowWaves": 2}}
-        self.assertTrue(launcher._strategy_search_materialize_goldfish(state, bundle))
-        first = [job for job in state["jobs"] if job["stage"] == "goldfish-one"]
-        self.assertEqual(len(first), 4)
-        self.assertFalse(any(job["stage"] == "goldfish-one-reduce" for job in state["jobs"]))
-        for job in first:
-            job["status"] = "complete"
-        self.assertTrue(launcher._strategy_search_materialize_goldfish(state, bundle))
-        second = [job for job in state["jobs"] if job["stage"] == "goldfish-one"]
-        self.assertEqual(len(second), 8)
-        for job in second:
-            job["status"] = "complete"
-        self.assertTrue(launcher._strategy_search_materialize_goldfish(state, bundle))
-        final = [job for job in state["jobs"] if job["stage"] == "goldfish-one"]
-        self.assertEqual(len(final), 10)
-        reducer = next(job for job in state["jobs"] if job["stage"] == "goldfish-one-reduce")
-        self.assertEqual(len(reducer["dependencyTaskIds"]), 10)
-        self.assertFalse(any(job["stage"] == "goldfish-two" for job in state["jobs"]))
-        reducer["status"] = "complete"
-        self.assertTrue(launcher._strategy_search_materialize_goldfish(state, bundle))
-        self.assertEqual(len([job for job in state["jobs"] if job["stage"] == "goldfish-two"]), 1)
 
     def test_goldfish_only_controller_runs_two_kingdom_tasks_with_scaled_leases_and_throughput(self):
         bundle = self.goldfish_only_bundle()
@@ -976,34 +607,6 @@ print(json.dumps(result))
         self.assertEqual(sum(job["result"]["rustReports"]["score"]["rowCount"]
             for job in holder["state"]["jobs"]), 13_472_960)
         self.assertIn("a" * 64, finalized)
-
-    def test_strategy_search_complete_evidence_is_reused_across_campaigns(self):
-        with tempfile.TemporaryDirectory() as directory:
-            root = pathlib.Path(directory)
-            evidence = "b" * 64
-            state_file = root / "publication.json"
-            task_ids = {stage: f"task-{stage}" for stage in
-                ["goldfish-one-reduce", "goldfish-two-reduce", "matrix-reduce", "psro-reduce"]}
-            receipts = {}
-            paths = {}
-            for stage, task_id in task_ids.items():
-                artifact = root / f"{stage}.artifact"
-                artifact.write_bytes(stage.encode())
-                relative = f"evidence/{evidence}/{stage}"
-                paths[relative] = artifact
-                receipts[task_id] = {"taskId": task_id, "evidenceId": evidence,
-                    "artifactPath": relative, "sha256": hashlib.sha256(stage.encode()).hexdigest(), "fence": 1}
-            state_file.write_text(json.dumps({"schemaVersion": 1, "evidenceId": evidence,
-                "leases": {}, "intents": {}, "receipts": receipts,
-                "completion": {"completedMs": 1,
-                    "receipts": {stage: receipts[task_id] for stage, task_id in task_ids.items()}}}))
-            with patch.object(launcher, "_strategy_search_evidence_state", return_value=state_file), \
-                    patch.object(launcher, "_strategy_search_path", side_effect=lambda relative: paths[relative]), \
-                    patch.object(launcher.volume, "reload"):
-                result = launcher.strategy_search_publisher.get_raw_f()({"operation": "evidence-complete",
-                    "evidenceId": evidence})
-            self.assertTrue(result["complete"])
-            self.assertEqual(set(result["receipts"]), set(task_ids))
 
     def test_strategy_search_shared_lease_joins_receipt_and_refences_takeover(self):
         with tempfile.TemporaryDirectory() as directory:
@@ -1451,13 +1054,10 @@ print(json.dumps(result))
             self.assertFalse(stale["controllerLeaseLive"])
 
     def test_strategy_search_run_prepares_state_only_after_verified_compute_deployment(self):
-        bundle = {"schemaVersion": 3, "campaignExecutionId": "a" * 64,
+        bundle = self.goldfish_only_bundle()
+        bundle.update({"campaignExecutionId": "a" * 64,
             "executionRoot": "executions/" + "a" * 64,
-            "request": {"kingdomIds": ["kingdom"], "maxActiveCpus": 400},
-            "sourceImage": {"digest": "b" * 64, "files": []}, "partitions": {"one": []},
-            "jobs": [{"taskId": "task", "status": "ready"}],
-            "tasks": [{"taskId": "task", "stage": "psro-decision", "evidenceId": "c" * 64}],
-            "controller": {"timeoutSeconds": 1140}}
+            "sourceImage": {"digest": "b" * 64, "files": []}})
         with tempfile.TemporaryDirectory() as directory, \
                 patch.object(status_launcher, "_execution_file",
                     return_value=pathlib.Path(directory) / "state.json"), \
@@ -1477,34 +1077,30 @@ print(json.dumps(result))
             self.assertTrue(first["prepared"])
             state = json.loads(pathlib.Path(directory, "state.json").read_text())
             self.assertEqual(state["status"], "ready")
-            self.assertEqual(state["orderedEvidenceIds"], ["c" * 64])
+            self.assertEqual(state["orderedEvidenceIds"], ["a" * 64])
             self.assertEqual(state["computePreflight"], preflight)
-            changed = {**bundle, "partitions": {"different": []},
-                "jobs": [{"taskId": "different"}]}
+            changed = {**bundle, "jobs": [{"taskId": "different"}]}
             self.assertFalse(raw(changed, preflight)["prepared"])
             self.assertEqual(json.loads(pathlib.Path(directory, "state.json").read_text())["jobs"],
-                [{"taskId": "task", "status": "ready"}])
+                bundle["jobs"])
             self.assertEqual(commit.call_count, 2)
 
-    def test_strategy_search_campaign_has_no_legacy_recovery_or_budget_gate(self):
+    def test_strategy_search_route_has_no_recovery_or_budget_gate(self):
         controller_source = inspect.getsource(launcher.strategy_search_controller.get_raw_f())
-        self.assertNotIn("GROSS_BUDGET_USD", controller_source)
-        self.assertNotIn("MAX_FULL_RUNS", controller_source)
         module_source = inspect.getsource(launcher)
         runtime_source = inspect.getsource(runtime_launcher)
         self.assertIn("strategy_search_compute_ready", module_source)
         self.assertNotIn("strategy_search_run_entry", module_source)
         self.assertIn('Function.from_name(compute_app_name, "strategy_search_controller")', runtime_source)
         self.assertIn("strategy-search-useful-work-started", runtime_source)
-        self.assertIn("_NODE_DEPENDENCY_FILES", module_source)
+        self.assertNotIn("_NODE_DEPENDENCY_FILES", module_source)
         self.assertIn("_RUST_IMAGE_FILES", module_source)
         self.assertIn("_APPLICATION_IMAGE_FILES", module_source)
-        self.assertEqual(module_source.count("image.add_local_dir"), 3)
+        self.assertEqual(module_source.count("image.add_local_dir"), 2)
         self.assertNotIn("image.add_local_file", module_source)
         self.assertIn('from_registry("rust:1.98.0-slim-bookworm"', module_source)
         self.assertNotIn("rustup toolchain install", module_source)
-        self.assertLess(module_source.index('npm ci'), module_source.index(
-            'ignore=_ignore_image_paths_except(_APPLICATION_IMAGE_FILES)'))
+        self.assertNotIn("npm ci", module_source)
         for removed in ["campaign_recover_entry", "campaign_source_repair", "resume-plan"]:
             self.assertNotIn(removed, module_source)
 

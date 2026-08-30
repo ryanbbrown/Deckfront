@@ -29,9 +29,8 @@ class StrategySearchRuntimeTest(unittest.TestCase):
         bundle = {"controller": {"route": "goldfish-only-v2"}}
         self.assertEqual(runtime._final_artifact_relatives(bundle),
             ["goldfish/top-500000.hgf", "goldfish/reservoir.hgf"])
-        self.assertEqual(runtime._final_artifact_relatives({"controller": {}}),
-            ["goldfish/top-500000.hgf", "goldfish/reservoir.hgf",
-             "matrix/evidence.json", "psro/evidence.json"])
+        with self.assertRaisesRegex(ValueError, "only the Goldfish v2 route"):
+            runtime._final_artifact_relatives({"controller": {}})
 
     def test_final_downloads_measure_each_artifact_and_total_bytes(self):
         evidence_id = "a" * 64
@@ -47,20 +46,6 @@ class StrategySearchRuntimeTest(unittest.TestCase):
             self.assertTrue(all(entry["wallMs"] >= 0 for entry in result["artifacts"]))
             for remote, content in files.items():
                 self.assertEqual((pathlib.Path(directory) / remote).read_bytes(), content)
-
-    def test_full_route_downloads_all_four_files_without_listing_the_volume(self):
-        evidence_id = "b" * 64
-        files = {
-            f"evidence/{evidence_id}/goldfish/top-500000.hgf": b"t" * runtime.GOLDFISH_TOP_BYTES,
-            f"evidence/{evidence_id}/goldfish/reservoir.hgf": b"r" * runtime.GOLDFISH_RESERVOIR_BYTES,
-            f"evidence/{evidence_id}/matrix/evidence.json": b'{"matrix":true}',
-            f"evidence/{evidence_id}/psro/evidence.json": b'{"psro":true}'}
-        volume = FakeVolume(files)
-        self.assertFalse(hasattr(volume, "listdir"))
-        with tempfile.TemporaryDirectory() as directory, patch.object(runtime, "volume", volume):
-            result = runtime._download_final_artifacts(pathlib.Path(directory), [evidence_id])
-        self.assertEqual([entry["path"] for entry in result["artifacts"]], list(files))
-        self.assertEqual(result["bytes"], sum(len(content) for content in files.values()))
 
     def test_final_download_rejects_a_truncated_goldfish_stream(self):
         evidence_id = "a" * 64
