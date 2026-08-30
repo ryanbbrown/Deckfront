@@ -116,6 +116,7 @@ const DAMAGE_FAMILIES = ['Melee', 'Ranged', 'Mage'] as const;
 const MIXED_DAMAGE_MINIMUM = 0.2;
 
 function damageFamily(cardId: string): (typeof DAMAGE_FAMILIES)[number] | null {
+  // This report classifies core family baselines; hybrid and special attacks do not define a family.
   const mechanic = cardDefinition(cardId).mechanic;
   if (['melee', 'drive', 'flurry'].includes(mechanic)) return 'Melee';
   if (['ranged', 'repellingShot', 'volley'].includes(mechanic)) return 'Ranged';

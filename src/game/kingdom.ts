@@ -120,11 +120,16 @@ function resolveIn(kingdomId: string, definitionId: string): CardDefinition {
   kingdomResolved.set(definitionId, definition);
   return definition;
 }
-export function resolveCard(state: GameState, definitionId: string): CardDefinition { return resolveIn(state.kingdomId, definitionId); }
+export function resolveCardInKingdom(kingdomId: string, definitionId: string): CardDefinition {
+  return resolveIn(kingdomId, definitionId);
+}
+export function resolveCard(state: GameState, definitionId: string): CardDefinition {
+  return resolveCardInKingdom(state.kingdomId, definitionId);
+}
 export function kingdomMarket(kingdomId: string): CardDefinition[] {
   const kingdom = kingdomOf(kingdomId);
   return [...TREASURE_IDS, ...kingdom.actionPiles.map((pile) => pile.cardId), ...ALWAYS_AVAILABLE_ACTION_IDS]
-    .map((id) => resolveIn(kingdomId, id));
+    .map((id) => resolveCardInKingdom(kingdomId, id));
 }
 export function randomKingdom(id: string, variableCardIds: readonly string[]): Kingdom {
   if (variableCardIds.length !== RANDOM_KINGDOM_SIZE || new Set(variableCardIds).size !== RANDOM_KINGDOM_SIZE

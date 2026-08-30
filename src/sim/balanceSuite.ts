@@ -2,7 +2,7 @@ import fs from 'node:fs';
 import path from 'node:path';
 import { pathToFileURL } from 'node:url';
 import rawManifest from './balance-suite-manifest.json' with { type: 'json' };
-import { CARDS, VARIABLE_ACTION_IDS, findKingdom, registerKingdom } from '../game';
+import { ATTACK_MECHANICS, CARDS, VARIABLE_ACTION_IDS, findKingdom, registerKingdom } from '../game';
 import type { Kingdom } from '../game';
 import { defaultExperimentOptions } from './experimentConfig';
 import { runExperiment } from './experiment';
@@ -97,10 +97,7 @@ function overlap(left: readonly string[], right: readonly string[]): number {
   return left.reduce((count, card) => count + Number(rightSet.has(card)), 0);
 }
 function isDamage(cardId: string): boolean {
-  return ['melee', 'drive', 'flurry', 'openingStrike', 'rally', 'bullRush', 'ranged', 'repellingShot',
-    'longshot', 'salvageShot', 'precisionShot', 'volley', 'spell', 'discharge', 'cascade', 'overload',
-    'discipline', 'improvise', 'scrap']
-    .includes(CARDS[cardId]!.mechanic);
+  return ATTACK_MECHANICS.has(CARDS[cardId]!.mechanic);
 }
 function pairCounts(rows: readonly (readonly string[])[], eligible: readonly string[]): Map<string, number> {
   const counts = new Map<string, number>();

@@ -158,13 +158,14 @@ describe('combo card batch', () => {
 
 
 describe('complete public card coverage', () => {
-  const melee = new Set(['feint','jab','strike','drive','heavyBlow','openingStrike','rally','bullRush','flurry']);
+  // Feint is included because this set places every card that requires Close range, not only attacks.
+  const closeRangeCards = new Set(['feint','jab','strike','drive','heavyBlow','openingStrike','rally','bullRush','flurry']);
   const manaGated = new Set(['arcBolt','fireball','starfire','cascade']);
 
   it.each(Object.values(CARDS).filter((card) => card.type === 'action').map((card) => card.id))(
     '%s resolves from a public legal action', (definitionId) => {
       let state = ready();
-      state.fighters.ochre.position = 2; state.fighters.indigo.position = melee.has(definitionId) ? 2 : 3;
+      state.fighters.ochre.position = 2; state.fighters.indigo.position = closeRangeCards.has(definitionId) ? 2 : 3;
       state.players.ochre.mana = manaGated.has(definitionId) ? 9 : definitionId === 'discharge' ? 3 : 0;
       const support = definitionId === 'bullRush' ? ['strike']
         : definitionId === 'salvageShot' ? ['steadyShot']

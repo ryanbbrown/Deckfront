@@ -1,5 +1,5 @@
 import { afterEach, describe, expect, it } from 'vitest';
-import { registerKingdom, resetKingdoms } from '../../src/game';
+import { registerKingdom, resetKingdoms, resolveCardInKingdom } from '../../src/game';
 import { tacticalAgent } from '../../src/sim/tacticalAgent';
 import { diagnosticStrategies } from '../../src/sim/baselines';
 import { CURATED_KINGDOM_IDS } from '../../src/sim/kingdoms';
@@ -154,6 +154,54 @@ describe('the compact simulation kernel', () => {
       expect(runSimulationMatch({ ...shared, strategies:{ ochre:melee, indigo:ranged } }))
         .toEqual(runMatch({ ...shared, agents:{ ochre:tacticalAgent(melee), indigo:tacticalAgent(ranged) } }));
     }
+  });
+
+  it('matches draft-off Scrap damage from a kingdom override', () => {
+    registerKingdom({
+      id: 'scrap-override-parity', name: 'Scrap override parity', startingHealth: 40,
+      actionPiles: [{ cardId: 'cull', count: 10 }],
+      overrides: { scrap: { cost: 5, values: { damage: 7 } } }
+    });
+    expect(resolveCardInKingdom('scrap-override-parity', 'scrap')).toMatchObject({
+      cost: 5, values: { damage: 7 }
+    });
+    const passive: Strategy = { id: 'scrap-passive', startingBuild: [], buyAgenda: [], repeatPurchase: 'gold' };
+    const shared = {
+      kingdomId: 'scrap-override-parity', seed: 1, firstPlayerId: 'ochre' as const,
+      swapSides: false, turnLimitPerPlayer: 1, actionCapPerTurn: 100, startingDraftEnabled: false
+    };
+    const product = runMatch({
+      ...shared, agents: { ochre: tacticalAgent(passive), indigo: tacticalAgent(passive) }
+    });
+    const compact = runSimulationMatch({ ...shared, strategies: { ochre: passive, indigo: passive } });
+
+    expect(compact).toEqual(product);
+    expect(compact.telemetry.damageByCard).toEqual({ ochre: { scrap: 7 }, indigo: { scrap: 7 } });
+  });
+
+  it('caps carried mana at 3 before the kernel spends it on a later turn', () => {
+    registerKingdom({
+      id: 'kernel-mana-cap', name: 'Kernel mana cap', startingHealth: 100,
+      actionPiles: [{ cardId: 'channel', count: 10 }, { cardId: 'discharge', count: 10 }],
+      overrides: {
+        channel: { cost: 0, values: { mana: 4, draw: 0 } },
+        discharge: { cost: 0, values: { perMana: 1 } }
+      }
+    });
+    const active: Strategy = {
+      id: 'kernel-mana-active',
+      startingBuild: ['channel', 'discharge', ...Array<string>(8).fill('copper')],
+      buyAgenda: [], repeatPurchase: 'gold'
+    };
+    const passive: Strategy = { id: 'kernel-mana-passive', startingBuild: [], buyAgenda: [], repeatPurchase: 'gold' };
+    const result = runSimulationMatch({
+      kingdomId: 'kernel-mana-cap', seed: 25, firstPlayerId: 'ochre', swapSides: false,
+      turnLimitPerPlayer: 5, actionCapPerTurn: 100, strategies: { ochre: active, indigo: passive }
+    });
+
+    expect(result.telemetry.playsByCard.ochre).toMatchObject({ channel: 1, discharge: 1 });
+    expect(result.telemetry.damageByCard.ochre.discharge).toBe(3);
+    expect(result.telemetry.finalHealth.indigo).toBe(97);
   });
 
   it('matches every controlled new mechanic and deterministic target order', () => {

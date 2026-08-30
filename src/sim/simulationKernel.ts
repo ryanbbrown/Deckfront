@@ -1,6 +1,7 @@
 import {
   ALWAYS_AVAILABLE_ACTION_IDS, ALWAYS_AVAILABLE_COUNT, ARENA_MAX, ARENA_MIN, ATTACK_MECHANICS,
-  cardDefinition, firstBuyCarry, isTacticalAction, kingdomEpoch, kingdomMarket, kingdomOf, playerStartingHealth
+  MAX_CARRIED_MANA, cardDefinition, firstBuyCarry, isTacticalAction, kingdomEpoch, kingdomMarket,
+  kingdomOf, playerStartingHealth, resolveCardInKingdom
 } from '../game';
 import type { CardFamily, CardMechanic, CardValues, MovementChoice, PlayerId } from '../game';
 import { repairBuildIn } from './build';
@@ -92,9 +93,7 @@ function kernelKingdom(kingdomId: string): KernelKingdom {
   const cached = kingdomCache.get(kingdomId);
   if (cached) return cached;
   const kingdom = kingdomOf(kingdomId);
-  const marketDefinitions = kingdomMarket(kingdomId);
-  const definitions = marketDefinitions.some((definition) => definition.id === 'scrap')
-    ? marketDefinitions : [...marketDefinitions, cardDefinition('scrap')];
+  const definitions = [...kingdomMarket(kingdomId), resolveCardInKingdom(kingdomId, 'scrap')];
   const cards = definitions.map((definition): KernelCard => ({
     id: definition.id, type: definition.type, mechanic: definition.mechanic, family: definition.family,
     cost: definition.cost, money: definition.money ?? 0, values: definition.values ?? {},
@@ -213,10 +212,18 @@ function positionAfter(position: number, movement: MovementChoice): number {
   return position + (movement === 'left' ? -1 : movement === 'right' ? 1 : 0);
 }
 
+// These range gates include setup cards Feint and Aim, so they are intentionally not attack sets.
+const CLOSE_RANGE_MECHANICS: ReadonlySet<CardMechanic> = new Set([
+  'melee', 'drive', 'flurry', 'feint', 'openingStrike', 'rally', 'bullRush'
+]);
+const RANGED_RANGE_MECHANICS: ReadonlySet<CardMechanic> = new Set([
+  'ranged', 'repellingShot', 'volley', 'aim', 'longshot', 'salvageShot', 'precisionShot'
+]);
+
 function enabled(state: KernelState, actor: 0 | 1, card: KernelCard): boolean {
   const close = state.positions[actor] === state.positions[other(actor)];
-  if (['melee', 'drive', 'flurry', 'feint', 'openingStrike', 'rally', 'bullRush'].includes(card.mechanic) && !close) return false;
-  if (['ranged', 'repellingShot', 'volley', 'aim', 'longshot', 'salvageShot', 'precisionShot'].includes(card.mechanic) && close) return false;
+  if (CLOSE_RANGE_MECHANICS.has(card.mechanic) && !close) return false;
+  if (RANGED_RANGE_MECHANICS.has(card.mechanic) && close) return false;
   if (['spell', 'cascade'].includes(card.mechanic) && state.players[actor].mana < cardValue(card, 'manaCost')) return false;
   if (card.mechanic === 'bullRush') return state.players[actor].hand.filter((index) => state.kingdom.cards[index]!.family === 'melee').length > 1;
   if (card.mechanic === 'salvageShot') return state.players[actor].hand.filter((index) => state.kingdom.cards[index]!.family === 'ranged').length > 1;
@@ -620,8 +627,8 @@ function recordDeadDraws(state: KernelState, actor: 0 | 1): void {
   for (const index of player.hand) {
     const card = state.kingdom.cards[index]!;
     if (card.type !== 'action') continue;
-    if ((['melee', 'drive', 'flurry', 'feint', 'openingStrike', 'rally', 'bullRush'].includes(card.mechanic) && !close)
-      || (['ranged', 'repellingShot', 'volley', 'aim', 'longshot', 'salvageShot', 'precisionShot'].includes(card.mechanic) && close)) {
+    if ((CLOSE_RANGE_MECHANICS.has(card.mechanic) && !close)
+      || (RANGED_RANGE_MECHANICS.has(card.mechanic) && close)) {
       counts.range += 1; counts.total += 1; continue;
     }
     if (['spell', 'cascade'].includes(card.mechanic) && player.mana < cardValue(card, 'manaCost')) {
@@ -687,7 +694,7 @@ function endBuyPhase(state: KernelState, actor: 0 | 1): void {
   const player = state.players[actor];
   state.telemetry.unspentMoney[playerId(actor)] += player.money;
   player.discard.push(...player.hand, ...player.play); player.hand = []; player.play = [];
-  player.money = 0; player.mana = Math.min(player.mana, 3); player.firstBuyPending = false; player.firstBuyMoney = 0;
+  player.money = 0; player.mana = Math.min(player.mana, MAX_CARRIED_MANA); player.firstBuyPending = false; player.firstBuyMoney = 0;
   state.aimed[actor] = false; state.exposed[other(actor)] = false;
   draw(state, actor, 5); state.tacticalPlayed = 0; state.cardsPlayed = []; state.spacesMoved = 0; state.manaSpent = 0; state.spellsPlayed = 0;
   state.copiesPlayed.fill(0); state.familiesPlayed.clear();

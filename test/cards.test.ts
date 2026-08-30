@@ -208,7 +208,7 @@ describe('attacks', () => {
     let melee = ready(); melee.fighters.indigo.position = 3; melee.fighters.indigo.exposed = true; isolateHand(melee, 'ochre', ['strike']);
     melee = playCard(melee, 'strike'); expect(melee.fighters.indigo.health).toBe(36); expect(melee.fighters.indigo.exposed).toBe(true);
   });
-  it('Opening Strike treats setup as non-attacks and earlier damage cards as attacks', () => {
+  it('Opening Strike treats setup as non-attacks and earlier attack cards as attacks', () => {
     let setup = ready(); setup.fighters.indigo.position = 3; isolateHand(setup, 'ochre', ['focus', 'openingStrike']);
     setup = playCard(setup, 'focus'); setup = playCard(setup, 'openingStrike');
     expect(setup.fighters.indigo.health).toBe(36);
@@ -216,6 +216,13 @@ describe('attacks', () => {
     let attacked = ready(); attacked.fighters.indigo.position = 3; isolateHand(attacked, 'ochre', ['strike', 'openingStrike']);
     attacked = playCard(attacked, 'strike'); attacked = playCard(attacked, 'openingStrike');
     expect(attacked.fighters.indigo.health).toBe(36);
+
+    let zeroDamage = ready(); zeroDamage.fighters.indigo.position = 3;
+    isolateHand(zeroDamage, 'ochre', ['improvise', 'openingStrike']);
+    zeroDamage = playCard(zeroDamage, 'improvise');
+    expect(zeroDamage.fighters.indigo.health).toBe(40);
+    zeroDamage = playCard(zeroDamage, 'openingStrike');
+    expect(zeroDamage.fighters.indigo.health).toBe(39);
   });
 });
 
@@ -239,7 +246,10 @@ describe('mage cards', () => {
     state = applyAction(state, action(state, (command) => command.type === 'endBuyPhase').id);
     expect(state.players.ochre.mana).toBe(3); expect(state.players.indigo.mana).toBe(2);
     state = endTurn(state);
-    expect(state.activePlayerId).toBe('ochre'); expect(state.players.ochre.mana).toBe(3); assertInvariants(state);
+    expect(state.activePlayerId).toBe('ochre'); expect(state.players.ochre.mana).toBe(3);
+    isolateHand(state, 'ochre', ['starfire']);
+    state = playCard(state, 'starfire');
+    expect(state.players.ochre.mana).toBe(0); expect(state.fighters.indigo.health).toBe(28); assertInvariants(state);
   });
   it('Ley Step moves exactly one space, gains mana, and offers no move into a wall', () => {
     expect(cardDefinition('leyStep').cost).toBe(3);

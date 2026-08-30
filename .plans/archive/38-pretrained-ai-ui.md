@@ -1,3 +1,5 @@
+> **Superseded:** [39-starfire-12-playable-catalog.md](../39-starfire-12-playable-catalog.md) replaces this plan. Do not use this archived document for current AI catalog or rules decisions.
+
 # Pretrained AI in the current game UI
 
 ## Goal

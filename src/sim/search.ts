@@ -2,7 +2,7 @@ import {
   CARDS, isTacticalAction, kingdomEpoch, listLegalActions, opponent, resolveCard
 } from '../game';
 import { applyLegalAction } from '../game/engine';
-import type { CardInstance, CardMechanic, GameEvent, GameState, LegalAction, PlayerId } from '../game';
+import type { CardInstance, GameEvent, GameState, LegalAction, PlayerId } from '../game';
 import { projectPurchases } from './buy';
 import type { PurchaseProjection } from './buy';
 import type { Strategy } from './strategy';
@@ -28,11 +28,6 @@ export interface SearchOptions { stateLimit: number; memo: SearchMemo | null }
 export interface SearchOutcome { action: LegalAction; visited: number }
 
 export const DEFAULT_STATE_LIMIT = 20000;
-export const ATTACK_MECHANICS: ReadonlySet<CardMechanic> = new Set<CardMechanic>([
-  'melee', 'ranged', 'repellingShot', 'spell', 'volley', 'drive', 'flurry', 'openingStrike', 'rally',
-  'bullRush', 'longshot', 'salvageShot', 'precisionShot', 'discharge', 'cascade', 'overload',
-  'discipline', 'improvise', 'scrap'
-]);
 
 let indexedEpoch = -1;
 const cardIndexes = new Map<string, ReadonlyMap<string, number>>();

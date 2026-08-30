@@ -2,7 +2,7 @@ import fs from 'node:fs';
 import os from 'node:os';
 import path from 'node:path';
 import { afterEach, describe, expect, it } from 'vitest';
-import { CARDS, VARIABLE_ACTION_IDS, findKingdom, resetKingdoms } from '../../src/game';
+import { ATTACK_MECHANICS, CARDS, VARIABLE_ACTION_IDS, findKingdom, resetKingdoms } from '../../src/game';
 import {
   BALANCE_SUITE_MANIFEST, BALANCE_SUITE_SPEC, balanceSuite, generateBalanceSuite,
   measureBalanceSuiteDesign
@@ -42,8 +42,7 @@ describe('balance-suite design', () => {
       expect(new Set(ids).size, kingdom.id).toBe(10);
       expect(ids.every((id) => eligible.has(id)), kingdom.id).toBe(true);
       expect(kingdom.actionPiles.every((pile) => pile.count === 10), kingdom.id).toBe(true);
-      expect(ids.some((id) => ['melee', 'drive', 'flurry', 'ranged', 'repellingShot', 'volley', 'spell']
-        .includes(CARDS[id]!.mechanic)), kingdom.id).toBe(true);
+      expect(ids.some((id) => ATTACK_MECHANICS.has(CARDS[id]!.mechanic)), kingdom.id).toBe(true);
       const key = [...ids].sort().join('|');
       expect(sets.has(key), kingdom.id).toBe(false); sets.add(key);
     }

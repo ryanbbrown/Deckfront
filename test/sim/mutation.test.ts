@@ -1,5 +1,5 @@
 import { afterEach, describe, expect, it } from 'vitest';
-import { SeededRandom, createGame, kingdomMarket, marketCost, registerKingdom, resetKingdoms, submitStartingBuild } from '../../src/game';
+import { ATTACK_MECHANICS, SeededRandom, createGame, kingdomMarket, marketCost, registerKingdom, resetKingdoms, submitStartingBuild } from '../../src/game';
 import { strategyAgent } from '../../src/sim/agents/strategyAgent';
 import { repairBuildIn } from '../../src/sim/build';
 import { CURATED_KINGDOM_IDS } from '../../src/sim/kingdoms';
@@ -8,7 +8,6 @@ import {
   mutate, mutateUnique, mutationRandom, repairStrategy
 } from '../../src/sim/mutation';
 import { diagnosticLabels, diagnosticStrategies } from '../../src/sim/baselines';
-import { ATTACK_MECHANICS } from '../../src/sim/search';
 import { canonicalStrategy } from '../../src/sim/strategy';
 import type { Strategy } from '../../src/sim/strategy';
 import { strategy } from './fixtures';

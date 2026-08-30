@@ -120,15 +120,16 @@ describe('the shared tactical pilot', () => {
       .toBe('heavyBlow');
   });
 
-  it('treats Opening Strike as the first attack after a setup card', () => {
-    const state = arena({ hand: ['openingStrike'], ochre: 2, indigo: 2 });
+  it('prefers first-attack Opening Strike over Strike after a setup card', () => {
+    const state = arena({ hand: ['openingStrike', 'strike'], ochre: 2, indigo: 2 });
     state.turnState.cardsPlayed = ['channel'];
     expect(playedDefinition(state, choose(state))).toBe('openingStrike');
   });
 
-  it('values Opening Strike at 1 after an earlier attack', () => {
+  it('counts a zero-damage second Scrap as an earlier attack for Opening Strike', () => {
     const state = arena({ hand: ['openingStrike', 'strike'], ochre: 2, indigo: 2 });
     state.turnState.cardsPlayed = ['scrap'];
+    state.turnState.copiesPlayed = { scrap: 2 };
     expect(playedDefinition(state, choose(state))).toBe('strike');
   });
 

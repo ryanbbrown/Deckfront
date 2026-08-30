@@ -1,4 +1,4 @@
-import { ARENA_MAX, ARENA_MIN } from '../game';
+import { ARENA_MAX, ARENA_MIN, ATTACK_MECHANICS } from '../game';
 import type { CardFamily, CardMechanic, CardValues, MovementChoice, PendingChoiceType } from '../game';
 import { printedAttackDamage, publicPositionAdvantage } from './positionValue';
 import type { AttackProfile } from './positionValue';
@@ -60,6 +60,11 @@ export type TacticalDecision =
   | { type: 'discard'; handIndex: number }
   | { type: 'recover'; discardIndex: number | null };
 
+// Feint looks for a playable Close attack, so setup and non-Close attacks are intentionally absent.
+const CLOSE_ATTACK_MECHANICS: ReadonlySet<CardMechanic> = new Set([
+  'melee', 'drive', 'flurry', 'openingStrike', 'rally', 'bullRush'
+]);
+
 function value(card: PilotCard, key: string): number { return card.values[key] ?? 0; }
 function distance(left: number, right: number): number { return Math.abs(left - right); }
 
@@ -112,9 +117,7 @@ function currentHandDamageAt(
   let spellDamage: Int16Array | null = null;
   let scrapAvailable = (view.copiesPlayed.scrap ?? 0) === 0;
   for (const card of view.hand) {
-    if (!['melee', 'drive', 'flurry', 'openingStrike', 'rally', 'bullRush', 'ranged', 'repellingShot',
-      'longshot', 'salvageShot', 'precisionShot', 'spell', 'discharge', 'cascade', 'overload', 'discipline', 'improvise', 'scrap', 'volley']
-      .includes(card.mechanic)) continue;
+    if (!ATTACK_MECHANICS.has(card.mechanic)) continue;
     if (card.mechanic === 'spell' || card.mechanic === 'cascade') {
       const cost = value(card, 'manaCost');
       if (cost > mana) continue;
@@ -343,16 +346,14 @@ function play(card: PilotCard, movement?: MovementChoice, hand?: readonly PilotC
 }
 
 function hasCloseAttack(view: TacticalView): boolean {
-  return view.hand.some((card) => card.enabled && ['melee', 'drive', 'flurry', 'openingStrike', 'rally', 'bullRush'].includes(card.mechanic));
+  return view.hand.some((card) => card.enabled && CLOSE_ATTACK_MECHANICS.has(card.mechanic));
 }
 
 function bestDamage(view: TacticalView, omitFlurry: boolean): PilotCard | undefined {
   let best: PilotCard | undefined;
   let bestDamage = -1;
   for (const card of view.hand) {
-    if (!card.enabled || !['melee', 'drive', 'flurry', 'openingStrike', 'rally', 'bullRush', 'ranged', 'repellingShot',
-      'longshot', 'salvageShot', 'precisionShot', 'spell', 'discharge', 'cascade', 'overload', 'discipline', 'improvise', 'scrap', 'volley']
-      .includes(card.mechanic)) continue;
+    if (!card.enabled || !ATTACK_MECHANICS.has(card.mechanic)) continue;
     if (omitFlurry && card.mechanic === 'flurry') continue;
     const damage = immediateDamage(card, view);
     if (damage > bestDamage) { best = card; bestDamage = damage; }
