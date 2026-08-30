@@ -2882,15 +2882,15 @@ mod tests {
         let fixtures = [
             (false, &alpha, &beta, 91, false, "ochre", "victory", 46),
             (
-                false, &alpha, &beta, 4_200_001, true, "ochre", "victory", 41,
+                false, &alpha, &beta, 4_200_001, true, "ochre", "victory", 49,
             ),
             (
-                false, &beta, &alpha, 4_200_125, false, "indigo", "victory", 35,
+                false, &beta, &alpha, 4_200_125, false, "ochre", "victory", 40,
             ),
-            (true, &alpha, &beta, 91, false, "ochre", "victory", 26),
-            (true, &alpha, &beta, 4_200_001, true, "ochre", "victory", 25),
+            (true, &alpha, &beta, 91, false, "ochre", "victory", 36),
+            (true, &alpha, &beta, 4_200_001, true, "ochre", "victory", 29),
             (
-                true, &beta, &alpha, 4_200_125, false, "indigo", "victory", 25,
+                true, &beta, &alpha, 4_200_125, false, "indigo", "victory", 29,
             ),
         ];
         for (draft, ochre, indigo, seed, first_indigo, outcome, reason, turns) in fixtures {

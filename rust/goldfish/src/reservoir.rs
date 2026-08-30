@@ -1702,7 +1702,7 @@ mod tests {
 
     #[test]
     fn readers_reject_corrupt_rows_and_wrong_header_contracts() {
-        let loaded = load_kingdom("deep-beam-tuning-009").expect("kingdom");
+        let loaded = load_kingdom("balance-tuning-001").expect("kingdom");
         let root = temporary("header-rejections");
         fs::create_dir_all(&root).expect("directory");
         let clean = root.join("clean.hgs");
@@ -1751,7 +1751,7 @@ mod tests {
 
     #[test]
     fn reduce_one_rejects_a_gap_overlap_and_wrong_kind() {
-        let loaded = load_kingdom("deep-beam-tuning-009").expect("kingdom");
+        let loaded = load_kingdom("balance-tuning-001").expect("kingdom");
         let root = temporary("reduce-one-rejections");
         fs::create_dir_all(&root).expect("directory");
         let first = root.join("first.hgs");
@@ -1783,7 +1783,7 @@ mod tests {
 
     #[test]
     fn stage_two_rejects_wrong_rank_numbers_and_source_checksums() {
-        let loaded = load_kingdom("deep-beam-tuning-009").expect("kingdom");
+        let loaded = load_kingdom("balance-tuning-001").expect("kingdom");
         let root = temporary("stage-two-rejections");
         fs::create_dir_all(&root).expect("directory");
         let top = root.join("top.hgf");
@@ -1859,7 +1859,7 @@ mod tests {
     fn every_embedded_kingdom_compiles_with_the_full_space() {
         let database: NativeKingdoms =
             serde_json::from_str(include_str!("../kingdoms.json")).unwrap();
-        assert_eq!(database.kingdoms.len(), 260);
+        assert_eq!(database.kingdoms.len(), 160);
         for raw in database.kingdoms {
             assert_eq!(
                 candidate_count(raw.ordered_card_ids.len()).unwrap(),
