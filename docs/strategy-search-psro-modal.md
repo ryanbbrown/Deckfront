@@ -31,7 +31,7 @@ Each machine uses 8 GiB of memory. Deep verification runs locally only when you 
 The `matrix` operation is unpaid. It copies missing Goldfish files from a completed Goldfish campaign, runs the Rust Matrix command, and checks the Matrix and same-strategy telemetry files.
 
 ```sh
-npm run strategy-search:psro-modal -- matrix \
+npx tsx scripts/strategy_search_psro_modal.ts matrix \
   --request /tmp/psro-modal-090-16.json \
   --root .data/damage-retune-86 \
   --goldfish-campaign 84e22f519a74f1476e9522f5367073a0125c645d4c5f2e4f757f99cc9c269db6
@@ -42,7 +42,7 @@ The command writes each kingdom under `<root>/<kingdom-id>/` and rebuilds `<root
 ## Plan before spending
 
 ```sh
-npm run strategy-search:psro-modal -- plan \
+npx tsx scripts/strategy_search_psro_modal.ts plan \
   --request /tmp/psro-modal-090-16.json \
   --root .data/damage-retune-86
 ```
@@ -73,7 +73,7 @@ At 7,200 seconds, the bound is $1.6642752 for 16 cores and $3.1985472 for 32 cor
 Use the complete token from `plan`:
 
 ```sh
-npm run strategy-search:psro-modal -- run \
+npx tsx scripts/strategy_search_psro_modal.ts run \
   --request /tmp/psro-modal-090-16.json \
   --root .data/damage-retune-86 \
   --authorize 'psro-batch-v1.REPLACE_WITH_THE_COMPLETE_PLAN_TOKEN'
@@ -90,7 +90,7 @@ One local client holds `~/.hexdeck-modal-psro/<execution-id>.lock` for the full 
 ## Status and resume
 
 ```sh
-npm run strategy-search:psro-modal -- status \
+npx tsx scripts/strategy_search_psro_modal.ts status \
   --request /tmp/psro-modal-090-16.json \
   --root .data/damage-retune-86
 ```
@@ -102,11 +102,11 @@ Run the authorized `run` command again after a local interruption. It attaches t
 ## Download and report
 
 ```sh
-npm run strategy-search:psro-modal -- download \
+npx tsx scripts/strategy_search_psro_modal.ts download \
   --request /tmp/psro-modal-090-16.json \
   --root .data/damage-retune-86
 
-npm run strategy-search:psro-modal -- report \
+npx tsx scripts/strategy_search_psro_modal.ts report \
   --root .data/damage-retune-86
 ```
 
@@ -121,7 +121,7 @@ Add `--verify` to run the deep Rust `psro-verify` command locally. Add `--compar
 Run complete kingdoms locally with a fixed number of processes and threads per process:
 
 ```sh
-npm run psro:batch-local -- \
+scripts/psro_batch_local.sh \
   .data/damage-retune-86 7 2 \
   balance-tuning-005 balance-tuning-009 balance-tuning-021
 ```

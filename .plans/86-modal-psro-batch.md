@@ -236,7 +236,7 @@ Update:
 - `modal/psro_step.py` and `modal/test_psro_step.py`;
 - `modal/native_strategy_search.py` and `modal/test_native_strategy_search.py`;
 - `src/sim/rustStrategySearchEvidence.ts` and `test/sim/rustStrategySearchEvidence.test.ts` for the Matrix-only loader;
-- `package.json` with `strategy-search:psro-modal` and `psro:batch-local`;
+- `package.json` is on the scientific allowlist, so the route has no npm commands and is invoked with `npx tsx`;
 - `README.md`.
 
 Do not edit Rust sources, `strategy-search-scientific-files.json`, or the Rust kingdom table. `strategy-search-image-files.json` already contains `modal/psro_step.py` and `modal/native_strategy_search.py`; the new runtime module runs locally and is not added.

@@ -197,12 +197,12 @@ Use [the Goldfish-only operator guide](docs/strategy-search-goldfish-modal.md) f
 The separate PSRO batch route runs Matrix locally, then runs one complete Rust PSRO search per Modal machine. Every request field is required. `plan`, `status`, `download`, and `report` do not start paid PSRO work. `run` needs the exact token from `plan`:
 
 ```sh
-npm run strategy-search:psro-modal -- matrix --request REQUEST.json --root ROOT --goldfish-campaign CAMPAIGN_ID
-npm run strategy-search:psro-modal -- plan --request REQUEST.json --root ROOT
-npm run strategy-search:psro-modal -- run --request REQUEST.json --root ROOT --authorize TOKEN
-npm run strategy-search:psro-modal -- status --request REQUEST.json --root ROOT
-npm run strategy-search:psro-modal -- download --request REQUEST.json --root ROOT
-npm run strategy-search:psro-modal -- report --root ROOT
+npx tsx scripts/strategy_search_psro_modal.ts matrix --request REQUEST.json --root ROOT --goldfish-campaign CAMPAIGN_ID
+npx tsx scripts/strategy_search_psro_modal.ts plan --request REQUEST.json --root ROOT
+npx tsx scripts/strategy_search_psro_modal.ts run --request REQUEST.json --root ROOT --authorize TOKEN
+npx tsx scripts/strategy_search_psro_modal.ts status --request REQUEST.json --root ROOT
+npx tsx scripts/strategy_search_psro_modal.ts download --request REQUEST.json --root ROOT
+npx tsx scripts/strategy_search_psro_modal.ts report --root ROOT
 ```
 
 Use [the Modal PSRO batch operator guide](docs/strategy-search-psro-modal.md) for the request limits, current cost formula, ten-minute Volume commit cadence, resume rules, output layout, deep verification, byte comparison, and local dynamic queue.
