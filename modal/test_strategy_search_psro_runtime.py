@@ -28,19 +28,22 @@ class UploadContext:
 
 
 class Entry:
-    def __init__(self, path):
+    def __init__(self, path, size):
         self.path = path
+        self.size = size
         self.type = 1
 
 
 class Volume:
     def __init__(self, files=None):
         self.files = dict(files or {})
+        self.reads = []
 
     def reload(self):
         raise AssertionError("local Modal entrypoints cannot reload a Volume")
 
     def read_file(self, remote):
+        self.reads.append(remote)
         if remote not in self.files:
             raise FileNotFoundError(remote)
         return iter([self.files[remote]])
@@ -51,7 +54,8 @@ class Volume:
 
     def listdir(self, remote, recursive=False):
         del recursive
-        return [Entry(path) for path in self.files if path.startswith(remote + "/")]
+        return [Entry(path, len(content)) for path, content in self.files.items()
+            if path.startswith(remote + "/")]
 
 
 class Call:
@@ -175,6 +179,47 @@ class PsroRuntimeTests(unittest.TestCase):
             self.assertEqual(state["attempts"][2]["status"], "abandoned")
             self.assertEqual(result["attempts"][2]["state"], "abandoned")
 
+    def test_status_reads_only_files_needed_for_each_attempt_and_writes_state_once(self):
+        with tempfile.TemporaryDirectory() as directory:
+            root = pathlib.Path(directory)
+            state_file = root / "state.json"
+            state_file.write_text(json.dumps({"attempts": [
+                {"kingdomId": "stored", "launchId": "stored", "callId": "fc-stored",
+                    "status": "complete", "result": {"stored": True}, "remoteOutPath": "psro/stored"},
+                {"kingdomId": "fallback", "launchId": "fallback", "callId": "fc-fallback",
+                    "status": "complete", "remoteOutPath": "psro/fallback"},
+                {"kingdomId": "unknown", "launchId": "unknown", "callId": None,
+                    "status": "unknown", "remoteOutPath": "psro/unknown"},
+                {"kingdomId": "pending", "launchId": "pending", "callId": "fc-pending",
+                    "status": "pending", "remoteOutPath": "psro/pending"},
+                {"kingdomId": "finished", "launchId": "finished", "callId": "fc-finished",
+                    "status": "pending", "remoteOutPath": "psro/finished"}]}))
+            volume = Volume({"psro/fallback/job-report.json": b'{"fallback":true}',
+                "psro/pending/progress.json": b'{"step":1}',
+                "psro/finished/progress.json": b'{"step":2}',
+                "psro/finished/job-report.json": b'{"finished":true}'})
+            calls = {"fc-pending": Call("fc-pending", pending=True),
+                "fc-finished": Call("fc-finished", result={"complete": True})}
+            function_call = type("FunctionCall", (), {
+                "from_id": staticmethod(lambda call_id: calls[call_id])})
+            original_atomic = runtime._atomic_json
+            writes = []
+            def recording_atomic(file, value):
+                writes.append(file)
+                original_atomic(file, value)
+            with patch.object(runtime, "volume", volume), \
+                    patch.object(runtime.modal, "FunctionCall", function_call), \
+                    patch.object(runtime, "_atomic_json", recording_atomic):
+                result = runtime.status(str(state_file))
+            self.assertEqual(writes, [str(state_file)])
+            self.assertEqual(result["attempts"][0]["jobReport"], {"stored": True})
+            self.assertEqual(result["attempts"][1]["jobReport"], {"fallback": True})
+            self.assertEqual(result["attempts"][3]["progress"], {"step": 1})
+            self.assertEqual(result["attempts"][4]["jobReport"], {"finished": True})
+            self.assertCountEqual(volume.reads, ["psro/fallback/job-report.json",
+                "psro/unknown/lease.json", "psro/pending/progress.json",
+                "psro/finished/progress.json", "psro/finished/job-report.json"])
+
     def test_download_excludes_operational_files_and_replaces_the_destination(self):
         with tempfile.TemporaryDirectory() as directory:
             root = pathlib.Path(directory)
@@ -195,6 +240,49 @@ class PsroRuntimeTests(unittest.TestCase):
             self.assertFalse((destination / "stale").exists())
             self.assertFalse((destination / "lease.json").exists())
             self.assertEqual((destination / "checkpoint.hpc").read_bytes(), b"checkpoint")
+            self.assertEqual(result["concurrency"], 16)
+            self.assertEqual(result["kingdoms"], [{"kingdomId": "balance-tuning-090",
+                "files": 3, "bytes": 16, "wallMs": result["kingdoms"][0]["wallMs"]}])
+            self.assertTrue(all("wallMs" in entry for entry in result["artifacts"]))
+
+    def test_download_replaces_no_destination_until_every_download_succeeds(self):
+        with tempfile.TemporaryDirectory() as directory:
+            root = pathlib.Path(directory)
+            destinations = [root / "one", root / "two"]
+            for destination in destinations:
+                destination.mkdir()
+                (destination / "old").write_text("unchanged")
+            class FailingVolume(Volume):
+                def read_file(self, remote):
+                    if remote == "psro/two/file":
+                        raise FileNotFoundError("download failed")
+                    return super().read_file(remote)
+            volume = FailingVolume({"psro/one/file": b"one", "psro/two/file": b"two"})
+            config = {"kingdoms": [{"kingdomId": str(index), "remoteOutPath": f"psro/{name}",
+                "destination": str(destination)} for index, (name, destination)
+                in enumerate(zip(["one", "two"], destinations), 1)]}
+            with patch.object(runtime, "volume", volume):
+                with self.assertRaisesRegex(FileNotFoundError, "download failed"):
+                    runtime.download(config)
+            self.assertEqual([(destination / "old").read_text() for destination in destinations],
+                ["unchanged", "unchanged"])
+            self.assertEqual([entry.name for entry in root.iterdir()], ["one", "two"])
+
+    def test_download_replaces_every_destination_after_all_downloads_succeed(self):
+        with tempfile.TemporaryDirectory() as directory:
+            root = pathlib.Path(directory)
+            destinations = [root / "one", root / "two"]
+            for destination in destinations:
+                destination.mkdir()
+                (destination / "old").write_text("stale")
+            volume = Volume({"psro/one/file": b"one", "psro/two/file": b"two"})
+            config = {"kingdoms": [{"kingdomId": name, "remoteOutPath": f"psro/{name}",
+                "destination": str(destination)} for name, destination in zip(["one", "two"], destinations)]}
+            with patch.object(runtime, "volume", volume):
+                result = runtime.download(config)
+            self.assertEqual([(destination / "file").read_bytes() for destination in destinations],
+                [b"one", b"two"])
+            self.assertEqual(result["bytes"], 6)
 
     def test_preflight_requires_compute_and_psro_runtime_readiness(self):
         names = []

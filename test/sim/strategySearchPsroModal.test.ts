@@ -4,7 +4,9 @@ import path from 'node:path';
 import { afterEach, describe, expect, it } from 'vitest';
 import { deriveSourceImageIdentity, deriveStrategySearch } from '../../src/sim/strategySearchCampaign';
 import { deriveTrackedStrategySearchSourceImage } from '../../scripts/strategy_search_campaign';
-import { executePsroModalOperation } from '../../scripts/strategy_search_psro_modal';
+import {
+  executePsroModalOperation, psroDownloadTimeoutMs, psroStatusTimeoutMs
+} from '../../scripts/strategy_search_psro_modal';
 import { validateConsolidatedManifest } from '../../scripts/generate_rust_strategy_search_balance_report';
 import {
   abandonPsroLaunch, adoptPsroLease, buildPsroBatchReport, comparePsroScientificFiles,
@@ -37,6 +39,13 @@ function plan(requestValue = request(), sourceValue = source(), inputValue = inp
 }
 
 describe('Modal PSRO operator safety', () => {
+  it('scales status and download timeouts with work size', () => {
+    expect(psroStatusTimeoutMs(0)).toBe(120_000);
+    expect(psroStatusTimeoutMs(130)).toBe(250_000);
+    expect(psroDownloadTimeoutMs(0)).toBe(600_000);
+    expect(psroDownloadTimeoutMs(130)).toBe(1_900_000);
+  });
+
   function diskFixture() {
     const root = temporary(), requestFile = path.join(root, 'request.json'), requestValue = request();
     fs.writeFileSync(requestFile, JSON.stringify(requestValue));

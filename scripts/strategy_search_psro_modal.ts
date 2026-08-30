@@ -23,6 +23,14 @@ const RUNTIME = 'modal/strategy_search_psro_runtime.py';
 const COMPUTE_MODULE = 'modal/native_strategy_search.py';
 const POLL_SECONDS = 15;
 
+export function psroStatusTimeoutMs(attemptCount: number): number {
+  return 120_000 + 1_000 * attemptCount;
+}
+
+export function psroDownloadTimeoutMs(kingdomCount: number): number {
+  return 600_000 + 10_000 * kingdomCount;
+}
+
 function writeAtomicJson(file: string, value: unknown): void {
   fs.mkdirSync(path.dirname(file), { recursive: true });
   const temporary = `${file}.${process.pid}.tmp`;
@@ -191,7 +199,8 @@ export class ModalPsroOperatorAdapter implements PsroModalOperatorAdapter {
     } finally { fs.rmSync(directory, { recursive: true, force: true }); }
   }
   async status(statePath: string): Promise<Record<string, unknown>> {
-    return modalRuntime('status_entry', { stateFile: statePath }, 120_000);
+    const attemptCount = (JSON.parse(fs.readFileSync(statePath, 'utf8')) as PsroExecutionState).attempts.length;
+    return modalRuntime('status_entry', { stateFile: statePath }, psroStatusTimeoutMs(attemptCount));
   }
   async download(plan: ParsedPsroModalPlan, state: PsroExecutionState,
     root: string): Promise<Record<string, unknown>> {
@@ -205,7 +214,7 @@ export class ModalPsroOperatorAdapter implements PsroModalOperatorAdapter {
           destination: path.join(root, kingdom.kingdomId, 'psro') }] : [];
       });
       writeAtomicJson(configFile, { kingdoms });
-      return await modalRuntime('download_entry', { configFile }, 600_000);
+      return await modalRuntime('download_entry', { configFile }, psroDownloadTimeoutMs(kingdoms.length));
     } finally { fs.rmSync(directory, { recursive: true, force: true }); }
   }
 }

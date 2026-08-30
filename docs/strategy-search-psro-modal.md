@@ -95,7 +95,7 @@ npx tsx scripts/strategy_search_psro_modal.ts status \
   --root .data/damage-retune-86
 ```
 
-`status` reads the local state, polls recorded calls, and reads each Volume lease, progress record, and job report. It prints queued, pending, complete, failed, or unknown state, checkpoint progress, active machines, and the cost ledger.
+`status` reads Volume files only for attempts that are not complete in local state. It reads a lease when the call ID is missing, progress while a call is pending, and the job report when a call first completes. A complete local attempt uses its stored result. The client polls attempts in parallel and scales its timeout with the attempt count. It prints queued, pending, complete, failed, or unknown state, checkpoint progress, active machines, and the cost ledger.
 
 Run the authorized `run` command again after a local interruption. It attaches to pending calls, skips complete kingdoms, and relaunches failed kingdoms only when the ledger has room. A deployment source change needs a new plan token. The client refuses a new deployment while an old call is pending.
 
@@ -110,7 +110,9 @@ npx tsx scripts/strategy_search_psro_modal.ts report \
   --root .data/damage-retune-86
 ```
 
-`download` copies every PSRO output except `lease.json`, `progress.json`, and `job-report.json` into `<root>/<kingdom-id>/psro/`. It replaces the local directory only after every selected file downloads. It then checks headers, CRCs, source links, checkpoint completion, final Matrix order, and same-strategy telemetry.
+`download` copies every PSRO output except `lease.json`, `progress.json`, and `job-report.json` into `<root>/<kingdom-id>/psro/`. It uses up to 16 parallel Volume reads. A failed read gets three retries after delays of 1, 2, and 4 seconds. The client verifies each downloaded size and scales its timeout with the kingdom count.
+
+The client downloads all kingdoms before it replaces any destination. It then removes and replaces each `<root>/<kingdom-id>/psro/` directory in request order. A download failure removes all temporary directories and leaves every destination unchanged. A replacement failure leaves earlier replacements complete and later destinations unchanged. Every command downloads every complete kingdom again. The client then checks headers, CRCs, source links, checkpoint completion, final Matrix order, and same-strategy telemetry.
 
 Add `--verify` to run the deep Rust `psro-verify` command locally. Add `--compare-with <other-root>` to compare every scientific file by SHA-256.
 

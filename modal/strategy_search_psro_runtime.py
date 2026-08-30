@@ -10,9 +10,12 @@ import pathlib
 import shutil
 import tempfile
 import time
+from concurrent.futures import ThreadPoolExecutor
 from typing import Any
 
 import modal
+
+from volume_download import fetch_files
 
 RESULT_VOLUME = "hexdeck-native-strategy-results"
 PSRO_FUNCTION = "strategy_search_psro_job"
@@ -149,37 +152,56 @@ def launch_entry(config_file: str, state_file: str, result_file: str) -> None:
     print(json.dumps(result), flush=True)
 
 
+def _status_attempt(attempt: dict[str, Any]) -> dict[str, Any]:
+    held = dict(attempt)
+    remote_out = held["remoteOutPath"].rstrip("/")
+    lease = None
+    progress = None
+    job_report = None
+    if held.get("status") == "complete":
+        job_report = held.get("result")
+        if job_report is None:
+            job_report = _remote_json(f"{remote_out}/job-report.json")
+        return {"attempt": held, "row": {"kingdomId": held["kingdomId"],
+            "launchId": held["launchId"], "callId": held.get("callId"), "state": "complete",
+            "lease": None, "progress": None, "jobReport": job_report}}
+
+    if held.get("callId") is None:
+        lease = _remote_json(f"{remote_out}/lease.json")
+        if lease and lease.get("launchId") == held["launchId"]:
+            held["callId"] = lease["callId"]
+            held["status"] = "pending"
+            held["adoptedFromLease"] = True
+    if held.get("callId") is None:
+        call_state = "abandoned" if held.get("status") == "abandoned" else "unknown"
+        held["status"] = call_state
+    else:
+        progress = _remote_json(f"{remote_out}/progress.json")
+        polled = _poll(modal.FunctionCall.from_id(held["callId"]))
+        call_state = polled["state"]
+        if call_state == "complete":
+            held["status"] = "complete"
+            held["result"] = polled["result"]
+            job_report = _remote_json(f"{remote_out}/job-report.json")
+        elif call_state == "failed":
+            held["status"] = "failed"
+            held["error"] = polled["error"]
+        else:
+            held["status"] = "pending"
+    return {"attempt": held, "row": {"kingdomId": held["kingdomId"],
+        "launchId": held["launchId"], "callId": held.get("callId"), "state": call_state,
+        "lease": lease, "progress": progress, "jobReport": job_report}}
+
+
 def status(state_file: str) -> dict[str, Any]:
     state = _load(state_file)
-    rows = []
-    for attempt in state["attempts"]:
-        remote_out = attempt["remoteOutPath"].rstrip("/")
-        lease = _remote_json(f"{remote_out}/lease.json")
-        progress = _remote_json(f"{remote_out}/progress.json")
-        job_report = _remote_json(f"{remote_out}/job-report.json")
-        if attempt.get("callId") is None and lease and lease.get("launchId") == attempt["launchId"]:
-            attempt["callId"] = lease["callId"]
-            attempt["status"] = "pending"
-            attempt["adoptedFromLease"] = True
-        if attempt.get("callId") is None:
-            call_state = "abandoned" if attempt.get("status") == "abandoned" else "unknown"
-            attempt["status"] = call_state
-        else:
-            polled = _poll(modal.FunctionCall.from_id(attempt["callId"]))
-            call_state = polled["state"]
-            if call_state == "complete":
-                attempt["status"] = "complete"
-                attempt["result"] = polled["result"]
-            elif call_state == "failed":
-                attempt["status"] = "failed"
-                attempt["error"] = polled["error"]
-            else:
-                attempt["status"] = "pending"
-        rows.append({"kingdomId": attempt["kingdomId"], "launchId": attempt["launchId"],
-            "callId": attempt.get("callId"), "state": call_state, "lease": lease,
-            "progress": progress, "jobReport": job_report})
+    with ThreadPoolExecutor(max_workers=16) as pool:
+        results = list(pool.map(_status_attempt, state["attempts"]))
+    for attempt, result in zip(state["attempts"], results):
+        attempt.clear()
+        attempt.update(result["attempt"])
     _atomic_json(state_file, state)
-    return {"attempts": rows}
+    return {"attempts": [result["row"] for result in results]}
 
 
 @app.local_entrypoint()
@@ -195,34 +217,47 @@ def _is_file(entry: Any) -> bool:
 
 
 def download(config: dict[str, Any]) -> dict[str, Any]:
-    artifacts = []
-    for kingdom in config["kingdoms"]:
-        remote_root = kingdom["remoteOutPath"].rstrip("/")
-        entries = sorted(volume.listdir(remote_root, recursive=True), key=lambda entry: entry.path)
-        selected = [entry for entry in entries if _is_file(entry)
-            and pathlib.PurePosixPath(entry.path).name not in {"lease.json", "progress.json", "job-report.json"}]
-        destination = pathlib.Path(kingdom["destination"])
-        destination.parent.mkdir(parents=True, exist_ok=True)
-        temporary = pathlib.Path(tempfile.mkdtemp(prefix=f".{destination.name}-", dir=destination.parent))
-        try:
+    started = time.monotonic()
+    prepared = []
+    items = []
+    try:
+        for kingdom in config["kingdoms"]:
+            remote_root = kingdom["remoteOutPath"].rstrip("/")
+            entries = sorted(volume.listdir(remote_root, recursive=True), key=lambda entry: entry.path)
+            selected = [entry for entry in entries if _is_file(entry)
+                and pathlib.PurePosixPath(entry.path).name not in {"lease.json", "progress.json", "job-report.json"}]
+            destination = pathlib.Path(kingdom["destination"])
+            destination.parent.mkdir(parents=True, exist_ok=True)
+            temporary = pathlib.Path(tempfile.mkdtemp(prefix=f".{destination.name}-", dir=destination.parent))
+            prepared.append({"kingdom": kingdom, "destination": destination, "temporary": temporary,
+                "firstItem": len(items), "fileCount": len(selected)})
             for entry in selected:
                 relative = pathlib.PurePosixPath(entry.path).relative_to(remote_root)
-                local = temporary / relative
-                local.parent.mkdir(parents=True, exist_ok=True)
-                byte_count = 0
-                with local.open("wb") as stream:
-                    for chunk in volume.read_file(entry.path):
-                        stream.write(chunk)
-                        byte_count += len(chunk)
-                artifacts.append({"kingdomId": kingdom["kingdomId"], "path": entry.path,
-                    "relative": relative.as_posix(), "bytes": byte_count})
-            if destination.exists():
-                shutil.rmtree(destination)
-            os.replace(temporary, destination)
-        except Exception:
-            shutil.rmtree(temporary, ignore_errors=True)
-            raise
-    return {"artifacts": artifacts, "bytes": sum(entry["bytes"] for entry in artifacts)}
+                items.append({"remote": entry.path, "local": temporary / relative,
+                    "expectedSize": entry.size, "relative": relative.as_posix(),
+                    "kingdomId": kingdom["kingdomId"]})
+        metrics = fetch_files(volume, items, concurrency=16)
+        artifacts = [{"kingdomId": item["kingdomId"], "path": item["remote"],
+            "relative": item["relative"], "bytes": metric["bytes"], "wallMs": metric["wallMs"]}
+            for item, metric in zip(items, metrics)]
+        kingdoms = []
+        for entry in prepared:
+            first = entry["firstItem"]
+            held = artifacts[first:first + entry["fileCount"]]
+            kingdoms.append({"kingdomId": entry["kingdom"]["kingdomId"], "files": len(held),
+                "bytes": sum(artifact["bytes"] for artifact in held),
+                "wallMs": max((artifact["wallMs"] for artifact in held), default=0)})
+        for entry in prepared:
+            if entry["destination"].exists():
+                shutil.rmtree(entry["destination"])
+            os.replace(entry["temporary"], entry["destination"])
+        return {"artifacts": artifacts, "kingdoms": kingdoms,
+            "bytes": sum(entry["bytes"] for entry in artifacts),
+            "wallMs": (time.monotonic() - started) * 1000, "concurrency": 16}
+    except Exception:
+        for entry in prepared:
+            shutil.rmtree(entry["temporary"], ignore_errors=True)
+        raise
 
 
 @app.local_entrypoint()
