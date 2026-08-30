@@ -1,14 +1,15 @@
 import { afterEach, describe, expect, it } from 'vitest';
-import { ATTACK_MECHANICS, SeededRandom, createGame, kingdomMarket, marketCost, registerKingdom, resetKingdoms, submitStartingBuild } from '../../src/game';
+import { SeededRandom, createGame, kingdomMarket, marketCost, registerKingdom, resetKingdoms, submitStartingBuild } from '../../src/game';
 import { strategyAgent } from '../../src/sim/agents/strategyAgent';
 import { repairBuildIn } from '../../src/sim/build';
 import { CURATED_KINGDOM_IDS } from '../../src/sim/kingdoms';
 import {
-  MAX_DESIRED_COUNT, MUTATION_ATTEMPTS, MUTATION_NAMES, applyMutation, kingdomFacts,
+  MUTATION_ATTEMPTS, MUTATION_NAMES, applyMutation, kingdomFacts, neighbourhood,
   mutate, mutateUnique, mutationRandom, repairStrategy
 } from '../../src/sim/mutation';
 import { diagnosticLabels, diagnosticStrategies } from '../../src/sim/baselines';
-import { canonicalStrategy } from '../../src/sim/strategy';
+import { ATTACK_MECHANICS } from '../../src/sim/search';
+import { BUY_PLAN_SLOTS, INFINITE_COUNT, MAXIMUM_FINITE_COUNT, canonicalStrategy, isInfinite } from '../../src/sim/strategy';
 import type { Strategy } from '../../src/sim/strategy';
 import { strategy } from './fixtures';
 
@@ -16,17 +17,25 @@ afterEach(() => { resetKingdoms(); });
 
 function assertBounds(kingdomId: string, plan: Strategy): void {
   const definitions = new Map(kingdomMarket(kingdomId).map((card) => [card.id, card]));
-  expect(Object.keys(plan).sort()).toEqual(['buyAgenda', 'id', 'repeatPurchase', 'startingBuild']);
+  expect(Object.keys(plan).sort()).toEqual(['buyPlan', 'id', 'startingBuild']);
   expect(plan.startingBuild).not.toContain('copper');
-  expect(plan.buyAgenda.map((entry) => entry.cardId)).not.toContain('copper');
-  expect(plan.repeatPurchase).not.toBe('copper');
-  expect(definitions.get(plan.repeatPurchase)?.cost).toBeGreaterThan(0);
-  expect(new Set(plan.buyAgenda.map((entry) => entry.cardId)).size).toBe(plan.buyAgenda.length);
-  for (const entry of plan.buyAgenda) {
-    expect(entry.desiredCount).toBeGreaterThan(0);
-    expect(entry.desiredCount).toBeLessThanOrEqual(MAX_DESIRED_COUNT);
-    expect(Number.isInteger(entry.desiredCount)).toBe(true);
-    expect(plan.startingBuild.filter((id) => id === entry.cardId).length).toBeLessThan(entry.desiredCount);
+  expect(plan.buyPlan).toHaveLength(BUY_PLAN_SLOTS);
+  for (const slot of plan.buyPlan) {
+    if (slot.kind === 'inactive') continue;
+    if (slot.kind === 'stop') {
+      expect(slot.threshold).toBeGreaterThanOrEqual(0);
+      expect(Number.isInteger(slot.threshold)).toBe(true);
+      continue;
+    }
+    expect(slot.cardId).not.toBe('copper');
+    expect(definitions.get(slot.cardId)?.cost).toBeGreaterThan(0);
+    expect(slot.desiredCount).toBeGreaterThan(0);
+    expect(Number.isInteger(slot.desiredCount)).toBe(true);
+    if (isInfinite(slot)) expect(slot.desiredCount).toBe(INFINITE_COUNT);
+    else {
+      expect(slot.desiredCount).toBeLessThanOrEqual(MAXIMUM_FINITE_COUNT);
+      expect(plan.startingBuild.filter((id) => id === slot.cardId).length).toBeLessThan(slot.desiredCount);
+    }
   }
 }
 
@@ -60,26 +69,40 @@ describe('shared build repair', () => {
 });
 
 describe('strategy normalization', () => {
-  it('removes Copper, duplicates, zero targets, and targets satisfied by setup', () => {
+  it('removes Copper, zero targets, and rungs the draft already satisfied', () => {
     const repaired = repairStrategy('current-duel', strategy({
       startingBuild: ['copper', 'channel'],
-      buyAgenda: [
-        { cardId: 'copper', desiredCount: 9 },
-        { cardId: 'channel', desiredCount: 1 },
-        { cardId: 'aim', desiredCount: 3 },
-        { cardId: 'aim', desiredCount: 4 },
-        { cardId: 'volley', desiredCount: 0 }
-      ],
-      repeatPurchase: 'copper'
+      buyPlan: [
+        { kind: 'buy', cardId: 'copper', desiredCount: 9 },
+        { kind: 'buy', cardId: 'channel', desiredCount: 1 },
+        { kind: 'buy', cardId: 'aim', desiredCount: 3 },
+        { kind: 'buy', cardId: 'aim', desiredCount: 4 },
+        { kind: 'buy', cardId: 'volley', desiredCount: 0 },
+        { kind: 'buy', cardId: 'copper', desiredCount: INFINITE_COUNT }
+      ]
     }));
     expect(repaired.startingBuild).toEqual(['channel']);
-    expect(repaired.buyAgenda).toEqual([{ cardId: 'aim', desiredCount: 3 }]);
-    expect(repaired.repeatPurchase).toBe('aim');
+    expect(repaired.buyPlan.slice(0, 4)).toEqual([
+      { kind: 'buy', cardId: 'aim', desiredCount: 3 },
+      { kind: 'buy', cardId: 'aim', desiredCount: 4 },
+      { kind: 'inactive' }, { kind: 'inactive' }
+    ]);
     assertBounds('current-duel', repaired);
   });
 
+  it('normalizes inactive gaps because they do not change execution without cost bands', () => {
+    const left = repairStrategy('current-duel', strategy({ buyPlan: [
+      { kind: 'inactive' }, { kind: 'buy', cardId: 'aim', desiredCount: 2 }
+    ] }));
+    const right = repairStrategy('current-duel', strategy({ buyPlan: [
+      { kind: 'buy', cardId: 'aim', desiredCount: 2 }, { kind: 'inactive' }
+    ] }));
+    expect(left.buyPlan[0]).toEqual({ kind: 'buy', cardId: 'aim', desiredCount: 2 });
+    expect(left.id).toBe(right.id);
+  });
+
   it('does not give removed tactical fields identity or population slots', () => {
-    const base = strategy({ startingBuild: ['aim'], repeatPurchase: 'footwork' });
+    const base = strategy({ startingBuild: ['aim'], buyPlan: [{ kind: 'buy', cardId: 'footwork', desiredCount: INFINITE_COUNT }] });
     const legacyA = { ...base, preferredRange: 'Far', weights: { damage: 99 }, trashPriority: ['gold'] } as Strategy;
     const legacyB = { ...base, preferredRange: 'Close', weights: { damage: -99 }, trashPriority: ['copper'] } as Strategy;
     expect(canonicalStrategy(repairStrategy('current-duel', legacyA)))
@@ -88,10 +111,12 @@ describe('strategy normalization', () => {
 
   it('normalizes starting-build permutations to one population slot', () => {
     const left = repairStrategy('current-duel', strategy({
-      startingBuild: ['precisionShot', 'aim'], repeatPurchase: 'channel'
+      startingBuild: ['precisionShot', 'aim'],
+      buyPlan: [{ kind: 'buy', cardId: 'channel', desiredCount: INFINITE_COUNT }]
     }));
     const right = repairStrategy('current-duel', strategy({
-      startingBuild: ['aim', 'precisionShot'], repeatPurchase: 'channel'
+      startingBuild: ['aim', 'precisionShot'],
+      buyPlan: [{ kind: 'buy', cardId: 'channel', desiredCount: INFINITE_COUNT }]
     }));
     expect(left.startingBuild).toEqual(['aim', 'precisionShot']);
     expect(right.startingBuild).toEqual(left.startingBuild);
@@ -101,28 +126,19 @@ describe('strategy normalization', () => {
 });
 
 describe('mutation reach and bounds', () => {
-  it('excludes every cost-0 card from mutation market candidates', () => {
-    for (const kingdomId of CURATED_KINGDOM_IDS) {
-      const definitions = new Map(kingdomMarket(kingdomId).map((card) => [card.id, card]));
-      expect(kingdomFacts(kingdomId).marketIds.every((cardId) => definitions.get(cardId)!.cost > 0)).toBe(true);
-      expect(kingdomFacts(kingdomId).marketIds).not.toContain('scrap');
-    }
-  });
-
   it('mutates every and only deck-plan field', () => {
     const parent = seedByLabel('range-rich-mixed', 'ranged-volley');
     const reached = new Set<string>();
     for (let index = 0; index < 500; index += 1) {
       const child = mutate('range-rich-mixed', parent, mutationRandom(5, 1, index));
       if (JSON.stringify(child.startingBuild) !== JSON.stringify(parent.startingBuild)) reached.add('startingBuild');
-      if (JSON.stringify(child.buyAgenda) !== JSON.stringify(parent.buyAgenda)) reached.add('buyAgenda');
-      if (child.repeatPurchase !== parent.repeatPurchase) reached.add('repeatPurchase');
+      if (JSON.stringify(child.buyPlan) !== JSON.stringify(parent.buyPlan)) reached.add('buyPlan');
       assertBounds('range-rich-mixed', child);
     }
-    expect([...reached].sort()).toEqual(['buyAgenda', 'repeatPurchase', 'startingBuild']);
+    expect([...reached].sort()).toEqual(['buyPlan', 'startingBuild']);
     expect(MUTATION_NAMES).toEqual([
-      'build-add', 'build-remove', 'build-replace', 'agenda-add', 'agenda-remove',
-      'agenda-reorder', 'agenda-count', 'repeat-purchase'
+      'build-add', 'build-remove', 'build-replace', 'slot-activate', 'slot-deactivate',
+      'slot-card', 'slot-count', 'slot-kind', 'slot-stop-threshold', 'slot-reorder'
     ]);
   });
 
@@ -133,6 +149,24 @@ describe('mutation reach and bounds', () => {
         assertBounds('range-rich-mixed', applyMutation(name, 'range-rich-mixed', parent, new SeededRandom(draw + 1)));
       }
     }
+  });
+
+  it('reaches every slot state and each adjacent reorder in the complete neighbourhood', () => {
+    const parent = repairStrategy('current-duel', strategy({ buyPlan: [
+      { kind: 'buy', cardId: 'precisionShot', desiredCount: 2 },
+      { kind: 'stop', threshold: 3 }
+    ] }));
+    const forms = new Set(neighbourhood('current-duel', parent).map(canonicalStrategy));
+    const withSlot = (index: number, slot: Strategy['buyPlan'][number]): string => {
+      const buyPlan = parent.buyPlan.map((held, position) => position === index ? slot : held);
+      return canonicalStrategy(repairStrategy('current-duel', { ...parent, buyPlan }));
+    };
+    expect(forms).toContain(withSlot(0, { kind: 'inactive' }));
+    expect(forms).toContain(withSlot(0, { kind: 'buy', cardId: 'aim', desiredCount: INFINITE_COUNT }));
+    expect(forms).toContain(withSlot(1, { kind: 'stop', threshold: 7 }));
+    expect(forms).toContain(withSlot(2, { kind: 'buy', cardId: 'aim', desiredCount: 4 }));
+    const swapped = [...parent.buyPlan]; [swapped[0], swapped[1]] = [swapped[1]!, swapped[0]!];
+    expect(forms).toContain(canonicalStrategy(repairStrategy('current-duel', { ...parent, buyPlan: swapped })));
   });
 
   it('reports no candidate when every attempted form is taken', () => {
@@ -154,7 +188,8 @@ describe('seeded strategies', () => {
       const definitions = new Map(kingdomMarket(kingdomId).map((definition) => [definition.id, definition]));
       for (const seed of seeds) {
         assertBounds(kingdomId, seed);
-        const planned = [...seed.startingBuild, ...seed.buyAgenda.map((entry) => entry.cardId), seed.repeatPurchase];
+        const planned = [...seed.startingBuild,
+          ...seed.buyPlan.flatMap((slot) => slot.kind === 'buy' ? [slot.cardId] : [])];
         expect(planned.some((cardId) => ATTACK_MECHANICS.has(definitions.get(cardId)!.mechanic))).toBe(true);
       }
     }

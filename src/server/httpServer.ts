@@ -5,8 +5,8 @@ import { ZodError } from 'zod';
 import { ALWAYS_AVAILABLE_ACTION_IDS, CARDS, TREASURE_IDS, VARIABLE_ACTION_IDS } from '../game';
 import { GameService, AiAdvanceError, BadBuildError, ConflictError, ForbiddenActionError } from './gameService';
 import { AiTrainingError } from './aiTrainer';
-import type { AiTrainer } from './aiTrainer';
 import { pretrainedVariableCardSets } from './pretrainedCatalog';
+import type { AiTrainer } from './aiTrainer';
 import { GameNotFoundError, FileGameRepository, UnsupportedSchemaError } from './persistence';
 import { actionRequestSchema, buildRequestSchema, createGameRequestSchema, revisionRequestSchema } from './schemas';
 

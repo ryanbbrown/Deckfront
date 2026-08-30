@@ -7,6 +7,7 @@ import { acquiredCount, chooseBuyAction, projectPurchases } from '../../src/sim/
 import { strategyAgent } from '../../src/sim/agents/strategyAgent';
 import { repairBuild } from '../../src/sim/build';
 import { runMatch } from '../../src/sim/match';
+import { INFINITE_COUNT } from '../../src/sim/strategy';
 import type { Strategy } from '../../src/sim/strategy';
 import type { Agent, MatchConfig, MatchResult } from '../../src/sim/types';
 import { CURATED_KINGDOM_IDS } from '../../src/sim/kingdoms';
@@ -48,9 +49,32 @@ function seedByLabel(kingdomId: string, label: string): Strategy {
   return found;
 }
 
-describe('buy agenda', () => {
+describe('fixed buy ladder', () => {
+  it('uses an explicit stop threshold without blocking a cheaper low-money purchase', () => {
+    const plan = strategy({ buyPlan: [
+      { kind: 'buy', cardId: 'heavyBlow', desiredCount: 1 },
+      { kind: 'stop', threshold: 3 },
+      { kind: 'buy', cardId: 'step', desiredCount: INFINITE_COUNT }
+    ] });
+    expect(bought(buyRun(buyState({ money: 4 }), plan))).toEqual([]);
+    expect(bought(buyRun(buyState({ money: 3 }), plan))).toEqual([]);
+    expect(bought(buyRun(buyState({ money: 2 }), plan))).toEqual(['step']);
+    expect(projectPurchases(buyState({ money: 4 }), 'ochre', 4, plan).bought)
+      .toEqual([0, 0, 0, 0, 0, 0, 0, 0, 0, 0]);
+  });
+
+  it('lets an infinite buy slot act as a floor anywhere in the ladder', () => {
+    const plan = strategy({ buyPlan: [
+      { kind: 'buy', cardId: 'heavyBlow', desiredCount: 1 },
+      { kind: 'buy', cardId: 'footwork', desiredCount: INFINITE_COUNT },
+      { kind: 'buy', cardId: 'step', desiredCount: INFINITE_COUNT }
+    ] });
+    expect(bought(buyRun(buyState({ money: 3 }), plan))).toEqual(['footwork']);
+    expect(bought(buyRun(buyState({ money: 2 }), plan))).toEqual(['step']);
+  });
+
   it('buys finite targets, then repeats the explicit final card', () => {
-    const plan = strategy({ buyAgenda: [{ cardId: 'footwork', desiredCount: 2 }], repeatPurchase: 'aim' });
+    const plan = strategy({ buyPlan: [{ kind: 'buy', cardId: 'footwork', desiredCount: 2 }, { kind: 'buy', cardId: 'aim', desiredCount: INFINITE_COUNT }] });
     const commands = buyRun(buyState({ money: 20 }), plan);
     expect(bought(commands)).toEqual(['footwork', 'footwork', 'aim', 'aim']);
     expect(commands.at(-1)!.type).toBe('endBuyPhase');
@@ -58,8 +82,7 @@ describe('buy agenda', () => {
 
   it('skips an unavailable finite entry', () => {
     const plan = strategy({
-      buyAgenda: [{ cardId: 'heavyBlow', desiredCount: 2 }, { cardId: 'footwork', desiredCount: 1 }],
-      repeatPurchase: 'aim'
+      buyPlan: [{ kind: 'buy', cardId: 'heavyBlow', desiredCount: 2 }, { kind: 'buy', cardId: 'footwork', desiredCount: 1 }, { kind: 'buy', cardId: 'aim', desiredCount: INFINITE_COUNT }]
     });
     expect(bought(buyRun(buyState({ money: 6 }), plan))).toEqual(['footwork']);
 
@@ -74,7 +97,7 @@ describe('buy agenda', () => {
       actionPiles: [{ cardId: 'heavyBlow', count: 10 }],
       overrides: { heavyBlow: { cost: 3 } }
     });
-    const plan = strategy({ buyAgenda: [{ cardId: 'heavyBlow', desiredCount: 1 }], repeatPurchase: 'footwork' });
+    const plan = strategy({ buyPlan: [{ kind: 'buy', cardId: 'heavyBlow', desiredCount: 1 }, { kind: 'buy', cardId: 'footwork', desiredCount: INFINITE_COUNT }] });
 
     const atFive = step(buyState({ kingdomId: 'cheap-blow', money: 5 }), plan);
     expect(atFive.command).toEqual({ type: 'buyCard', definitionId: 'heavyBlow' });
@@ -86,14 +109,17 @@ describe('buy agenda', () => {
   });
 
   it('does not buy a finite target already acquired in the starting build', () => {
-    const state = buyState({ money: 3 });
+    const state = buyState({ money: 5 });
     state.players.ochre.startingBuild = ['footwork'];
-    const plan = strategy({ buyAgenda: [{ cardId: 'footwork', desiredCount: 1 }], repeatPurchase: 'aim' });
-    expect(bought(buyRun(state, plan))).toEqual([]);
+    const plan = strategy({ buyPlan: [
+      { kind: 'buy', cardId: 'footwork', desiredCount: 1 },
+      { kind: 'buy', cardId: 'aim', desiredCount: INFINITE_COUNT }
+    ] });
+    expect(bought(buyRun(state, plan))).toEqual(['aim']);
   });
 
   it('does not buy a trashed purchased card again', () => {
-    const plan = strategy({ buyAgenda: [{ cardId: 'footwork', desiredCount: 1 }], repeatPurchase: 'aim' });
+    const plan = strategy({ buyPlan: [{ kind: 'buy', cardId: 'footwork', desiredCount: 1 }, { kind: 'buy', cardId: 'aim', desiredCount: INFINITE_COUNT }] });
     const first = step(buyState({ money: 20 }), plan);
     expect(first.command).toEqual({ type: 'buyCard', definitionId: 'footwork' });
     expect(acquiredCount(first.state, 'ochre', 'footwork')).toBe(1);
@@ -109,7 +135,7 @@ describe('buy agenda', () => {
 
   it('never buys Copper even from an unnormalized plan', { timeout: 5000 }, () => {
     const plan = strategy({
-      buyAgenda: [{ cardId: 'copper', desiredCount: 10 }], repeatPurchase: 'copper'
+      buyPlan: [{ kind: 'buy', cardId: 'copper', desiredCount: 10 }, { kind: 'buy', cardId: 'copper', desiredCount: INFINITE_COUNT }]
     });
     const commands = buyRun(buyState({ money: 7 }), plan);
     expect(bought(commands)).toEqual([]);
@@ -118,8 +144,10 @@ describe('buy agenda', () => {
 
   it('projects the same 101 unlimited purchases the real Buy phase executes', () => {
     const state = buyState({ money: 303 });
-    const plan = strategy({ buyAgenda: [], repeatPurchase: 'silver' });
-    expect(projectPurchases(state, 'ochre', 303, plan)).toEqual({ finite: [], repeated: 101 });
+    const plan = strategy({ buyPlan: [{ kind: 'buy', cardId: 'silver', desiredCount: INFINITE_COUNT }] });
+    expect(projectPurchases(state, 'ochre', 303, plan)).toEqual({
+      bought: [101, 0, 0, 0, 0, 0, 0, 0, 0, 0]
+    });
     const actual = buyRun(state, plan, 102);
     expect(bought(actual)).toEqual(Array<string>(101).fill('silver'));
     expect(actual.at(-1)?.type).toBe('endBuyPhase');
@@ -129,7 +157,7 @@ describe('buy agenda', () => {
 describe('strategy agent dispatch', () => {
   it('answers a Buy-phase state from the agenda and an Action-phase state from the search', () => {
     const agent = strategyAgent(strategy({
-      id: 'dispatch', buyAgenda: [{ cardId: 'footwork', desiredCount: 1 }]
+      id: 'dispatch', buyPlan: [{ kind: 'buy', cardId: 'footwork', desiredCount: 1 }]
     }));
 
     const buying = buyState({ money: 10 });
@@ -215,8 +243,8 @@ describe('strategy agent match boundaries', () => {
     const visited: number[][] = [[], []];
     let index = 0;
     const plans = [
-      strategy({ startingBuild: ['muster', 'footwork'], buyAgenda: [{ cardId: 'muster', desiredCount: 2 }] }),
-      strategy({ startingBuild: ['footwork'], buyAgenda: [{ cardId: 'footwork', desiredCount: 2 }] })
+      strategy({ startingBuild: ['muster', 'footwork'], buyPlan: [{ kind: 'buy', cardId: 'muster', desiredCount: 2 }] }),
+      strategy({ startingBuild: ['footwork'], buyPlan: [{ kind: 'buy', cardId: 'footwork', desiredCount: 2 }] })
     ];
     const make = (position: number): Agent =>
       strategyAgent(plans[position]!, { onSearch: (report) => visited[index]!.push(report.visited) });
@@ -251,7 +279,7 @@ describe('strategy agent search limits', () => {
     const result = runMatch({
       kingdomId: 'current-duel', seed: 6, firstPlayerId: 'ochre', swapSides: false,
       turnLimitPerPlayer: 20, actionCapPerTurn: 200,
-      agents: { ochre: cramped, indigo: strategyAgent(strategy({ startingBuild: [], buyAgenda: [] })) }
+      agents: { ochre: cramped, indigo: strategyAgent(strategy({ startingBuild: [], buyPlan: [] })) }
     });
     expect(result.outcome).toBe('aborted');
     expect(result.reason).toBe('actionSearchOverflow');

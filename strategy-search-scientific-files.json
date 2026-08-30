@@ -1,0 +1,14 @@
+[
+  "rust/Cargo.lock",
+  "rust/Cargo.toml",
+  "rust/goldfish/Cargo.toml",
+  "rust/goldfish/kingdoms.json",
+  "rust/goldfish/src/equilibrium.rs",
+  "rust/goldfish/src/kernel.rs",
+  "rust/goldfish/src/main.rs",
+  "rust/goldfish/src/matrix.rs",
+  "rust/goldfish/src/psro.rs",
+  "rust/goldfish/src/reservoir.rs",
+  "rust/goldfish/src/self_play.rs",
+  "rust/rust-toolchain.toml"
+]

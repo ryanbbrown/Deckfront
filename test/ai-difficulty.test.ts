@@ -60,11 +60,12 @@ describe('pretrained AI difficulty selection', () => {
       expect(new Set(kingdom.plans.map((plan) => plan.strategy.id)).size).toBe(kingdom.plans.length);
       for (const plan of kingdom.plans) {
         expect(plan.strategy.startingBuild).toEqual([]);
-        expect(plan.strategy.repeatPurchase).toBe('copper');
-        expect(plan.strategy.buyAgenda).toHaveLength(5);
+        expect(plan.strategy.buyPlan).toEqual(plan.buyPlan);
         expect(plan.buyPlan.slice(0, 5).map((slot) => slot.kind)).toEqual(['buy', 'buy', 'buy', 'buy', 'buy']);
         expect(plan.buyPlan.slice(5).map((slot) => slot.kind)).toEqual(['inactive', 'inactive', 'inactive', 'inactive', 'inactive']);
-        for (const step of plan.strategy.buyAgenda) expect(legalBuyIds.has(step.cardId)).toBe(true);
+        for (const slot of plan.strategy.buyPlan) {
+          if (slot.kind === 'buy') expect(legalBuyIds.has(slot.cardId)).toBe(true);
+        }
       }
     }
   });

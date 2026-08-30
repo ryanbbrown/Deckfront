@@ -5,10 +5,12 @@ import { pathToFileURL } from 'node:url';
 import { ALWAYS_AVAILABLE_ACTION_IDS, VARIABLE_ACTION_IDS, cardDefinition } from '../src/game';
 import { balanceSuite } from '../src/sim/balanceSuite';
 import type { BalanceSuiteManifest, BalanceSuiteSplit } from '../src/sim/balanceSuite';
+import { classifyStrategyDamage, damageFamily } from '../src/sim/strategyDamage';
+export { classifyStrategyDamage } from '../src/sim/strategyDamage';
 import {
   buildBalanceReportModel, family, loadArtifactDirectory, selfPlayFor
 } from './generate_balance_report';
-import type { CardFamily, KingdomReport, StrategyReport } from './generate_balance_report';
+import type { CardFamily, KingdomReport } from './generate_balance_report';
 
 type ActionFamily = Exclude<CardFamily, 'Treasure'>;
 
@@ -33,7 +35,7 @@ export interface CorpusCardMeasure {
   availableStrategies: number;
   buildPlans: number;
   finitePlans: number;
-  repeatPlans: number;
+  infinitePlans: number;
   planStrategies: number;
   acquiredStrategies: number;
   averageCopiesWhenAcquired: number;
@@ -61,7 +63,7 @@ export interface StrategyGroupCardUse {
   averageCopiesWhenAcquired: number;
   buildPlans: number;
   finitePlans: number;
-  repeatPlans: number;
+  infinitePlans: number;
 }
 
 export interface StrategyGroupCardPair {
@@ -112,37 +114,6 @@ export interface BalanceCorpusModel {
   playQualityWarnings: PlayQualityWarning[];
 }
 
-const DAMAGE_FAMILIES = ['Melee', 'Ranged', 'Mage'] as const;
-const MIXED_DAMAGE_MINIMUM = 0.2;
-
-function damageFamily(cardId: string): (typeof DAMAGE_FAMILIES)[number] | null {
-  // This report classifies core family baselines; hybrid and special attacks do not define a family.
-  const mechanic = cardDefinition(cardId).mechanic;
-  if (['melee', 'drive', 'flurry'].includes(mechanic)) return 'Melee';
-  if (['ranged', 'repellingShot', 'volley'].includes(mechanic)) return 'Ranged';
-  if (mechanic === 'spell') return 'Mage';
-  return null;
-}
-
-export function classifyStrategyDamage(
-  strategy: Pick<StrategyReport, 'startingBuild' | 'acquisitionRates'>
-): string {
-  const amounts = Object.fromEntries(DAMAGE_FAMILIES.map((name) => [name, 0])) as Record<(typeof DAMAGE_FAMILIES)[number], number>;
-  for (const cardId of strategy.startingBuild) {
-    const cardFamily = damageFamily(cardId);
-    if (cardFamily) amounts[cardFamily] += 1;
-  }
-  for (const [cardId, amount] of Object.entries(strategy.acquisitionRates)) {
-    const cardFamily = damageFamily(cardId);
-    if (cardFamily) amounts[cardFamily] += amount;
-  }
-  const total = Object.values(amounts).reduce((sum, amount) => sum + amount, 0);
-  if (!total) return 'No damage package';
-  const material = DAMAGE_FAMILIES.filter((name) => amounts[name] / total >= MIXED_DAMAGE_MINIMUM);
-  return material.length ? material.join(' + ') : DAMAGE_FAMILIES
-    .reduce((best, name) => amounts[name] > amounts[best] ? name : best);
-}
-
 function mean(values: readonly number[]): number { return values.reduce((sum, value) => sum + value, 0) / values.length; }
 function median(values: readonly number[]): number {
   const sorted = [...values].sort((left, right) => left - right), middle = Math.floor(sorted.length / 2);
@@ -181,27 +152,27 @@ function cardMeasure(
   const definitions = manifest.kingdoms.filter((kingdom) => ids.has(kingdom.id));
   const availableIds = new Set(definitions.filter((kingdom) => ALWAYS_AVAILABLE_ACTION_IDS.includes(cardId)
     || kingdom.actionPiles.some((pile) => pile.cardId === cardId)).map((kingdom) => kingdom.id));
-  let availableStrategies = 0, buildPlans = 0, finitePlans = 0, repeatPlans = 0;
+  let availableStrategies = 0, buildPlans = 0, finitePlans = 0, infinitePlans = 0;
   let planStrategies = 0, acquiredStrategies = 0;
   let materialWeight = 0, cardAcquisitions = 0, familyAcquisitions = 0;
   for (const kingdom of kingdoms) for (const strategy of kingdom.strategies) {
     if (availableIds.has(kingdom.id)) availableStrategies += 1;
     const inBuild = strategy.startingBuild.includes(cardId);
     const inFinite = strategy.purchaseSteps.some((step) => step.cardId === cardId);
-    const inRepeat = strategy.repeatPurchase === cardId;
+    const inInfinite = strategy.purchaseSteps.some((step) => step.infinite && step.cardId === cardId);
     if (inBuild) buildPlans += 1;
     if (inFinite) finitePlans += 1;
-    if (inRepeat) repeatPlans += 1;
-    if (inBuild || inFinite || inRepeat) planStrategies += 1;
+    if (inInfinite) infinitePlans += 1;
+    if (inBuild || inFinite || inInfinite) planStrategies += 1;
     const acquired = strategy.acquisitionRates[cardId] ?? 0;
     if (acquired > 0) acquiredStrategies += 1;
     cardAcquisitions += acquired;
     for (const [acquiredId, rate] of Object.entries(strategy.acquisitionRates)) {
       if (family(acquiredId) === cardFamily) familyAcquisitions += rate;
     }
-    if (strategy.status === 'Lottery' && (inBuild || inFinite || inRepeat)) materialWeight += strategy.weight;
+    if (strategy.status === 'Lottery' && (inBuild || inFinite || inInfinite)) materialWeight += strategy.weight;
   }
-  return { availability: availableIds.size, availableStrategies, buildPlans, finitePlans, repeatPlans,
+  return { availability: availableIds.size, availableStrategies, buildPlans, finitePlans, infinitePlans,
     planStrategies, acquiredStrategies,
     averageCopiesWhenAcquired: acquiredStrategies ? cardAcquisitions / acquiredStrategies : 0,
     averageMaterialWeight: availableIds.size ? materialWeight / availableIds.size : 0,
@@ -243,10 +214,12 @@ export function buildBalanceCorpusModel(
   if (!scope) throw new Error('Corpus reports do not match the full manifest or its tuning split.');
   const tuning = kingdoms.filter((kingdom) => kingdom.split === 'tuning');
   const validation = kingdoms.filter((kingdom) => kingdom.split === 'validation');
-  if (tuning.length !== 80 || (scope === 'full' && validation.length !== 20)) {
-    throw new Error('Corpus reports do not preserve the requested split.');
+  const tuningSize = manifest.splits.find((split) => split.name === 'tuning')!.size;
+  const validationSize = manifest.splits.find((split) => split.name === 'validation')!.size;
+  if (tuning.length !== tuningSize || (scope === 'full' && validation.length !== validationSize)) {
+    throw new Error('Corpus reports do not preserve the manifest split.');
   }
-  const availableCards = [...ALWAYS_AVAILABLE_ACTION_IDS, ...manifest.eligibleCardIds];
+  const availableCards = [...ALWAYS_AVAILABLE_ACTION_IDS, ...manifest.cardPool.orderedVariableCardIds];
   const cards = availableCards.map((cardId): CorpusCardReport => {
     const cardFamily = family(cardId);
     if (cardFamily === 'Treasure') throw new Error(`Corpus action-card table cannot include ${cardId}.`);
@@ -280,11 +253,11 @@ export function buildStrategyGroups(model: BalanceCorpusModel): StrategyGroupRep
   }
   const marketByKingdom = new Map(model.manifest.kingdoms.map((kingdom) => [kingdom.id,
     new Set([...ALWAYS_AVAILABLE_ACTION_IDS, ...kingdom.actionPiles.map((pile) => pile.cardId)])]));
-  const cardIds = [...ALWAYS_AVAILABLE_ACTION_IDS, ...model.manifest.eligibleCardIds];
+  const cardIds = [...ALWAYS_AVAILABLE_ACTION_IDS, ...model.manifest.cardPool.orderedVariableCardIds];
   return [...labels.entries()].map(([label, group]): StrategyGroupReport => {
     const cards = cardIds.map((cardId): StrategyGroupCardUse => {
       let availableStrategies = 0, acquiredStrategies = 0, acquisitions = 0;
-      let buildPlans = 0, finitePlans = 0, repeatPlans = 0;
+      let buildPlans = 0, finitePlans = 0, infinitePlans = 0;
       for (const { kingdom, strategy } of group) {
         if (marketByKingdom.get(kingdom.id)?.has(cardId)) availableStrategies += 1;
         const acquired = strategy.acquisitionRates[cardId] ?? 0;
@@ -292,7 +265,7 @@ export function buildStrategyGroups(model: BalanceCorpusModel): StrategyGroupRep
         acquisitions += acquired;
         if (strategy.startingBuild.includes(cardId)) buildPlans += 1;
         if (strategy.purchaseSteps.some((step) => step.cardId === cardId)) finitePlans += 1;
-        if (strategy.repeatPurchase === cardId) repeatPlans += 1;
+        if (strategy.purchaseSteps.some((step) => step.infinite && step.cardId === cardId)) infinitePlans += 1;
       }
       const definition = cardDefinition(cardId);
       const cardFamily = family(cardId);
@@ -301,8 +274,8 @@ export function buildStrategyGroups(model: BalanceCorpusModel): StrategyGroupRep
         effect: [definition.headline, definition.detail].filter(Boolean).join(' '),
         availableStrategies, acquiredStrategies,
         averageCopiesWhenAcquired: acquiredStrategies ? acquisitions / acquiredStrategies : 0,
-        buildPlans, finitePlans, repeatPlans };
-    }).filter((card) => card.acquiredStrategies + card.buildPlans + card.finitePlans + card.repeatPlans > 0)
+        buildPlans, finitePlans, infinitePlans };
+    }).filter((card) => card.acquiredStrategies + card.buildPlans + card.finitePlans + card.infinitePlans > 0)
       .sort((left, right) => {
         const leftRate = left.availableStrategies ? left.acquiredStrategies / left.availableStrategies : 0;
         const rightRate = right.availableStrategies ? right.acquiredStrategies / right.availableStrategies : 0;
@@ -425,8 +398,8 @@ function selectedDetail(selected: SelectedKingdom): string {
     strategy.status, strategy.status === 'Lottery' ? percent(strategy.weight, 2) : '—', percent(strategy.score),
     strategy.startingBuild.map((id) => escape(cardDefinition(id).name)).join(', ') || 'None',
     ...Array.from({ length: maxSteps }, (_, step) => strategy.purchaseSteps[step]
-      ? `${escape(cardDefinition(strategy.purchaseSteps[step]!.cardId).name)} ×${strategy.purchaseSteps[step]!.remaining}` : '—'),
-    escape(cardDefinition(strategy.repeatPurchase).name), classifyStrategyDamage(strategy)]);
+      ? `${escape(cardDefinition(strategy.purchaseSteps[step]!.cardId).name)} ×${strategy.purchaseSteps[step]!.infinite ? '∞' : strategy.purchaseSteps[step]!.remaining}` : '—'),
+    classifyStrategyDamage(strategy)]);
   const matchupRows = kingdom.strategies.map((_strategy, row) => [`<span class="key">${strategyKey(row)}</span>`,
     ...kingdom.matchupScores[row]!.map((score, column) => row === column ? '50.0% mirror' : percent(score))]);
   return `<section><h2>${escape(kingdom.name)}</h2><p class="selection">${escape(selected.reason)} · ${kingdom.split} · effective lottery size ${fixed(kingdom.effectiveLotterySize)}</p>
@@ -439,7 +412,7 @@ export function renderBalanceCorpus(model: BalanceCorpusModel): string {
   const tuningDesign = model.manifest.splits.find((split) => split.name === 'tuning')!.design;
   const validationDesign = model.manifest.splits.find((split) => split.name === 'validation')!.design;
   const unused = model.cards.filter((card) => card.combined.buildPlans + card.combined.finitePlans
-    + card.combined.repeatPlans === 0).map((card) => card.name);
+    + card.combined.infinitePlans === 0).map((card) => card.name);
   const notAcquired = model.cards.filter((card) => card.combined.acquiredStrategies === 0).map((card) => card.name);
   const kingdomRows = model.kingdoms.map((kingdom) => [escape(kingdom.id), kingdom.split,
     String(kingdom.materialCount), String(kingdom.nearCount), String(kingdom.strategies.length),
@@ -452,19 +425,21 @@ export function renderBalanceCorpus(model: BalanceCorpusModel): string {
   const summaryRows = model.scope === 'full'
     ? [model.summaries.tuning, model.summaries.validation!, model.summaries.combined]
     : [model.summaries.tuning];
+  const tuningSize = model.manifest.splits.find((split) => split.name === 'tuning')!.size;
+  const validationSize = model.manifest.splits.find((split) => split.name === 'validation')!.size;
   const designRows = model.scope === 'full' ? [
-    ['Tuning', '80', `${tuningDesign.cardCountMinimum}–${tuningDesign.cardCountMaximum}`, `${tuningDesign.pairCountMinimum}–${tuningDesign.pairCountMaximum}`, fixed(tuningDesign.pairCountStandardDeviation, 4), String(tuningDesign.largestOverlap)],
-    ['Validation', '20', `${validationDesign.cardCountMinimum}–${validationDesign.cardCountMaximum}`, `${validationDesign.pairCountMinimum}–${validationDesign.pairCountMaximum}`, fixed(validationDesign.pairCountStandardDeviation, 4), String(validationDesign.largestOverlap)]
+    ['Tuning', String(tuningSize), `${tuningDesign.cardCountMinimum}–${tuningDesign.cardCountMaximum}`, `${tuningDesign.pairCountMinimum}–${tuningDesign.pairCountMaximum}`, fixed(tuningDesign.pairCountStandardDeviation, 4), String(tuningDesign.largestOverlap)],
+    ['Validation', String(validationSize), `${validationDesign.cardCountMinimum}–${validationDesign.cardCountMaximum}`, `${validationDesign.pairCountMinimum}–${validationDesign.pairCountMaximum}`, fixed(validationDesign.pairCountStandardDeviation, 4), String(validationDesign.largestOverlap)]
   ] : [[
-    'Tuning', '80', `${tuningDesign.cardCountMinimum}–${tuningDesign.cardCountMaximum}`,
+    'Tuning', String(tuningSize), `${tuningDesign.cardCountMinimum}–${tuningDesign.cardCountMaximum}`,
     `${tuningDesign.pairCountMinimum}–${tuningDesign.pairCountMaximum}`,
     fixed(tuningDesign.pairCountStandardDeviation, 4), String(tuningDesign.largestOverlap)
   ]];
-  const title = model.scope === 'full' ? 'One-hundred-kingdom balance corpus' : 'Eighty-kingdom tuning report';
+  const title = model.scope === 'full' ? `${model.manifest.chosenCount}-kingdom balance corpus` : `${tuningSize}-kingdom tuning report`;
   const introduction = model.scope === 'full'
-    ? 'This report measures 80 tuning kingdoms and 20 held-back validation kingdoms. Use tuning results for repeated card changes. Use validation only to confirm a proposed change.'
-    : 'This report measures the 80 tuning kingdoms under the current card rules. The held-back validation kingdoms were not run for this tuning round.';
-  const missingVariableCards = VARIABLE_ACTION_IDS.filter((cardId) => !model.manifest.eligibleCardIds.includes(cardId));
+    ? `This report measures ${tuningSize} tuning kingdoms and ${validationSize} held-back validation kingdoms. Use tuning results for repeated card changes. Use validation only to confirm a proposed change.`
+    : `This report measures the ${tuningSize} tuning kingdoms under the current card rules. The held-back validation kingdoms were not run for this tuning round.`;
+  const missingVariableCards = VARIABLE_ACTION_IDS.filter((cardId) => !model.manifest.cardPool.orderedVariableCardIds.includes(cardId));
   const incompletePoolWarning = missingVariableCards.length
     ? `<section class="warning"><h2>This is an incomplete historical card pool</h2><p>These runs excluded ${escape(missingVariableCards.map((cardId) => cardDefinition(cardId).name).join(' and '))}, even though the playable random market can include them. Use this report to understand the latest completed runs, but do not treat it as the final whole-game balance result.</p></section>` : '';
   const primarySummary = model.scope === 'full' ? model.summaries.combined : model.summaries.tuning;
@@ -480,7 +455,7 @@ ${strategyGroupSections(model)}
 <section><h2>Cards with no use in any strategy type</h2><div class="callouts"><div><strong>No planned use</strong><br>${unused.length ? escape(unused.join(', ')) : 'None'}</div><div><strong>No actual acquisitions</strong><br>${notAcquired.length ? escape(notAcquired.join(', ')) : 'None'}</div></div></section>
 <section><h2>Kingdom diversity</h2>${summaryTable(summaryRows)}<p>The lottery count shows strategies used by the best discovered mix. “Additional ≥40%” counts other discovered strategies that score at least 40% against that mix. Effective size measures how evenly the lottery is split; 1 means one strategy receives all weight.</p></section>
 <section><h2>All ${model.kingdoms.length} kingdoms</h2>${table(['Kingdom', 'Split', 'Lottery', 'Additional ≥40%', 'Viable at 40%', 'Effective size', 'Damage types', 'Draws', 'Turns/player', 'First-player score', 'Search games', 'Seconds'], kingdomRows)}</section>
-<section><h2>How the kingdoms were selected</h2>${table(['Split', 'Kingdoms', 'Card count range', 'Pair count range', 'Pair-count SD', 'Largest overlap'], designRows)}<p>Every kingdom has ten distinct piles, 40 health, no overrides, and at least one direct-damage card. Card counts differ by at most one within each split. No pair of kingdoms shares more than eight piles.</p></section>
+<section><h2>How the kingdoms were selected</h2>${table(['Split', 'Kingdoms', 'Card count range', 'Pair count range', 'Pair-count SD', 'Largest overlap'], designRows)}<p>Every kingdom has ten distinct piles, 50 health, no overrides, and at least two direct-damage cards. Card counts differ by at most one within each split. No pair of kingdoms shares more than ${model.manifest.thresholds.distinctness.maximumOverlap} piles.</p></section>
 <div><h2>Five selected kingdom details</h2><p>Selection uses five fixed rules and an id tie-break. A kingdom can fill only one slot.</p>${model.selected.map(selectedDetail).join('\n')}</div>
 </main></body></html>\n`;
 }
@@ -488,7 +463,7 @@ ${strategyGroupSections(model)}
 export function generateBalanceCorpus(
   root: string, output = path.join(root, '.html', 'balance-corpus.html'), scope: 'tuning' | 'full' = 'full'
 ): BalanceCorpusModel {
-  balanceSuite.register();
+  balanceSuite.assertCampaignReady();
   if (scope === 'full') {
     const validation = balanceSuite.validateRuns(root);
     if (!validation.valid) throw new Error(`Balance suite is incomplete: ${validation.failures.map((failure) => `${failure.kingdomId}: ${failure.reason}`).join('; ')}`);

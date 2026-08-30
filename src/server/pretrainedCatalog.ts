@@ -1,9 +1,8 @@
 import rawCatalog from './pretrained-opponents.json' with { type: 'json' };
 import { ALWAYS_AVAILABLE_ACTION_IDS, RANDOM_KINGDOM_SIZE, TREASURE_IDS, VARIABLE_ACTION_IDS } from '../game';
-import type { Strategy } from '../sim/strategy';
+import { fixedBuyPlan } from '../sim/strategy';
+import type { BuyPlanSlot, Strategy } from '../sim/strategy';
 import { z } from 'zod';
-
-const BUY_PLAN_SLOTS = 10;
 const EXPECTED_PLAN_COUNT = 1_588;
 const EXPECTED_POSITIVE_WEIGHT_COUNT = 71;
 const EXPECTED_KINGDOMS: Readonly<Record<string, readonly [signature: string, planCount: number]>> = {
@@ -54,12 +53,9 @@ const rawCatalogSchema = z.object({
   }).strict()).length(Object.keys(EXPECTED_KINGDOMS).length)
 }).strict();
 
-export type PretrainedBuySlot = Readonly<
-  { kind: 'buy'; cardId: string; desiredCount: number } | { kind: 'inactive' }
->;
 export interface PretrainedPlan {
   strategy: Strategy;
-  buyPlan: readonly PretrainedBuySlot[];
+  buyPlan: readonly BuyPlanSlot[];
   equilibriumWeight: number;
   selectedLotteryScore: number;
 }
@@ -93,7 +89,7 @@ function loadCatalog(value: unknown): readonly PretrainedKingdom[] {
     const plans = rawKingdom.plans.map(([id, equilibriumWeight, selectedLotteryScore, encodedSteps]): PretrainedPlan => {
       if (seenPlanIds.has(id)) throw new Error(`Pretrained strategy id is duplicated: ${id}.`);
       seenPlanIds.add(id);
-      const activeSlots: Array<Extract<PretrainedBuySlot, { kind: 'buy' }>> = [];
+      const activeSlots: Array<Extract<BuyPlanSlot, { kind: 'buy' }>> = [];
       for (let index = 0; index < encodedSteps.length; index += 2) {
         const cardId = encodedSteps[index], desiredCount = encodedSteps[index + 1];
         if (typeof cardId !== 'string' || typeof desiredCount !== 'number'
@@ -101,14 +97,8 @@ function loadCatalog(value: unknown): readonly PretrainedKingdom[] {
           || !kingdomBuyCards.has(cardId)) throw new Error(`Pretrained strategy ${id} has an invalid buy step.`);
         activeSlots.push(Object.freeze({ kind: 'buy', cardId, desiredCount }));
       }
-      const buyPlan: PretrainedBuySlot[] = Array.from({ length: BUY_PLAN_SLOTS }, (_unused, index) =>
-        activeSlots[index] ?? Object.freeze({ kind: 'inactive' as const }));
-      const strategy: Strategy = {
-        id,
-        startingBuild: [],
-        buyAgenda: activeSlots.map(({ cardId, desiredCount }) => ({ cardId, desiredCount })),
-        repeatPurchase: 'copper'
-      };
+      const buyPlan = fixedBuyPlan(activeSlots);
+      const strategy: Strategy = { id, startingBuild: [], buyPlan };
       return Object.freeze({ strategy: Object.freeze(strategy), buyPlan: Object.freeze(buyPlan), equilibriumWeight, selectedLotteryScore });
     });
     planCount += plans.length;

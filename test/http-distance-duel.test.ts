@@ -7,6 +7,7 @@ import { VARIABLE_ACTION_IDS } from '../src/game';
 import type { AiTrainer } from '../src/server/aiTrainer';
 import { createHexdeckServer } from '../src/server/httpServer';
 import type { GameUpdateView, GameView } from '../src/shared/api';
+import { fixedBuyPlan } from '../src/sim/strategy';
 const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
 const cleanups: Array<() => Promise<void>> = [];
 afterEach(async () => { while (cleanups.length) await cleanups.pop()?.(); });
@@ -82,7 +83,9 @@ describe('local game HTTP interface', () => {
     }
   });
   it('returns public AI action events without hidden log details', async () => {
-    const strategy = { id: 'http-ai', startingBuild: [], buyAgenda: [], repeatPurchase: 'silver' };
+    const strategy = { id: 'http-ai', startingBuild: [], buyPlan: fixedBuyPlan([
+      { kind: 'buy' as const, cardId: 'silver', desiredCount: 99 }
+    ]) };
     const aiTrainer: AiTrainer = { train: async () => ({ strategy, summary: { elapsedMs: 1, matches: 1, strategyId: strategy.id } }) };
     const { base } = await server(aiTrainer);
     const created = await (await create(base, { mode: 'ai', humanPlayerId: 'ochre', aiDifficulty: 'normal', startingDraftEnabled: true })).json() as GameView;

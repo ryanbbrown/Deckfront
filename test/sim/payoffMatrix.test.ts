@@ -17,14 +17,14 @@ class RecordingRunner implements PairingRunner {
     this.batches.push(jobs.length);
     this.jobs.push(...jobs);
     return { submitted: jobs.length, outcomes: jobs.map((job) => ({
-      record: { played: this.abort ? 0 : job.options.seeds.length * 4, wins: this.abort ? 0 : job.options.seeds.length * 4,
+      record: { played: this.abort ? 0 : job.options.seeds.length * 2, wins: this.abort ? 0 : job.options.seeds.length * 2,
         draws: 0, losses: 0, aborted: this.abort ? 1 : 0 },
-      candidateScore: this.abort ? 0 : job.options.seeds.length * 4, opponentScore: 0,
+      candidateScore: this.abort ? 0 : job.options.seeds.length * 2, opponentScore: 0,
       candidateMean: this.abort ? null : 1, opponentMean: this.abort ? null : 0,
-      telemetry: emptyAggregate(), matches: job.options.seeds.length * 4,
-      seedBlocks: job.options.seeds.length, stopReason: 'maximum' as const,
+      telemetry: emptyAggregate(), matches: job.options.seeds.length * 2,
+      seedsEvaluated: job.options.seeds.length, stopReason: 'maximum' as const,
       blocks: job.options.seeds.map((seed) => ({ seed, score: this.abort ? 0 : 1,
-        played: this.abort ? 0 : 4, aborted: this.abort ? 4 : 0 })),
+        played: this.abort ? 0 : 2, aborted: this.abort ? 1 : 0 })),
       aborts: this.abort ? [{ seed: job.options.seeds[0]!, orientationIndex: 0,
         reason: 'actionSearchOverflow' as const }] : []
     })) };
@@ -106,10 +106,15 @@ describe('protocol-keyed payoff matrix', () => {
       { ...base, seeds: [1, 3] },
       { ...base, turnLimitPerPlayer: 31 },
       { ...base, actionCapPerTurn: 201 },
+      matrixProtocol('current-duel', [1, 2], 30, 200, false),
       { ...base, cards: [...base.cards as unknown[], { id: 'changed-card' }] },
       { ...base, orientationProtocol: 'two-games-shared-seed-v2' }
     ];
     for (const variant of variants) await fill(variant);
     expect(runner.jobs).toHaveLength(1 + variants.length);
+    expect(base.orientationProtocol).toBe('two-games-shared-seed-v1');
+    expect(runner.jobs.find((job) => job.options.startingDraftEnabled === false)).toBeDefined();
+    expect(matrixProtocol('current-duel', [1, 2], 30, 200, false).rulesFingerprint)
+      .not.toBe(base.rulesFingerprint);
   });
 });

@@ -29,7 +29,7 @@ function availableCard(state: GameState, actions: readonly LegalAction[], card: 
 
 function projectionVector(state: GameState, playerId: PlayerId, strategy: Strategy, moneyLost: number): readonly number[] {
   const projection = projectPurchases(state, playerId, actionPhaseMoney(state, playerId) - moneyLost, strategy);
-  return [...projection.finite, projection.repeated];
+  return projection.bought;
 }
 
 function compareProjection(left: readonly number[], right: readonly number[]): number {
@@ -103,12 +103,10 @@ export function tacticalView(
     positionChanged: state.players[playerId].positionChanged,
     tacticalPlayed: state.turnState.cardsPlayed.filter(isTacticalAction).length,
     cullOptions: cullOptions(state, playerId, strategy, hand),
-    discardOptions: state.pendingChoice?.type === 'discard'
-      ? hand.map((card): DiscardOption => ({
-        handIndex: card.handIndex,
-        purchaseProjection: projectionVector(state, playerId, strategy, card.money)
-      }))
-      : [],
+    discardOptions: hand.map((card): DiscardOption => ({
+      handIndex: card.handIndex,
+      purchaseProjection: projectionVector(state, playerId, strategy, card.money)
+    })),
     actorProfile: attackProfile(state, playerId), opponentProfile: attackProfile(state, opponentId)
   };
 }

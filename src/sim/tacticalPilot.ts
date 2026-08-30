@@ -1,7 +1,8 @@
-import { ARENA_MAX, ARENA_MIN, ATTACK_MECHANICS } from '../game';
+import { ARENA_MAX, ARENA_MIN } from '../game';
 import type { CardFamily, CardMechanic, CardValues, MovementChoice, PendingChoiceType } from '../game';
 import { printedAttackDamage, publicPositionAdvantage } from './positionValue';
 import type { AttackProfile } from './positionValue';
+import { compareUtf16 } from './utf16';
 export { TACTICAL_PILOT_PROTOCOL_VERSION } from './protocolVersions';
 
 export interface PilotCard {
@@ -60,11 +61,6 @@ export type TacticalDecision =
   | { type: 'discard'; handIndex: number }
   | { type: 'recover'; discardIndex: number | null };
 
-// Feint looks for a playable Close attack, so setup and non-Close attacks are intentionally absent.
-const CLOSE_ATTACK_MECHANICS: ReadonlySet<CardMechanic> = new Set([
-  'melee', 'drive', 'flurry', 'openingStrike', 'rally', 'bullRush'
-]);
-
 function value(card: PilotCard, key: string): number { return card.values[key] ?? 0; }
 function distance(left: number, right: number): number { return Math.abs(left - right); }
 
@@ -114,10 +110,16 @@ function currentHandDamageAt(
   view: TacticalView, actorPosition: number, opponentPosition: number, mana: number, tacticalPlayed: number
 ): number {
   let total = 0;
+  let canUseAim = false;
   let spellDamage: Int16Array | null = null;
+  const ranged = new Set<CardMechanic>([
+    'ranged', 'repellingShot', 'longshot', 'salvageShot', 'precisionShot', 'volley'
+  ]);
   let scrapAvailable = (view.copiesPlayed.scrap ?? 0) === 0;
   for (const card of view.hand) {
-    if (!ATTACK_MECHANICS.has(card.mechanic)) continue;
+    if (!['melee', 'drive', 'flurry', 'openingStrike', 'rally', 'bullRush', 'ranged', 'repellingShot',
+      'longshot', 'salvageShot', 'precisionShot', 'spell', 'discharge', 'cascade', 'overload', 'discipline', 'improvise', 'scrap', 'volley']
+      .includes(card.mechanic)) continue;
     if (card.mechanic === 'spell' || card.mechanic === 'cascade') {
       const cost = value(card, 'manaCost');
       if (cost > mana) continue;
@@ -134,9 +136,13 @@ function currentHandDamageAt(
       if (!scrapAvailable) state.copiesPlayed = { ...view.copiesPlayed, scrap: 1 };
       scrapAvailable = false;
     }
-    total += printedAttackDamage(card, actorPosition, opponentPosition, state);
+    state.aimed = false;
+    state.aimBonus = 0;
+    const damage = printedAttackDamage(card, actorPosition, opponentPosition, state);
+    total += damage;
+    if (damage > 0 && ranged.has(card.mechanic)) canUseAim = true;
   }
-  return total + (spellDamage?.at(-1) ?? 0);
+  return total + (canUseAim ? view.aimBonus : 0) + (spellDamage?.at(-1) ?? 0);
 }
 
 interface MovementResult {
@@ -147,12 +153,18 @@ interface MovementResult {
   positionValue: number;
 }
 
+function continuedMovementSpaces(result: MovementResult): number {
+  if (result.movement === 'left') return result.actorPosition - ARENA_MIN;
+  if (result.movement === 'right') return ARENA_MAX - result.actorPosition;
+  return 0;
+}
+
 function winsFinalTie(candidate: MovementResult, best: MovementResult): boolean {
   if (candidate.movement === 'stay' || best.movement === 'stay') return candidate.movement === 'stay';
   const candidateDistance = distance(candidate.actorPosition, candidate.opponentPosition);
   const bestDistance = distance(best.actorPosition, best.opponentPosition);
   if (candidateDistance !== bestDistance) return candidateDistance > bestDistance;
-  return candidate.movement === 'left' && best.movement !== 'left';
+  return continuedMovementSpaces(candidate) > continuedMovementSpaces(best);
 }
 
 function betterMovement(candidate: MovementResult, best: MovementResult | null): boolean {
@@ -245,7 +257,8 @@ function bestDriveDirection(card: PilotCard, view: TacticalView): MovementChoice
     };
     if (betterMovement(candidate, best)) best = candidate;
   }
-  return best?.movement ?? 'left';
+  if (!best) throw new Error('Drive has no legal direction.');
+  return best.movement;
 }
 
 function compareProjection(left: readonly number[], right: readonly number[]): number {
@@ -316,7 +329,7 @@ export function fixedTargetSelection(
       candidate.handIndex !== card.handIndex && candidate.family === family);
     const target = card.mechanic === 'salvageShot'
       ? [...targets].sort((left, right) => right.cost - left.cost
-        || left.definitionId.localeCompare(right.definitionId)
+        || compareUtf16(left.definitionId, right.definitionId)
         || left.handIndex - right.handIndex)[0]
       : targets[0];
     return { targetHandIndexes: target ? [target.handIndex] : [], targetSelf: false };
@@ -346,14 +359,16 @@ function play(card: PilotCard, movement?: MovementChoice, hand?: readonly PilotC
 }
 
 function hasCloseAttack(view: TacticalView): boolean {
-  return view.hand.some((card) => card.enabled && CLOSE_ATTACK_MECHANICS.has(card.mechanic));
+  return view.hand.some((card) => card.enabled && ['melee', 'drive', 'flurry', 'openingStrike', 'rally', 'bullRush'].includes(card.mechanic));
 }
 
 function bestDamage(view: TacticalView, omitFlurry: boolean): PilotCard | undefined {
   let best: PilotCard | undefined;
   let bestDamage = -1;
   for (const card of view.hand) {
-    if (!card.enabled || !ATTACK_MECHANICS.has(card.mechanic)) continue;
+    if (!card.enabled || !['melee', 'drive', 'flurry', 'openingStrike', 'rally', 'bullRush', 'ranged', 'repellingShot',
+      'longshot', 'salvageShot', 'precisionShot', 'spell', 'discharge', 'cascade', 'overload', 'discipline', 'improvise', 'scrap', 'volley']
+      .includes(card.mechanic)) continue;
     if (omitFlurry && card.mechanic === 'flurry') continue;
     const damage = immediateDamage(card, view);
     if (damage > bestDamage) { best = card; bestDamage = damage; }
@@ -366,13 +381,16 @@ export function chooseTacticalAction(view: TacticalView): TacticalDecision {
   if (view.pendingChoice === 'recover') {
     let best = view.discard[0];
     for (const card of view.discard) if (best && (card.cost > best.cost
-      || (card.cost === best.cost && card.definitionId.localeCompare(best.definitionId) < 0))) best = card;
+      || (card.cost === best.cost && compareUtf16(card.definitionId, best.definitionId) < 0))) best = card;
     return { type: 'recover', discardIndex: best?.discardIndex ?? null };
   }
   if (view.pendingChoice === 'discard') return pickDiscard(view);
 
   const volley = first(view, 'volley');
   if (view.aimed && volley) return play(volley);
+
+  const openingStrike = first(view, 'openingStrike');
+  if (openingStrike && view.attacksPlayed === 0) return play(openingStrike);
 
   const reclaim = first(view, 'reclaim');
   if (reclaim && view.discard.length > 0) return play(reclaim);
@@ -419,6 +437,17 @@ export function chooseTacticalAction(view: TacticalView): TacticalDecision {
       const card = first(view, mechanic);
       if (card) return play(card, undefined, view.hand);
     }
+  }
+
+  const cascade = first(view, 'cascade');
+  if (cascade && immediateDamage(cascade, view) < view.opponentHealth) {
+    let primer: PilotCard | undefined;
+    for (const candidate of view.hand) {
+      if (!candidate.enabled || candidate.mechanic !== 'spell'
+        || value(candidate, 'manaCost') + value(cascade, 'manaCost') > view.mana) continue;
+      if (!primer || immediateDamage(candidate, view) > immediateDamage(primer, view)) primer = candidate;
+    }
+    if (primer) return play(primer);
   }
 
   const nonFlurryDamage = bestDamage(view, true);

@@ -1,11 +1,11 @@
 import { describe, expect, it } from 'vitest';
 import { SEED_STRATEGIES, diagnosticStrategies } from '../../src/sim/baselines';
-import { formatStrategy, identify, registerIdentity } from '../../src/sim/strategy';
+import { BUY_PLAN_SLOTS, INFINITE_COUNT, formatStrategy, identify, registerIdentity } from '../../src/sim/strategy';
 import { strategy } from './fixtures';
 
 describe('seed strategy model', () => {
   it('contains only the executable deck-plan fields', () => {
-    const expected = ['buyAgenda', 'id', 'repeatPurchase', 'startingBuild'];
+    const expected = ['buyPlan', 'id', 'startingBuild'];
     for (const plan of Object.values(SEED_STRATEGIES).flat()) {
       expect(Object.keys(plan).sort(), plan.id).toEqual(expected);
     }
@@ -13,9 +13,10 @@ describe('seed strategy model', () => {
 
   it('refuses every in-place write', () => {
     const plan = diagnosticStrategies('current-duel')[0]!;
-    expect(() => { (plan.buyAgenda[0] as unknown as Record<string, number>).desiredCount = 99; }).toThrow(TypeError);
-    expect(plan.buyAgenda[0]!.desiredCount).toBe(4);
-    for (const list of [plan.startingBuild, plan.buyAgenda]) {
+    expect(() => { (plan.buyPlan[0] as unknown as Record<string, number>).desiredCount = 99; }).toThrow(TypeError);
+    expect(plan.buyPlan[0]).toEqual({ kind: 'buy', cardId: 'precisionShot', desiredCount: 4 });
+    expect(plan.buyPlan).toHaveLength(BUY_PLAN_SLOTS);
+    for (const list of [plan.startingBuild, plan.buyPlan]) {
       expect(Object.isFrozen(list)).toBe(true);
       expect(() => (list as unknown as unknown[]).push('copper')).toThrow(TypeError);
     }
@@ -28,14 +29,12 @@ describe('formatStrategy', () => {
   it('prints the complete purchase plan without tactical fields', () => {
     const plan = strategy({
       id: 'printable', startingBuild: ['heavyBlow', 'footwork'],
-      buyAgenda: [{ cardId: 'heavyBlow', desiredCount: 3 }, { cardId: 'drive', desiredCount: 2 }],
-      repeatPurchase: 'footwork'
+      buyPlan: [{ kind: 'buy', cardId: 'heavyBlow', desiredCount: 3 }, { kind: 'buy', cardId: 'drive', desiredCount: 2 }, { kind: 'buy', cardId: 'footwork', desiredCount: INFINITE_COUNT }]
     });
     expect(formatStrategy(plan)).toBe([
       'printable',
       '  build: heavyBlow, footwork',
-      '  agenda: heavyBlow x3 -> drive x2',
-      '  repeat: footwork'
+      `  plan: heavyBlow x3 -> drive x2 -> footwork x∞${' -> inactive'.repeat(7)}`
     ].join('\n'));
   });
 

@@ -1,7 +1,9 @@
 import { SeededRandom } from '../game';
-import { emptyAggregate, mergeAggregate } from './pairing';
+import { GAMES_PER_SEED, emptyAggregate, mergeAggregate } from './pairing';
 import type { PairingRunner } from './pairingRunner';
+import { canonicalStrategy } from './strategy';
 import type { Strategy } from './strategy';
+import { compareUtf16 } from './utf16';
 import type { TelemetryAggregate } from './types';
 import { DeadlineInterruptionError, InvalidEvaluationError } from './payoffMatrix';
 
@@ -25,7 +27,8 @@ export interface CandidateEvaluation {
 export function mixtureSchedule(
   weights: Readonly<Record<string, number>>, seeds: readonly number[], samplingSeed: number
 ): MixtureSchedule {
-  const entries = Object.entries(weights).filter((entry) => entry[1] > 0).sort(([a], [b]) => a.localeCompare(b));
+  const entries = Object.entries(weights).filter((entry) => entry[1] > 0)
+    .sort(([a], [b]) => compareUtf16(a, b));
   const total = entries.reduce((sum, entry) => sum + entry[1], 0);
   if (!entries.length || !(total > 0)) throw new Error('A mixture schedule needs positive weights.');
   const random = new SeededRandom(samplingSeed);
@@ -47,7 +50,7 @@ export function mixtureSchedule(
 export function percentileBootstrapMean(
   values: readonly number[], seed: number, samples = 2000
 ): BootstrapInterval {
-  if (!values.length) throw new Error('Bootstrap needs at least one complete block.');
+  if (!values.length) throw new Error('Bootstrap needs at least one complete seed evaluation.');
   const random = new SeededRandom(seed);
   const means = Array.from({ length: samples }, () => {
     let total = 0;
@@ -61,7 +64,8 @@ export async function evaluateCandidates(
   candidates: readonly Strategy[], opponents: ReadonlyMap<string, Strategy>, schedule: MixtureSchedule,
   runner: PairingRunner, options: {
     kingdomId: string; turnLimitPerPlayer: number; actionCapPerTurn: number;
-    deadline?: number | undefined;
+    startingDraftEnabled?: boolean | undefined; deadline?: number | undefined;
+    scoreOnly?: boolean | undefined;
   }
 ): Promise<CandidateEvaluation[]> {
   const jobs = candidates.flatMap((candidate) => schedule.blocks.map((block) => {
@@ -70,10 +74,13 @@ export async function evaluateCandidates(
     return { candidate, opponent, options: {
       kingdomId: options.kingdomId, seeds: [block.seed],
       turnLimitPerPlayer: options.turnLimitPerPlayer, actionCapPerTurn: options.actionCapPerTurn,
-      allowEarlyStop: false
+      startingDraftEnabled: options.startingDraftEnabled ?? true, allowEarlyStop: false
     } };
   }));
-  const batch = await runner.run(jobs, { deadline: options.deadline });
+  const compactRunner = options.scoreOnly ? runner.runScoreOnly?.bind(runner) : undefined;
+  const batch = compactRunner
+    ? await compactRunner(jobs, { deadline: options.deadline })
+    : await runner.run(jobs, { deadline: options.deadline });
   if (batch.submitted !== jobs.length) throw new DeadlineInterruptionError('Deadline interrupted a mixture evaluation.', {
     submitted: batch.submitted, expected: jobs.length
   });
@@ -87,16 +94,30 @@ export async function evaluateCandidates(
       if (!result) throw new DeadlineInterruptionError('Mixture evaluation returned no result.', {
         strategyId: candidates[candidateIndex]!.id, block: blockIndex
       });
-      if (result.record.aborted > 0 || result.blocks[0]?.played !== 4) {
-        throw new InvalidEvaluationError('An aborted match invalidated a mixture evaluation.', {
-          strategyId: candidates[candidateIndex]!.id, seed: schedule.blocks[blockIndex]!.seed,
-          opponentId: schedule.blocks[blockIndex]!.opponentId,
-          orientation: result.aborts[0]?.orientationIndex, reason: result.aborts[0]?.reason
-        });
+      if (compactRunner) {
+        if (!('scoreBytes' in result) || result.aborts.length > 0 || result.played[0] !== GAMES_PER_SEED) {
+          throw new InvalidEvaluationError('An aborted match invalidated a mixture evaluation.', {
+            strategyId: candidates[candidateIndex]!.id, seed: schedule.blocks[blockIndex]!.seed,
+            opponentId: schedule.blocks[blockIndex]!.opponentId,
+            orientation: result.aborts[0]?.orientationIndex, reason: result.aborts[0]?.reason
+          });
+        }
+        blockScores.push(result.scoreBytes[0]! / 4);
+        matches += result.matches;
+      } else {
+        if ('scoreBytes' in result || result.record.aborted > 0
+          || result.blocks[0]?.played !== GAMES_PER_SEED) {
+          throw new InvalidEvaluationError('An aborted match invalidated a mixture evaluation.', {
+            strategyId: candidates[candidateIndex]!.id, seed: schedule.blocks[blockIndex]!.seed,
+            opponentId: schedule.blocks[blockIndex]!.opponentId,
+            orientation: 'scoreBytes' in result ? undefined : result.aborts[0]?.orientationIndex,
+            reason: 'scoreBytes' in result ? undefined : result.aborts[0]?.reason
+          });
+        }
+        blockScores.push(result.blocks[0]!.score);
+        matches += result.matches;
+        mergeAggregate(telemetry, result.telemetry);
       }
-      blockScores.push(result.blocks[0]!.score);
-      matches += result.matches;
-      mergeAggregate(telemetry, result.telemetry);
     }
     evaluations.push({
       strategy: candidates[candidateIndex]!,
@@ -105,4 +126,54 @@ export async function evaluateCandidates(
     });
   }
   return evaluations;
+}
+
+export interface RaceRound { seeds: readonly number[]; entered: number; survivors: number }
+export interface RaceResult {
+  best: CandidateEvaluation | null;
+  rounds: RaceRound[];
+  matches: number;
+  telemetry: TelemetryAggregate;
+}
+
+/** Survivors per round. A third keeps the race short without discarding a whole tier at once. */
+export const RACE_SURVIVOR_SHARE = 3;
+export const RACE_FLOOR = 3;
+
+/**
+ * Successive halving. Every candidate gets a cheap look, and only the ones still standing pay for
+ * more games, so the same match budget buys about ten times the evidence behind the winner.
+ *
+ * One-shot argmax over noisy means is biased upward: the winner is usually a weak candidate that
+ * got lucky, it then fails its confirmation, and the search concludes nothing better exists. A race
+ * makes that outcome rare, because surviving four rounds on four disjoint seed sets is not luck.
+ */
+export async function raceCandidates(
+  candidates: readonly Strategy[], opponents: ReadonlyMap<string, Strategy>,
+  weights: Readonly<Record<string, number>>, roundSeeds: readonly (readonly number[])[],
+  samplingSeed: number, runner: PairingRunner, options: {
+    kingdomId: string; turnLimitPerPlayer: number; actionCapPerTurn: number;
+    startingDraftEnabled?: boolean | undefined; deadline?: number | undefined;
+  }
+): Promise<RaceResult> {
+  const telemetry = emptyAggregate();
+  const rounds: RaceRound[] = [];
+  let matches = 0;
+  let field = [...candidates];
+  let best: CandidateEvaluation | null = null;
+  for (let round = 0; round < roundSeeds.length && field.length; round += 1) {
+    const seeds = roundSeeds[round]!;
+    const schedule = mixtureSchedule(weights, seeds, samplingSeed ^ (round + 1));
+    const evaluations = await evaluateCandidates(field, opponents, schedule, runner, options);
+    evaluations.sort((left, right) => right.mean - left.mean
+      || compareUtf16(left.strategy.id, right.strategy.id)
+      || compareUtf16(canonicalStrategy(left.strategy), canonicalStrategy(right.strategy)));
+    for (const evaluation of evaluations) { matches += evaluation.matches; mergeAggregate(telemetry, evaluation.telemetry); }
+    best = evaluations[0]!;
+    const survivors = Math.max(RACE_FLOOR, Math.ceil(field.length / RACE_SURVIVOR_SHARE));
+    rounds.push({ seeds, entered: field.length, survivors: Math.min(survivors, evaluations.length) });
+    if (evaluations.length <= RACE_FLOOR) break;
+    field = evaluations.slice(0, survivors).map((evaluation) => evaluation.strategy);
+  }
+  return { best, rounds, matches, telemetry };
 }

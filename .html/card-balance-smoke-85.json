@@ -1,0 +1,3275 @@
+{
+  "schemaVersion": 1,
+  "protocol": "card-balance-directional-smoke-v1",
+  "label": "directional smoke, not final balance evidence",
+  "scope": {
+    "kingdomIds": [
+      "balance-tuning-005",
+      "balance-tuning-010",
+      "balance-tuning-013",
+      "balance-tuning-021",
+      "balance-tuning-033",
+      "balance-tuning-053",
+      "balance-tuning-082",
+      "balance-tuning-090"
+    ],
+    "kingdomCount": 8,
+    "kingdomWeighting": "equal",
+    "changedCardIds": [
+      "focus",
+      "overload",
+      "bullRush",
+      "openingStrike",
+      "volley"
+    ],
+    "evidenceBasis": "stored equilibrium lottery versus itself; diagonal included; rates are per player side"
+  },
+  "scientificSettings": {
+    "goldfishRanking": "unchanged",
+    "matrixSeeds": "4200001..4200125",
+    "matrixPayoffSeeds": 75,
+    "matrixTelemetrySeeds": 125,
+    "psroRules": "confirmed queue capped at 100; thresholds, depths, admission, solver, and stopping rules unchanged",
+    "scoreWorkerCores": 16,
+    "maximumActiveScoreCpus": 512
+  },
+  "source": {
+    "baselineReportSha256": "481264ca16e9a7cc43b8a4612ca614c4906b5e71d03e25cd9e5d714f988d4fde"
+  },
+  "kingdoms": [
+    {
+      "kingdomId": "balance-tuning-005",
+      "beforeEvidenceSetSha256": "4f51a12b86c346b6b1300cc52f39db9b7e006d64061a8fbfc71fb5457a9b3254",
+      "afterEvidenceSetSha256": "3821d224d392f041fe7fcc30233881fd3e01d7218f96f8b6219e7bd5c7ed5c5b",
+      "supportSize": {
+        "before": 3,
+        "after": 1,
+        "difference": -2
+      },
+      "effectiveSize": {
+        "before": 2.7341772151898556,
+        "after": 1,
+        "difference": -1.7341772151898556
+      },
+      "availableCards": [
+        {
+          "id": "copper",
+          "name": "Copper",
+          "cost": 0,
+          "family": "treasure"
+        },
+        {
+          "id": "silver",
+          "name": "Silver",
+          "cost": 3,
+          "family": "treasure"
+        },
+        {
+          "id": "gold",
+          "name": "Gold",
+          "cost": 6,
+          "family": "treasure"
+        },
+        {
+          "id": "cascade",
+          "name": "Cascade",
+          "cost": 5,
+          "family": "mana"
+        },
+        {
+          "id": "channel",
+          "name": "Channel",
+          "cost": 3,
+          "family": "mana"
+        },
+        {
+          "id": "flurry",
+          "name": "Flurry",
+          "cost": 5,
+          "family": "melee"
+        },
+        {
+          "id": "heavyBlow",
+          "name": "Heavy Blow",
+          "cost": 5,
+          "family": "melee"
+        },
+        {
+          "id": "overload",
+          "name": "Overload",
+          "cost": 5,
+          "family": "mana"
+        },
+        {
+          "id": "prism",
+          "name": "Prism",
+          "cost": 5,
+          "family": "mana"
+        },
+        {
+          "id": "regiment",
+          "name": "Regiment",
+          "cost": 7,
+          "family": "engine"
+        },
+        {
+          "id": "starfire",
+          "name": "Starfire",
+          "cost": 6,
+          "family": "mana"
+        },
+        {
+          "id": "strike",
+          "name": "Strike",
+          "cost": 3,
+          "family": "melee"
+        },
+        {
+          "id": "volley",
+          "name": "Volley",
+          "cost": 5,
+          "family": "ranged"
+        },
+        {
+          "id": "step",
+          "name": "Step",
+          "cost": 2,
+          "family": "engine"
+        },
+        {
+          "id": "focus",
+          "name": "Focus",
+          "cost": 1,
+          "family": "mana"
+        },
+        {
+          "id": "scrap",
+          "name": "Scrap",
+          "cost": 0,
+          "family": "engine"
+        }
+      ],
+      "equilibriumStrategies": [
+        {
+          "strategyId": "gf-9026729",
+          "selectedShare": 1,
+          "archetype": "Mage",
+          "buySteps": [
+            {
+              "cardId": "silver",
+              "desiredCount": 3,
+              "cardName": "Silver"
+            },
+            {
+              "cardId": "starfire",
+              "desiredCount": 2,
+              "cardName": "Starfire"
+            },
+            {
+              "cardId": "prism",
+              "desiredCount": 1,
+              "cardName": "Prism"
+            },
+            {
+              "cardId": "regiment",
+              "desiredCount": 3,
+              "cardName": "Regiment"
+            },
+            {
+              "cardId": "channel",
+              "desiredCount": 3,
+              "cardName": "Channel"
+            }
+          ],
+          "expectedAcquisitions": [
+            {
+              "cardId": "silver",
+              "copiesPerPlayerSide": 3,
+              "cardName": "Silver"
+            },
+            {
+              "cardId": "channel",
+              "copiesPerPlayerSide": 2.992,
+              "cardName": "Channel"
+            },
+            {
+              "cardId": "prism",
+              "copiesPerPlayerSide": 0.996,
+              "cardName": "Prism"
+            },
+            {
+              "cardId": "regiment",
+              "copiesPerPlayerSide": 0.07,
+              "cardName": "Regiment"
+            },
+            {
+              "cardId": "starfire",
+              "copiesPerPlayerSide": 1.774,
+              "cardName": "Starfire"
+            }
+          ]
+        }
+      ],
+      "archetypes": [
+        {
+          "archetype": "Mage",
+          "selectedShare": {
+            "before": 0,
+            "after": 1,
+            "difference": 1
+          }
+        },
+        {
+          "archetype": "Melee",
+          "selectedShare": {
+            "before": 0.47222222222222743,
+            "after": 0,
+            "difference": -0.47222222222222743
+          }
+        },
+        {
+          "archetype": "Melee + Mage",
+          "selectedShare": {
+            "before": 0.30555555555555397,
+            "after": 0,
+            "difference": -0.30555555555555397
+          }
+        },
+        {
+          "archetype": "Melee + Ranged",
+          "selectedShare": {
+            "before": 0.22222222222221868,
+            "after": 0,
+            "difference": -0.22222222222221868
+          }
+        },
+        {
+          "archetype": "Ranged + Mage",
+          "selectedShare": {
+            "before": 0,
+            "after": 0,
+            "difference": 0
+          }
+        }
+      ],
+      "changedCardAcquisition": [
+        {
+          "cardId": "focus",
+          "expectedCopiesPerPlayerSide": {
+            "before": 0,
+            "after": 0,
+            "difference": 0
+          },
+          "acquisitionPresence": {
+            "before": 0,
+            "after": 0,
+            "difference": 0
+          },
+          "selectionPresence": {
+            "before": 0,
+            "after": 0,
+            "difference": 0
+          },
+          "meanOwnedCopies": {
+            "before": 0,
+            "after": 0,
+            "difference": 0
+          }
+        },
+        {
+          "cardId": "overload",
+          "expectedCopiesPerPlayerSide": {
+            "before": 0,
+            "after": 0,
+            "difference": 0
+          },
+          "acquisitionPresence": {
+            "before": 0,
+            "after": 0,
+            "difference": 0
+          },
+          "selectionPresence": {
+            "before": 0,
+            "after": 0,
+            "difference": 0
+          },
+          "meanOwnedCopies": {
+            "before": 0,
+            "after": 0,
+            "difference": 0
+          }
+        },
+        {
+          "cardId": "volley",
+          "expectedCopiesPerPlayerSide": {
+            "before": 0.49074074074073276,
+            "after": 0,
+            "difference": -0.49074074074073276
+          },
+          "acquisitionPresence": {
+            "before": 0.22222222222221868,
+            "after": 0,
+            "difference": -0.22222222222221868
+          },
+          "selectionPresence": {
+            "before": 0.22222222222221868,
+            "after": 0,
+            "difference": -0.22222222222221868
+          },
+          "meanOwnedCopies": {
+            "before": 0.49074074074073276,
+            "after": 0,
+            "difference": -0.49074074074073276
+          }
+        }
+      ],
+      "familyDamage": [
+        {
+          "family": "treasure",
+          "expectedDamagePerPlayerSide": {
+            "before": 0,
+            "after": 0,
+            "difference": 0
+          },
+          "share": {
+            "before": 0,
+            "after": 0,
+            "difference": 0
+          }
+        },
+        {
+          "family": "mana",
+          "expectedDamagePerPlayerSide": {
+            "before": 0.35334104938271454,
+            "after": 20.77,
+            "difference": 20.416658950617286
+          },
+          "share": {
+            "before": 0.01033038974487567,
+            "after": 0.6898498737876977,
+            "difference": 0.679519484042822
+          }
+        },
+        {
+          "family": "melee",
+          "expectedDamagePerPlayerSide": {
+            "before": 21.786839506172853,
+            "after": 0,
+            "difference": -21.786839506172853
+          },
+          "share": {
+            "before": 0.6369668732263363,
+            "after": 0,
+            "difference": -0.6369668732263363
+          }
+        },
+        {
+          "family": "ranged",
+          "expectedDamagePerPlayerSide": {
+            "before": 0.5294567901234476,
+            "after": 0,
+            "difference": -0.5294567901234476
+          },
+          "share": {
+            "before": 0.015479364779725538,
+            "after": 0,
+            "difference": -0.015479364779725538
+          }
+        },
+        {
+          "family": "engine",
+          "expectedDamagePerPlayerSide": {
+            "before": 11.534401234567904,
+            "after": 9.338,
+            "difference": -2.1964012345679045
+          },
+          "share": {
+            "before": 0.33722337224906257,
+            "after": 0.31015012621230237,
+            "difference": -0.0270732460367602
+          }
+        }
+      ]
+    },
+    {
+      "kingdomId": "balance-tuning-010",
+      "beforeEvidenceSetSha256": "4940f179457d4971d0b30a3c31a2b665165e7bc5405485b9e96e3fa3be728951",
+      "afterEvidenceSetSha256": "03d38fe879bd4f25b32951f0d61d6610d722da4bf0b8d36a5121a6ac326cb1b9",
+      "supportSize": {
+        "before": 1,
+        "after": 5,
+        "difference": 4
+      },
+      "effectiveSize": {
+        "before": 1,
+        "after": 3.618909434237387,
+        "difference": 2.618909434237387
+      },
+      "availableCards": [
+        {
+          "id": "copper",
+          "name": "Copper",
+          "cost": 0,
+          "family": "treasure"
+        },
+        {
+          "id": "silver",
+          "name": "Silver",
+          "cost": 3,
+          "family": "treasure"
+        },
+        {
+          "id": "gold",
+          "name": "Gold",
+          "cost": 6,
+          "family": "treasure"
+        },
+        {
+          "id": "aim",
+          "name": "Aim",
+          "cost": 5,
+          "family": "ranged"
+        },
+        {
+          "id": "bullRush",
+          "name": "Bull Rush",
+          "cost": 3,
+          "family": "melee"
+        },
+        {
+          "id": "cull",
+          "name": "Cull",
+          "cost": 3,
+          "family": "engine"
+        },
+        {
+          "id": "flurry",
+          "name": "Flurry",
+          "cost": 5,
+          "family": "melee"
+        },
+        {
+          "id": "jab",
+          "name": "Jab",
+          "cost": 3,
+          "family": "melee"
+        },
+        {
+          "id": "leyStep",
+          "name": "Ley Step",
+          "cost": 3,
+          "family": "mana"
+        },
+        {
+          "id": "overload",
+          "name": "Overload",
+          "cost": 5,
+          "family": "mana"
+        },
+        {
+          "id": "precisionShot",
+          "name": "Precision Shot",
+          "cost": 5,
+          "family": "ranged"
+        },
+        {
+          "id": "repellingShot",
+          "name": "Repelling Shot",
+          "cost": 4,
+          "family": "ranged"
+        },
+        {
+          "id": "starfire",
+          "name": "Starfire",
+          "cost": 6,
+          "family": "mana"
+        },
+        {
+          "id": "step",
+          "name": "Step",
+          "cost": 2,
+          "family": "engine"
+        },
+        {
+          "id": "focus",
+          "name": "Focus",
+          "cost": 1,
+          "family": "mana"
+        },
+        {
+          "id": "scrap",
+          "name": "Scrap",
+          "cost": 0,
+          "family": "engine"
+        }
+      ],
+      "equilibriumStrategies": [
+        {
+          "strategyId": "gf-11951484",
+          "selectedShare": 0.4127423822714759,
+          "archetype": "Mage",
+          "buySteps": [
+            {
+              "cardId": "starfire",
+              "desiredCount": 3,
+              "cardName": "Starfire"
+            },
+            {
+              "cardId": "silver",
+              "desiredCount": 4,
+              "cardName": "Silver"
+            },
+            {
+              "cardId": "overload",
+              "desiredCount": 1,
+              "cardName": "Overload"
+            },
+            {
+              "cardId": "aim",
+              "desiredCount": 3,
+              "cardName": "Aim"
+            },
+            {
+              "cardId": "focus",
+              "desiredCount": 3,
+              "cardName": "Focus"
+            }
+          ],
+          "expectedAcquisitions": [
+            {
+              "cardId": "silver",
+              "copiesPerPlayerSide": 3.998609418282549,
+              "cardName": "Silver"
+            },
+            {
+              "cardId": "aim",
+              "copiesPerPlayerSide": 0.9573324099723012,
+              "cardName": "Aim"
+            },
+            {
+              "cardId": "overload",
+              "copiesPerPlayerSide": 0.8713905817174522,
+              "cardName": "Overload"
+            },
+            {
+              "cardId": "starfire",
+              "copiesPerPlayerSide": 1.8067839335180056,
+              "cardName": "Starfire"
+            },
+            {
+              "cardId": "focus",
+              "copiesPerPlayerSide": 2.9999999999999996,
+              "cardName": "Focus"
+            }
+          ]
+        },
+        {
+          "strategyId": "gf-9123120",
+          "selectedShare": 0.22576177285319063,
+          "archetype": "Melee + Ranged",
+          "buySteps": [
+            {
+              "cardId": "precisionShot",
+              "desiredCount": 3,
+              "cardName": "Precision Shot"
+            },
+            {
+              "cardId": "silver",
+              "desiredCount": 2,
+              "cardName": "Silver"
+            },
+            {
+              "cardId": "step",
+              "desiredCount": 2,
+              "cardName": "Step"
+            },
+            {
+              "cardId": "repellingShot",
+              "desiredCount": 3,
+              "cardName": "Repelling Shot"
+            },
+            {
+              "cardId": "jab",
+              "desiredCount": 3,
+              "cardName": "Jab"
+            }
+          ],
+          "expectedAcquisitions": [
+            {
+              "cardId": "silver",
+              "copiesPerPlayerSide": 2.0000000000000004,
+              "cardName": "Silver"
+            },
+            {
+              "cardId": "jab",
+              "copiesPerPlayerSide": 2.2968808864265937,
+              "cardName": "Jab"
+            },
+            {
+              "cardId": "precisionShot",
+              "copiesPerPlayerSide": 2.509686980609419,
+              "cardName": "Precision Shot"
+            },
+            {
+              "cardId": "repellingShot",
+              "copiesPerPlayerSide": 2.283700831024931,
+              "cardName": "Repelling Shot"
+            },
+            {
+              "cardId": "step",
+              "copiesPerPlayerSide": 2.0000000000000004,
+              "cardName": "Step"
+            }
+          ]
+        },
+        {
+          "strategyId": "gf-11931059",
+          "selectedShare": 0.17382271468143226,
+          "archetype": "Melee + Mage",
+          "buySteps": [
+            {
+              "cardId": "starfire",
+              "desiredCount": 2,
+              "cardName": "Starfire"
+            },
+            {
+              "cardId": "silver",
+              "desiredCount": 4,
+              "cardName": "Silver"
+            },
+            {
+              "cardId": "focus",
+              "desiredCount": 2,
+              "cardName": "Focus"
+            },
+            {
+              "cardId": "leyStep",
+              "desiredCount": 3,
+              "cardName": "Ley Step"
+            },
+            {
+              "cardId": "jab",
+              "desiredCount": 3,
+              "cardName": "Jab"
+            }
+          ],
+          "expectedAcquisitions": [
+            {
+              "cardId": "silver",
+              "copiesPerPlayerSide": 4.000000000000001,
+              "cardName": "Silver"
+            },
+            {
+              "cardId": "jab",
+              "copiesPerPlayerSide": 2.3552770083102508,
+              "cardName": "Jab"
+            },
+            {
+              "cardId": "leyStep",
+              "copiesPerPlayerSide": 2.9806952908587263,
+              "cardName": "Ley Step"
+            },
+            {
+              "cardId": "starfire",
+              "copiesPerPlayerSide": 1.6141301939058184,
+              "cardName": "Starfire"
+            },
+            {
+              "cardId": "focus",
+              "copiesPerPlayerSide": 2.0000000000000004,
+              "cardName": "Focus"
+            }
+          ]
+        },
+        {
+          "strategyId": "gf-1992130",
+          "selectedShare": 0.1537396121883637,
+          "archetype": "Melee",
+          "buySteps": [
+            {
+              "cardId": "cull",
+              "desiredCount": 2,
+              "cardName": "Cull"
+            },
+            {
+              "cardId": "bullRush",
+              "desiredCount": 1,
+              "cardName": "Bull Rush"
+            },
+            {
+              "cardId": "step",
+              "desiredCount": 1,
+              "cardName": "Step"
+            },
+            {
+              "cardId": "jab",
+              "desiredCount": 3,
+              "cardName": "Jab"
+            },
+            {
+              "cardId": "flurry",
+              "desiredCount": 3,
+              "cardName": "Flurry"
+            }
+          ],
+          "expectedAcquisitions": [
+            {
+              "cardId": "bullRush",
+              "copiesPerPlayerSide": 1.0000000000000002,
+              "cardName": "Bull Rush"
+            },
+            {
+              "cardId": "cull",
+              "copiesPerPlayerSide": 2.0000000000000004,
+              "cardName": "Cull"
+            },
+            {
+              "cardId": "flurry",
+              "copiesPerPlayerSide": 0.0020249307479223624,
+              "cardName": "Flurry"
+            },
+            {
+              "cardId": "jab",
+              "copiesPerPlayerSide": 2.461659279778393,
+              "cardName": "Jab"
+            },
+            {
+              "cardId": "step",
+              "copiesPerPlayerSide": 1.0000000000000002,
+              "cardName": "Step"
+            }
+          ]
+        },
+        {
+          "strategyId": "gf-11823003",
+          "selectedShare": 0.03393351800540639,
+          "archetype": "Ranged + Mage",
+          "buySteps": [
+            {
+              "cardId": "starfire",
+              "desiredCount": 2,
+              "cardName": "Starfire"
+            },
+            {
+              "cardId": "precisionShot",
+              "desiredCount": 3,
+              "cardName": "Precision Shot"
+            },
+            {
+              "cardId": "silver",
+              "desiredCount": 4,
+              "cardName": "Silver"
+            },
+            {
+              "cardId": "focus",
+              "desiredCount": 3,
+              "cardName": "Focus"
+            },
+            {
+              "cardId": "gold",
+              "desiredCount": 3,
+              "cardName": "Gold"
+            }
+          ],
+          "expectedAcquisitions": [
+            {
+              "cardId": "silver",
+              "copiesPerPlayerSide": 3.97685457063712,
+              "cardName": "Silver"
+            },
+            {
+              "cardId": "gold",
+              "copiesPerPlayerSide": 0.007872576177285243,
+              "cardName": "Gold"
+            },
+            {
+              "cardId": "precisionShot",
+              "copiesPerPlayerSide": 2.2901218836565103,
+              "cardName": "Precision Shot"
+            },
+            {
+              "cardId": "starfire",
+              "copiesPerPlayerSide": 1.3400955678670354,
+              "cardName": "Starfire"
+            },
+            {
+              "cardId": "focus",
+              "copiesPerPlayerSide": 2.9999999999999996,
+              "cardName": "Focus"
+            }
+          ]
+        }
+      ],
+      "archetypes": [
+        {
+          "archetype": "Mage",
+          "selectedShare": {
+            "before": 0,
+            "after": 0.4127423822714759,
+            "difference": 0.4127423822714759
+          }
+        },
+        {
+          "archetype": "Melee",
+          "selectedShare": {
+            "before": 0,
+            "after": 0.1537396121883637,
+            "difference": 0.1537396121883637
+          }
+        },
+        {
+          "archetype": "Melee + Mage",
+          "selectedShare": {
+            "before": 0,
+            "after": 0.17382271468143226,
+            "difference": 0.17382271468143226
+          }
+        },
+        {
+          "archetype": "Melee + Ranged",
+          "selectedShare": {
+            "before": 0,
+            "after": 0.22576177285319063,
+            "difference": 0.22576177285319063
+          }
+        },
+        {
+          "archetype": "Ranged",
+          "selectedShare": {
+            "before": 1,
+            "after": 0,
+            "difference": -1
+          }
+        },
+        {
+          "archetype": "Ranged + Mage",
+          "selectedShare": {
+            "before": 0,
+            "after": 0.03393351800553758,
+            "difference": 0.03393351800553758
+          }
+        }
+      ],
+      "changedCardAcquisition": [
+        {
+          "cardId": "focus",
+          "expectedCopiesPerPlayerSide": {
+            "before": 0,
+            "after": 1.687673130193905,
+            "difference": 1.687673130193905
+          },
+          "acquisitionPresence": {
+            "before": 0,
+            "after": 0.6204986149584457,
+            "difference": 0.6204986149584457
+          },
+          "selectionPresence": {
+            "before": 0,
+            "after": 0.6204986149584457,
+            "difference": 0.6204986149584457
+          },
+          "meanOwnedCopies": {
+            "before": 0,
+            "after": 1.687673130193905,
+            "difference": 1.687673130193905
+          }
+        },
+        {
+          "cardId": "overload",
+          "expectedCopiesPerPlayerSide": {
+            "before": 0,
+            "after": 0.3596598245869884,
+            "difference": 0.3596598245869884
+          },
+          "acquisitionPresence": {
+            "before": 0,
+            "after": 0.4127423822714759,
+            "difference": 0.4127423822714759
+          },
+          "selectionPresence": {
+            "before": 0,
+            "after": 0.4127423822714759,
+            "difference": 0.4127423822714759
+          },
+          "meanOwnedCopies": {
+            "before": 0,
+            "after": 0.3596598245869884,
+            "difference": 0.3596598245869884
+          }
+        },
+        {
+          "cardId": "bullRush",
+          "expectedCopiesPerPlayerSide": {
+            "before": 0,
+            "after": 0.15373961218836374,
+            "difference": 0.15373961218836374
+          },
+          "acquisitionPresence": {
+            "before": 0,
+            "after": 0.1537396121883637,
+            "difference": 0.1537396121883637
+          },
+          "selectionPresence": {
+            "before": 0,
+            "after": 0.1537396121883637,
+            "difference": 0.1537396121883637
+          },
+          "meanOwnedCopies": {
+            "before": 0,
+            "after": 0.15373961218836374,
+            "difference": 0.15373961218836374
+          }
+        }
+      ],
+      "familyDamage": [
+        {
+          "family": "treasure",
+          "expectedDamagePerPlayerSide": {
+            "before": 0,
+            "after": 0,
+            "difference": 0
+          },
+          "share": {
+            "before": 0,
+            "after": 0,
+            "difference": 0
+          }
+        },
+        {
+          "family": "mana",
+          "expectedDamagePerPlayerSide": {
+            "before": 0,
+            "after": 12.65863910939138,
+            "difference": 12.65863910939138
+          },
+          "share": {
+            "before": 0,
+            "after": 0.40205877535200274,
+            "difference": 0.40205877535200274
+          }
+        },
+        {
+          "family": "melee",
+          "expectedDamagePerPlayerSide": {
+            "before": 0,
+            "after": 4.53417455935722,
+            "difference": 4.53417455935722
+          },
+          "share": {
+            "before": 0,
+            "after": 0.14401269005409062,
+            "difference": 0.14401269005409062
+          }
+        },
+        {
+          "family": "ranged",
+          "expectedDamagePerPlayerSide": {
+            "before": 25.946,
+            "after": 5.493041898466201,
+            "difference": -20.452958101533802
+          },
+          "share": {
+            "before": 0.7277572085717492,
+            "after": 0.17446786179535417,
+            "difference": -0.5532893467763951
+          }
+        },
+        {
+          "family": "engine",
+          "expectedDamagePerPlayerSide": {
+            "before": 9.706,
+            "after": 8.798693173970447,
+            "difference": -0.9073068260295525
+          },
+          "share": {
+            "before": 0.27224279142825086,
+            "after": 0.2794606727985524,
+            "difference": 0.007217881370301549
+          }
+        }
+      ]
+    },
+    {
+      "kingdomId": "balance-tuning-013",
+      "beforeEvidenceSetSha256": "0af9c2065553a1bab493ad660f9d5521fc1c98c76493cc9d45e926b1064c6117",
+      "afterEvidenceSetSha256": "ed8eaa06b2b60f13fb87952842abecf5f858ecf88c83fb33d8e313e32a240ff1",
+      "supportSize": {
+        "before": 5,
+        "after": 1,
+        "difference": -4
+      },
+      "effectiveSize": {
+        "before": 3.9947896346582543,
+        "after": 1,
+        "difference": -2.9947896346582543
+      },
+      "availableCards": [
+        {
+          "id": "copper",
+          "name": "Copper",
+          "cost": 0,
+          "family": "treasure"
+        },
+        {
+          "id": "silver",
+          "name": "Silver",
+          "cost": 3,
+          "family": "treasure"
+        },
+        {
+          "id": "gold",
+          "name": "Gold",
+          "cost": 6,
+          "family": "treasure"
+        },
+        {
+          "id": "bullRush",
+          "name": "Bull Rush",
+          "cost": 3,
+          "family": "melee"
+        },
+        {
+          "id": "cascade",
+          "name": "Cascade",
+          "cost": 5,
+          "family": "mana"
+        },
+        {
+          "id": "discipline",
+          "name": "Discipline",
+          "cost": 2,
+          "family": "engine"
+        },
+        {
+          "id": "feint",
+          "name": "Feint",
+          "cost": 5,
+          "family": "melee"
+        },
+        {
+          "id": "heavyBlow",
+          "name": "Heavy Blow",
+          "cost": 5,
+          "family": "melee"
+        },
+        {
+          "id": "improvise",
+          "name": "Improvise",
+          "cost": 5,
+          "family": "engine"
+        },
+        {
+          "id": "overload",
+          "name": "Overload",
+          "cost": 5,
+          "family": "mana"
+        },
+        {
+          "id": "precisionShot",
+          "name": "Precision Shot",
+          "cost": 5,
+          "family": "ranged"
+        },
+        {
+          "id": "rally",
+          "name": "Rally",
+          "cost": 3,
+          "family": "melee"
+        },
+        {
+          "id": "salvageShot",
+          "name": "Salvage Shot",
+          "cost": 4,
+          "family": "ranged"
+        },
+        {
+          "id": "step",
+          "name": "Step",
+          "cost": 2,
+          "family": "engine"
+        },
+        {
+          "id": "focus",
+          "name": "Focus",
+          "cost": 1,
+          "family": "mana"
+        },
+        {
+          "id": "scrap",
+          "name": "Scrap",
+          "cost": 0,
+          "family": "engine"
+        }
+      ],
+      "equilibriumStrategies": [
+        {
+          "strategyId": "gf-9140528",
+          "selectedShare": 1,
+          "archetype": "Melee",
+          "buySteps": [
+            {
+              "cardId": "precisionShot",
+              "desiredCount": 1,
+              "cardName": "Precision Shot"
+            },
+            {
+              "cardId": "silver",
+              "desiredCount": 1,
+              "cardName": "Silver"
+            },
+            {
+              "cardId": "discipline",
+              "desiredCount": 3,
+              "cardName": "Discipline"
+            },
+            {
+              "cardId": "rally",
+              "desiredCount": 3,
+              "cardName": "Rally"
+            },
+            {
+              "cardId": "step",
+              "desiredCount": 3,
+              "cardName": "Step"
+            }
+          ],
+          "expectedAcquisitions": [
+            {
+              "cardId": "silver",
+              "copiesPerPlayerSide": 1,
+              "cardName": "Silver"
+            },
+            {
+              "cardId": "discipline",
+              "copiesPerPlayerSide": 3,
+              "cardName": "Discipline"
+            },
+            {
+              "cardId": "precisionShot",
+              "copiesPerPlayerSide": 0.636,
+              "cardName": "Precision Shot"
+            },
+            {
+              "cardId": "rally",
+              "copiesPerPlayerSide": 2.706,
+              "cardName": "Rally"
+            },
+            {
+              "cardId": "step",
+              "copiesPerPlayerSide": 2.888,
+              "cardName": "Step"
+            }
+          ]
+        }
+      ],
+      "archetypes": [
+        {
+          "archetype": "Mage",
+          "selectedShare": {
+            "before": 0,
+            "after": 0,
+            "difference": 0
+          }
+        },
+        {
+          "archetype": "Melee",
+          "selectedShare": {
+            "before": 0,
+            "after": 1,
+            "difference": 1
+          }
+        },
+        {
+          "archetype": "Melee + Ranged",
+          "selectedShare": {
+            "before": 0.8121872240211943,
+            "after": 0,
+            "difference": -0.8121872240211943
+          }
+        },
+        {
+          "archetype": "Ranged",
+          "selectedShare": {
+            "before": 0.1878127759788058,
+            "after": 0,
+            "difference": -0.1878127759788058
+          }
+        }
+      ],
+      "changedCardAcquisition": [
+        {
+          "cardId": "focus",
+          "expectedCopiesPerPlayerSide": {
+            "before": 0,
+            "after": 0,
+            "difference": 0
+          },
+          "acquisitionPresence": {
+            "before": 0,
+            "after": 0,
+            "difference": 0
+          },
+          "selectionPresence": {
+            "before": 0,
+            "after": 0,
+            "difference": 0
+          },
+          "meanOwnedCopies": {
+            "before": 0,
+            "after": 0,
+            "difference": 0
+          }
+        },
+        {
+          "cardId": "overload",
+          "expectedCopiesPerPlayerSide": {
+            "before": 0,
+            "after": 0,
+            "difference": 0
+          },
+          "acquisitionPresence": {
+            "before": 0,
+            "after": 0,
+            "difference": 0
+          },
+          "selectionPresence": {
+            "before": 0,
+            "after": 0,
+            "difference": 0
+          },
+          "meanOwnedCopies": {
+            "before": 0,
+            "after": 0,
+            "difference": 0
+          }
+        },
+        {
+          "cardId": "bullRush",
+          "expectedCopiesPerPlayerSide": {
+            "before": 0,
+            "after": 0,
+            "difference": 0
+          },
+          "acquisitionPresence": {
+            "before": 0,
+            "after": 0,
+            "difference": 0
+          },
+          "selectionPresence": {
+            "before": 0,
+            "after": 0,
+            "difference": 0
+          },
+          "meanOwnedCopies": {
+            "before": 0,
+            "after": 0,
+            "difference": 0
+          }
+        }
+      ],
+      "familyDamage": [
+        {
+          "family": "treasure",
+          "expectedDamagePerPlayerSide": {
+            "before": 0,
+            "after": 0,
+            "difference": 0
+          },
+          "share": {
+            "before": 0,
+            "after": 0,
+            "difference": 0
+          }
+        },
+        {
+          "family": "mana",
+          "expectedDamagePerPlayerSide": {
+            "before": 0,
+            "after": 0,
+            "difference": 0
+          },
+          "share": {
+            "before": 0,
+            "after": 0,
+            "difference": 0
+          }
+        },
+        {
+          "family": "melee",
+          "expectedDamagePerPlayerSide": {
+            "before": 7.39838880277476,
+            "after": 11.398,
+            "difference": 3.9996111972252395
+          },
+          "share": {
+            "before": 0.21465254265984474,
+            "after": 0.3273970241856724,
+            "difference": 0.11274448152582767
+          }
+        },
+        {
+          "family": "ranged",
+          "expectedDamagePerPlayerSide": {
+            "before": 11.888806347251563,
+            "after": 8.284,
+            "difference": -3.6048063472515626
+          },
+          "share": {
+            "before": 0.3449349013221551,
+            "after": 0.23795024989946575,
+            "difference": -0.10698465142268934
+          }
+        },
+        {
+          "family": "engine",
+          "expectedDamagePerPlayerSide": {
+            "before": 15.179616708330405,
+            "after": 15.132,
+            "difference": -0.047616708330405544
+          },
+          "share": {
+            "before": 0.44041255601800017,
+            "after": 0.4346527259148618,
+            "difference": -0.0057598301031383525
+          }
+        }
+      ]
+    },
+    {
+      "kingdomId": "balance-tuning-021",
+      "beforeEvidenceSetSha256": "8036a08e3ff9e09f1a0c280bb41010c72b3b2971387ebbf24e3a4037d955fc75",
+      "afterEvidenceSetSha256": "4bff98102d11c9642597ce99cb24b9139d1b0d428d5623dfb6cfa5575d7623a1",
+      "supportSize": {
+        "before": 1,
+        "after": 1,
+        "difference": 0
+      },
+      "effectiveSize": {
+        "before": 1,
+        "after": 1,
+        "difference": 0
+      },
+      "availableCards": [
+        {
+          "id": "copper",
+          "name": "Copper",
+          "cost": 0,
+          "family": "treasure"
+        },
+        {
+          "id": "silver",
+          "name": "Silver",
+          "cost": 3,
+          "family": "treasure"
+        },
+        {
+          "id": "gold",
+          "name": "Gold",
+          "cost": 6,
+          "family": "treasure"
+        },
+        {
+          "id": "bullRush",
+          "name": "Bull Rush",
+          "cost": 3,
+          "family": "melee"
+        },
+        {
+          "id": "channel",
+          "name": "Channel",
+          "cost": 3,
+          "family": "mana"
+        },
+        {
+          "id": "cull",
+          "name": "Cull",
+          "cost": 3,
+          "family": "engine"
+        },
+        {
+          "id": "fireball",
+          "name": "Fireball",
+          "cost": 5,
+          "family": "mana"
+        },
+        {
+          "id": "jab",
+          "name": "Jab",
+          "cost": 3,
+          "family": "melee"
+        },
+        {
+          "id": "muster",
+          "name": "Muster",
+          "cost": 5,
+          "family": "engine"
+        },
+        {
+          "id": "precisionShot",
+          "name": "Precision Shot",
+          "cost": 5,
+          "family": "ranged"
+        },
+        {
+          "id": "repellingShot",
+          "name": "Repelling Shot",
+          "cost": 4,
+          "family": "ranged"
+        },
+        {
+          "id": "steadyShot",
+          "name": "Steady Shot",
+          "cost": 3,
+          "family": "ranged"
+        },
+        {
+          "id": "strike",
+          "name": "Strike",
+          "cost": 3,
+          "family": "melee"
+        },
+        {
+          "id": "step",
+          "name": "Step",
+          "cost": 2,
+          "family": "engine"
+        },
+        {
+          "id": "focus",
+          "name": "Focus",
+          "cost": 1,
+          "family": "mana"
+        },
+        {
+          "id": "scrap",
+          "name": "Scrap",
+          "cost": 0,
+          "family": "engine"
+        }
+      ],
+      "equilibriumStrategies": [
+        {
+          "strategyId": "gf-9489805",
+          "selectedShare": 1,
+          "archetype": "Ranged + Mage",
+          "buySteps": [
+            {
+              "cardId": "silver",
+              "desiredCount": 1,
+              "cardName": "Silver"
+            },
+            {
+              "cardId": "fireball",
+              "desiredCount": 2,
+              "cardName": "Fireball"
+            },
+            {
+              "cardId": "channel",
+              "desiredCount": 4,
+              "cardName": "Channel"
+            },
+            {
+              "cardId": "precisionShot",
+              "desiredCount": 3,
+              "cardName": "Precision Shot"
+            },
+            {
+              "cardId": "steadyShot",
+              "desiredCount": 3,
+              "cardName": "Steady Shot"
+            }
+          ],
+          "expectedAcquisitions": [
+            {
+              "cardId": "silver",
+              "copiesPerPlayerSide": 1,
+              "cardName": "Silver"
+            },
+            {
+              "cardId": "channel",
+              "copiesPerPlayerSide": 4,
+              "cardName": "Channel"
+            },
+            {
+              "cardId": "fireball",
+              "copiesPerPlayerSide": 1.758,
+              "cardName": "Fireball"
+            },
+            {
+              "cardId": "precisionShot",
+              "copiesPerPlayerSide": 0.272,
+              "cardName": "Precision Shot"
+            },
+            {
+              "cardId": "steadyShot",
+              "copiesPerPlayerSide": 2.214,
+              "cardName": "Steady Shot"
+            }
+          ]
+        }
+      ],
+      "archetypes": [
+        {
+          "archetype": "Mage",
+          "selectedShare": {
+            "before": 0,
+            "after": 0,
+            "difference": 0
+          }
+        },
+        {
+          "archetype": "Melee + Mage",
+          "selectedShare": {
+            "before": 0,
+            "after": 0,
+            "difference": 0
+          }
+        },
+        {
+          "archetype": "Melee + Ranged + Mage",
+          "selectedShare": {
+            "before": 0,
+            "after": 0,
+            "difference": 0
+          }
+        },
+        {
+          "archetype": "Ranged",
+          "selectedShare": {
+            "before": 1,
+            "after": 0,
+            "difference": -1
+          }
+        },
+        {
+          "archetype": "Ranged + Mage",
+          "selectedShare": {
+            "before": 0,
+            "after": 1,
+            "difference": 1
+          }
+        }
+      ],
+      "changedCardAcquisition": [
+        {
+          "cardId": "focus",
+          "expectedCopiesPerPlayerSide": {
+            "before": 0,
+            "after": 0,
+            "difference": 0
+          },
+          "acquisitionPresence": {
+            "before": 0,
+            "after": 0,
+            "difference": 0
+          },
+          "selectionPresence": {
+            "before": 0,
+            "after": 0,
+            "difference": 0
+          },
+          "meanOwnedCopies": {
+            "before": 0,
+            "after": 0,
+            "difference": 0
+          }
+        },
+        {
+          "cardId": "bullRush",
+          "expectedCopiesPerPlayerSide": {
+            "before": 0,
+            "after": 0,
+            "difference": 0
+          },
+          "acquisitionPresence": {
+            "before": 0,
+            "after": 0,
+            "difference": 0
+          },
+          "selectionPresence": {
+            "before": 0,
+            "after": 0,
+            "difference": 0
+          },
+          "meanOwnedCopies": {
+            "before": 0,
+            "after": 0,
+            "difference": 0
+          }
+        }
+      ],
+      "familyDamage": [
+        {
+          "family": "treasure",
+          "expectedDamagePerPlayerSide": {
+            "before": 0,
+            "after": 0,
+            "difference": 0
+          },
+          "share": {
+            "before": 0,
+            "after": 0,
+            "difference": 0
+          }
+        },
+        {
+          "family": "mana",
+          "expectedDamagePerPlayerSide": {
+            "before": 0,
+            "after": 21.886,
+            "difference": 21.886
+          },
+          "share": {
+            "before": 0,
+            "after": 0.6413291918185547,
+            "difference": 0.6413291918185547
+          }
+        },
+        {
+          "family": "melee",
+          "expectedDamagePerPlayerSide": {
+            "before": 0,
+            "after": 0,
+            "difference": 0
+          },
+          "share": {
+            "before": 0,
+            "after": 0,
+            "difference": 0
+          }
+        },
+        {
+          "family": "ranged",
+          "expectedDamagePerPlayerSide": {
+            "before": 26.946,
+            "after": 2.814,
+            "difference": -24.132
+          },
+          "share": {
+            "before": 0.7402340530740069,
+            "after": 0.08245912207700874,
+            "difference": -0.6577749309969981
+          }
+        },
+        {
+          "family": "engine",
+          "expectedDamagePerPlayerSide": {
+            "before": 9.456,
+            "after": 9.426,
+            "difference": -0.02999999999999936
+          },
+          "share": {
+            "before": 0.25976594692599303,
+            "after": 0.2762116861044365,
+            "difference": 0.016445739178443497
+          }
+        }
+      ]
+    },
+    {
+      "kingdomId": "balance-tuning-033",
+      "beforeEvidenceSetSha256": "78346b0cecbf78ff95b5e310877dab9a46ad49be32ee960f563178472a7165b2",
+      "afterEvidenceSetSha256": "06552596aa5209f5f2e527880ef49e5039dd2db25f965c891436d7bc23bb4a0f",
+      "supportSize": {
+        "before": 1,
+        "after": 1,
+        "difference": 0
+      },
+      "effectiveSize": {
+        "before": 1,
+        "after": 1,
+        "difference": 0
+      },
+      "availableCards": [
+        {
+          "id": "copper",
+          "name": "Copper",
+          "cost": 0,
+          "family": "treasure"
+        },
+        {
+          "id": "silver",
+          "name": "Silver",
+          "cost": 3,
+          "family": "treasure"
+        },
+        {
+          "id": "gold",
+          "name": "Gold",
+          "cost": 6,
+          "family": "treasure"
+        },
+        {
+          "id": "adapt",
+          "name": "Adapt",
+          "cost": 4,
+          "family": "engine"
+        },
+        {
+          "id": "arcBolt",
+          "name": "Arc Bolt",
+          "cost": 4,
+          "family": "mana"
+        },
+        {
+          "id": "attune",
+          "name": "Attune",
+          "cost": 4,
+          "family": "mana"
+        },
+        {
+          "id": "cascade",
+          "name": "Cascade",
+          "cost": 5,
+          "family": "mana"
+        },
+        {
+          "id": "channel",
+          "name": "Channel",
+          "cost": 3,
+          "family": "mana"
+        },
+        {
+          "id": "fireball",
+          "name": "Fireball",
+          "cost": 5,
+          "family": "mana"
+        },
+        {
+          "id": "flurry",
+          "name": "Flurry",
+          "cost": 5,
+          "family": "melee"
+        },
+        {
+          "id": "improvise",
+          "name": "Improvise",
+          "cost": 5,
+          "family": "engine"
+        },
+        {
+          "id": "overload",
+          "name": "Overload",
+          "cost": 5,
+          "family": "mana"
+        },
+        {
+          "id": "starfire",
+          "name": "Starfire",
+          "cost": 6,
+          "family": "mana"
+        },
+        {
+          "id": "step",
+          "name": "Step",
+          "cost": 2,
+          "family": "engine"
+        },
+        {
+          "id": "focus",
+          "name": "Focus",
+          "cost": 1,
+          "family": "mana"
+        },
+        {
+          "id": "scrap",
+          "name": "Scrap",
+          "cost": 0,
+          "family": "engine"
+        }
+      ],
+      "equilibriumStrategies": [
+        {
+          "strategyId": "gf-10561973",
+          "selectedShare": 1,
+          "archetype": "Mage",
+          "buySteps": [
+            {
+              "cardId": "silver",
+              "desiredCount": 1,
+              "cardName": "Silver"
+            },
+            {
+              "cardId": "fireball",
+              "desiredCount": 2,
+              "cardName": "Fireball"
+            },
+            {
+              "cardId": "attune",
+              "desiredCount": 2,
+              "cardName": "Attune"
+            },
+            {
+              "cardId": "arcBolt",
+              "desiredCount": 3,
+              "cardName": "Arc Bolt"
+            },
+            {
+              "cardId": "channel",
+              "desiredCount": 3,
+              "cardName": "Channel"
+            }
+          ],
+          "expectedAcquisitions": [
+            {
+              "cardId": "silver",
+              "copiesPerPlayerSide": 1,
+              "cardName": "Silver"
+            },
+            {
+              "cardId": "arcBolt",
+              "copiesPerPlayerSide": 1.538,
+              "cardName": "Arc Bolt"
+            },
+            {
+              "cardId": "attune",
+              "copiesPerPlayerSide": 1.954,
+              "cardName": "Attune"
+            },
+            {
+              "cardId": "channel",
+              "copiesPerPlayerSide": 2.576,
+              "cardName": "Channel"
+            },
+            {
+              "cardId": "fireball",
+              "copiesPerPlayerSide": 1.764,
+              "cardName": "Fireball"
+            }
+          ]
+        }
+      ],
+      "archetypes": [
+        {
+          "archetype": "Mage",
+          "selectedShare": {
+            "before": 1,
+            "after": 1,
+            "difference": 0
+          }
+        },
+        {
+          "archetype": "Melee + Mage",
+          "selectedShare": {
+            "before": 0,
+            "after": 0,
+            "difference": 0
+          }
+        }
+      ],
+      "changedCardAcquisition": [
+        {
+          "cardId": "focus",
+          "expectedCopiesPerPlayerSide": {
+            "before": 0,
+            "after": 0,
+            "difference": 0
+          },
+          "acquisitionPresence": {
+            "before": 0,
+            "after": 0,
+            "difference": 0
+          },
+          "selectionPresence": {
+            "before": 0,
+            "after": 0,
+            "difference": 0
+          },
+          "meanOwnedCopies": {
+            "before": 0,
+            "after": 0,
+            "difference": 0
+          }
+        },
+        {
+          "cardId": "overload",
+          "expectedCopiesPerPlayerSide": {
+            "before": 0,
+            "after": 0,
+            "difference": 0
+          },
+          "acquisitionPresence": {
+            "before": 0,
+            "after": 0,
+            "difference": 0
+          },
+          "selectionPresence": {
+            "before": 0,
+            "after": 0,
+            "difference": 0
+          },
+          "meanOwnedCopies": {
+            "before": 0,
+            "after": 0,
+            "difference": 0
+          }
+        }
+      ],
+      "familyDamage": [
+        {
+          "family": "treasure",
+          "expectedDamagePerPlayerSide": {
+            "before": 0,
+            "after": 0,
+            "difference": 0
+          },
+          "share": {
+            "before": 0,
+            "after": 0,
+            "difference": 0
+          }
+        },
+        {
+          "family": "mana",
+          "expectedDamagePerPlayerSide": {
+            "before": 22.736,
+            "after": 25.22,
+            "difference": 2.483999999999998
+          },
+          "share": {
+            "before": 0.6688239101017827,
+            "after": 0.7316082617776746,
+            "difference": 0.06278435167589191
+          }
+        },
+        {
+          "family": "melee",
+          "expectedDamagePerPlayerSide": {
+            "before": 0,
+            "after": 0,
+            "difference": 0
+          },
+          "share": {
+            "before": 0,
+            "after": 0,
+            "difference": 0
+          }
+        },
+        {
+          "family": "ranged",
+          "expectedDamagePerPlayerSide": {
+            "before": 0,
+            "after": 0,
+            "difference": 0
+          },
+          "share": {
+            "before": 0,
+            "after": 0,
+            "difference": 0
+          }
+        },
+        {
+          "family": "engine",
+          "expectedDamagePerPlayerSide": {
+            "before": 11.258,
+            "after": 9.252,
+            "difference": -2.0059999999999985
+          },
+          "share": {
+            "before": 0.3311760898982173,
+            "after": 0.26839173822232537,
+            "difference": -0.06278435167589191
+          }
+        }
+      ]
+    },
+    {
+      "kingdomId": "balance-tuning-053",
+      "beforeEvidenceSetSha256": "a05c39e67cb1d67a01ddae01608fa14673f04703f6b5c786a88845eb2b62cb7e",
+      "afterEvidenceSetSha256": "4a34b21cb1e194116e2e81a5cfc0972a2536d1364e2b8d93400e90cafc4de298",
+      "supportSize": {
+        "before": 1,
+        "after": 1,
+        "difference": 0
+      },
+      "effectiveSize": {
+        "before": 1,
+        "after": 1,
+        "difference": 0
+      },
+      "availableCards": [
+        {
+          "id": "copper",
+          "name": "Copper",
+          "cost": 0,
+          "family": "treasure"
+        },
+        {
+          "id": "silver",
+          "name": "Silver",
+          "cost": 3,
+          "family": "treasure"
+        },
+        {
+          "id": "gold",
+          "name": "Gold",
+          "cost": 6,
+          "family": "treasure"
+        },
+        {
+          "id": "feint",
+          "name": "Feint",
+          "cost": 5,
+          "family": "melee"
+        },
+        {
+          "id": "flurry",
+          "name": "Flurry",
+          "cost": 5,
+          "family": "melee"
+        },
+        {
+          "id": "jab",
+          "name": "Jab",
+          "cost": 3,
+          "family": "melee"
+        },
+        {
+          "id": "leyStep",
+          "name": "Ley Step",
+          "cost": 3,
+          "family": "mana"
+        },
+        {
+          "id": "longshot",
+          "name": "Longshot",
+          "cost": 3,
+          "family": "ranged"
+        },
+        {
+          "id": "muster",
+          "name": "Muster",
+          "cost": 5,
+          "family": "engine"
+        },
+        {
+          "id": "rally",
+          "name": "Rally",
+          "cost": 3,
+          "family": "melee"
+        },
+        {
+          "id": "scour",
+          "name": "Scour",
+          "cost": 5,
+          "family": "engine"
+        },
+        {
+          "id": "steadyShot",
+          "name": "Steady Shot",
+          "cost": 3,
+          "family": "ranged"
+        },
+        {
+          "id": "volley",
+          "name": "Volley",
+          "cost": 5,
+          "family": "ranged"
+        },
+        {
+          "id": "step",
+          "name": "Step",
+          "cost": 2,
+          "family": "engine"
+        },
+        {
+          "id": "focus",
+          "name": "Focus",
+          "cost": 1,
+          "family": "mana"
+        },
+        {
+          "id": "scrap",
+          "name": "Scrap",
+          "cost": 0,
+          "family": "engine"
+        }
+      ],
+      "equilibriumStrategies": [
+        {
+          "strategyId": "gf-9114511",
+          "selectedShare": 1,
+          "archetype": "Melee + Ranged",
+          "buySteps": [
+            {
+              "cardId": "scour",
+              "desiredCount": 1,
+              "cardName": "Scour"
+            },
+            {
+              "cardId": "steadyShot",
+              "desiredCount": 4,
+              "cardName": "Steady Shot"
+            },
+            {
+              "cardId": "step",
+              "desiredCount": 2,
+              "cardName": "Step"
+            },
+            {
+              "cardId": "jab",
+              "desiredCount": 3,
+              "cardName": "Jab"
+            },
+            {
+              "cardId": "rally",
+              "desiredCount": 3,
+              "cardName": "Rally"
+            }
+          ],
+          "expectedAcquisitions": [
+            {
+              "cardId": "jab",
+              "copiesPerPlayerSide": 1.864,
+              "cardName": "Jab"
+            },
+            {
+              "cardId": "rally",
+              "copiesPerPlayerSide": 0.122,
+              "cardName": "Rally"
+            },
+            {
+              "cardId": "scour",
+              "copiesPerPlayerSide": 0.228,
+              "cardName": "Scour"
+            },
+            {
+              "cardId": "steadyShot",
+              "copiesPerPlayerSide": 3.882,
+              "cardName": "Steady Shot"
+            },
+            {
+              "cardId": "step",
+              "copiesPerPlayerSide": 2,
+              "cardName": "Step"
+            }
+          ]
+        }
+      ],
+      "archetypes": [
+        {
+          "archetype": "Melee",
+          "selectedShare": {
+            "before": 0,
+            "after": 0,
+            "difference": 0
+          }
+        },
+        {
+          "archetype": "Melee + Ranged",
+          "selectedShare": {
+            "before": 1,
+            "after": 1,
+            "difference": 0
+          }
+        }
+      ],
+      "changedCardAcquisition": [
+        {
+          "cardId": "focus",
+          "expectedCopiesPerPlayerSide": {
+            "before": 0,
+            "after": 0,
+            "difference": 0
+          },
+          "acquisitionPresence": {
+            "before": 0,
+            "after": 0,
+            "difference": 0
+          },
+          "selectionPresence": {
+            "before": 0,
+            "after": 0,
+            "difference": 0
+          },
+          "meanOwnedCopies": {
+            "before": 0,
+            "after": 0,
+            "difference": 0
+          }
+        },
+        {
+          "cardId": "volley",
+          "expectedCopiesPerPlayerSide": {
+            "before": 0,
+            "after": 0,
+            "difference": 0
+          },
+          "acquisitionPresence": {
+            "before": 0,
+            "after": 0,
+            "difference": 0
+          },
+          "selectionPresence": {
+            "before": 0,
+            "after": 0,
+            "difference": 0
+          },
+          "meanOwnedCopies": {
+            "before": 0,
+            "after": 0,
+            "difference": 0
+          }
+        }
+      ],
+      "familyDamage": [
+        {
+          "family": "treasure",
+          "expectedDamagePerPlayerSide": {
+            "before": 0,
+            "after": 0,
+            "difference": 0
+          },
+          "share": {
+            "before": 0,
+            "after": 0,
+            "difference": 0
+          }
+        },
+        {
+          "family": "mana",
+          "expectedDamagePerPlayerSide": {
+            "before": 0,
+            "after": 0,
+            "difference": 0
+          },
+          "share": {
+            "before": 0,
+            "after": 0,
+            "difference": 0
+          }
+        },
+        {
+          "family": "melee",
+          "expectedDamagePerPlayerSide": {
+            "before": 1.436,
+            "after": 1.132,
+            "difference": -0.30400000000000005
+          },
+          "share": {
+            "before": 0.03962472406181015,
+            "after": 0.031437458342590534,
+            "difference": -0.008187265719219614
+          }
+        },
+        {
+          "family": "ranged",
+          "expectedDamagePerPlayerSide": {
+            "before": 25.056,
+            "after": 25.08,
+            "difference": 0.023999999999997357
+          },
+          "share": {
+            "before": 0.6913907284768211,
+            "after": 0.6965118862475006,
+            "difference": 0.005121157770679452
+          }
+        },
+        {
+          "family": "engine",
+          "expectedDamagePerPlayerSide": {
+            "before": 9.748,
+            "after": 9.796,
+            "difference": 0.04800000000000004
+          },
+          "share": {
+            "before": 0.26898454746136863,
+            "after": 0.2720506554099089,
+            "difference": 0.0030661079485402865
+          }
+        }
+      ]
+    },
+    {
+      "kingdomId": "balance-tuning-082",
+      "beforeEvidenceSetSha256": "4fa5d93bccbd14b02330b9549a33cba076c72998bb1c12325488fefa37ef63fe",
+      "afterEvidenceSetSha256": "bbdbd7e09162459f3a4c064776a84237368acc01bc3986111aa158548ac0324c",
+      "supportSize": {
+        "before": 1,
+        "after": 1,
+        "difference": 0
+      },
+      "effectiveSize": {
+        "before": 1,
+        "after": 1,
+        "difference": 0
+      },
+      "availableCards": [
+        {
+          "id": "copper",
+          "name": "Copper",
+          "cost": 0,
+          "family": "treasure"
+        },
+        {
+          "id": "silver",
+          "name": "Silver",
+          "cost": 3,
+          "family": "treasure"
+        },
+        {
+          "id": "gold",
+          "name": "Gold",
+          "cost": 6,
+          "family": "treasure"
+        },
+        {
+          "id": "aim",
+          "name": "Aim",
+          "cost": 5,
+          "family": "ranged"
+        },
+        {
+          "id": "cascade",
+          "name": "Cascade",
+          "cost": 5,
+          "family": "mana"
+        },
+        {
+          "id": "drive",
+          "name": "Drive",
+          "cost": 4,
+          "family": "melee"
+        },
+        {
+          "id": "heavyBlow",
+          "name": "Heavy Blow",
+          "cost": 5,
+          "family": "melee"
+        },
+        {
+          "id": "leyStep",
+          "name": "Ley Step",
+          "cost": 3,
+          "family": "mana"
+        },
+        {
+          "id": "longshot",
+          "name": "Longshot",
+          "cost": 3,
+          "family": "ranged"
+        },
+        {
+          "id": "pepperingShot",
+          "name": "Peppering Shot",
+          "cost": 3,
+          "family": "ranged"
+        },
+        {
+          "id": "repellingShot",
+          "name": "Repelling Shot",
+          "cost": 4,
+          "family": "ranged"
+        },
+        {
+          "id": "scour",
+          "name": "Scour",
+          "cost": 5,
+          "family": "engine"
+        },
+        {
+          "id": "volley",
+          "name": "Volley",
+          "cost": 5,
+          "family": "ranged"
+        },
+        {
+          "id": "step",
+          "name": "Step",
+          "cost": 2,
+          "family": "engine"
+        },
+        {
+          "id": "focus",
+          "name": "Focus",
+          "cost": 1,
+          "family": "mana"
+        },
+        {
+          "id": "scrap",
+          "name": "Scrap",
+          "cost": 0,
+          "family": "engine"
+        }
+      ],
+      "equilibriumStrategies": [
+        {
+          "strategyId": "gf-8899564",
+          "selectedShare": 1,
+          "archetype": "Ranged",
+          "buySteps": [
+            {
+              "cardId": "repellingShot",
+              "desiredCount": 3,
+              "cardName": "Repelling Shot"
+            },
+            {
+              "cardId": "longshot",
+              "desiredCount": 3,
+              "cardName": "Longshot"
+            },
+            {
+              "cardId": "step",
+              "desiredCount": 2,
+              "cardName": "Step"
+            },
+            {
+              "cardId": "drive",
+              "desiredCount": 3,
+              "cardName": "Drive"
+            },
+            {
+              "cardId": "pepperingShot",
+              "desiredCount": 3,
+              "cardName": "Peppering Shot"
+            }
+          ],
+          "expectedAcquisitions": [
+            {
+              "cardId": "drive",
+              "copiesPerPlayerSide": 0.004,
+              "cardName": "Drive"
+            },
+            {
+              "cardId": "longshot",
+              "copiesPerPlayerSide": 2.822,
+              "cardName": "Longshot"
+            },
+            {
+              "cardId": "pepperingShot",
+              "copiesPerPlayerSide": 0.486,
+              "cardName": "Peppering Shot"
+            },
+            {
+              "cardId": "repellingShot",
+              "copiesPerPlayerSide": 2.082,
+              "cardName": "Repelling Shot"
+            },
+            {
+              "cardId": "step",
+              "copiesPerPlayerSide": 1.918,
+              "cardName": "Step"
+            }
+          ]
+        }
+      ],
+      "archetypes": [
+        {
+          "archetype": "Melee + Ranged",
+          "selectedShare": {
+            "before": 0,
+            "after": 0,
+            "difference": 0
+          }
+        },
+        {
+          "archetype": "Ranged",
+          "selectedShare": {
+            "before": 1,
+            "after": 1,
+            "difference": 0
+          }
+        }
+      ],
+      "changedCardAcquisition": [
+        {
+          "cardId": "focus",
+          "expectedCopiesPerPlayerSide": {
+            "before": 0,
+            "after": 0,
+            "difference": 0
+          },
+          "acquisitionPresence": {
+            "before": 0,
+            "after": 0,
+            "difference": 0
+          },
+          "selectionPresence": {
+            "before": 0,
+            "after": 0,
+            "difference": 0
+          },
+          "meanOwnedCopies": {
+            "before": 0,
+            "after": 0,
+            "difference": 0
+          }
+        },
+        {
+          "cardId": "volley",
+          "expectedCopiesPerPlayerSide": {
+            "before": 0,
+            "after": 0,
+            "difference": 0
+          },
+          "acquisitionPresence": {
+            "before": 0,
+            "after": 0,
+            "difference": 0
+          },
+          "selectionPresence": {
+            "before": 0,
+            "after": 0,
+            "difference": 0
+          },
+          "meanOwnedCopies": {
+            "before": 0,
+            "after": 0,
+            "difference": 0
+          }
+        }
+      ],
+      "familyDamage": [
+        {
+          "family": "treasure",
+          "expectedDamagePerPlayerSide": {
+            "before": 0,
+            "after": 0,
+            "difference": 0
+          },
+          "share": {
+            "before": 0,
+            "after": 0,
+            "difference": 0
+          }
+        },
+        {
+          "family": "mana",
+          "expectedDamagePerPlayerSide": {
+            "before": 0,
+            "after": 0,
+            "difference": 0
+          },
+          "share": {
+            "before": 0,
+            "after": 0,
+            "difference": 0
+          }
+        },
+        {
+          "family": "melee",
+          "expectedDamagePerPlayerSide": {
+            "before": 0,
+            "after": 0,
+            "difference": 0
+          },
+          "share": {
+            "before": 0,
+            "after": 0,
+            "difference": 0
+          }
+        },
+        {
+          "family": "ranged",
+          "expectedDamagePerPlayerSide": {
+            "before": 27.546,
+            "after": 26.846,
+            "difference": -0.6999999999999993
+          },
+          "share": {
+            "before": 0.7706037039109271,
+            "after": 0.773882963390026,
+            "difference": 0.003279259479098906
+          }
+        },
+        {
+          "family": "engine",
+          "expectedDamagePerPlayerSide": {
+            "before": 8.2,
+            "after": 7.844,
+            "difference": -0.355999999999999
+          },
+          "share": {
+            "before": 0.22939629608907292,
+            "after": 0.2261170366099741,
+            "difference": -0.0032792594790988228
+          }
+        }
+      ]
+    },
+    {
+      "kingdomId": "balance-tuning-090",
+      "beforeEvidenceSetSha256": "07cc5133cca81220836a598098c62b4602e9c4436c5be927f70ba3f6cf592a66",
+      "afterEvidenceSetSha256": "575e047a4f4ab142b246f5cfb4af0bd74944355698a0896eae18854371be23aa",
+      "supportSize": {
+        "before": 1,
+        "after": 3,
+        "difference": 2
+      },
+      "effectiveSize": {
+        "before": 1,
+        "after": 2.962485345838225,
+        "difference": 1.9624853458382252
+      },
+      "availableCards": [
+        {
+          "id": "copper",
+          "name": "Copper",
+          "cost": 0,
+          "family": "treasure"
+        },
+        {
+          "id": "silver",
+          "name": "Silver",
+          "cost": 3,
+          "family": "treasure"
+        },
+        {
+          "id": "gold",
+          "name": "Gold",
+          "cost": 6,
+          "family": "treasure"
+        },
+        {
+          "id": "bullRush",
+          "name": "Bull Rush",
+          "cost": 3,
+          "family": "melee"
+        },
+        {
+          "id": "discipline",
+          "name": "Discipline",
+          "cost": 2,
+          "family": "engine"
+        },
+        {
+          "id": "heavyBlow",
+          "name": "Heavy Blow",
+          "cost": 5,
+          "family": "melee"
+        },
+        {
+          "id": "muster",
+          "name": "Muster",
+          "cost": 5,
+          "family": "engine"
+        },
+        {
+          "id": "rally",
+          "name": "Rally",
+          "cost": 3,
+          "family": "melee"
+        },
+        {
+          "id": "reforge",
+          "name": "Reforge",
+          "cost": 4,
+          "family": "engine"
+        },
+        {
+          "id": "scour",
+          "name": "Scour",
+          "cost": 5,
+          "family": "engine"
+        },
+        {
+          "id": "sharpen",
+          "name": "Sharpen",
+          "cost": 3,
+          "family": "engine"
+        },
+        {
+          "id": "starfire",
+          "name": "Starfire",
+          "cost": 6,
+          "family": "mana"
+        },
+        {
+          "id": "strike",
+          "name": "Strike",
+          "cost": 3,
+          "family": "melee"
+        },
+        {
+          "id": "step",
+          "name": "Step",
+          "cost": 2,
+          "family": "engine"
+        },
+        {
+          "id": "focus",
+          "name": "Focus",
+          "cost": 1,
+          "family": "mana"
+        },
+        {
+          "id": "scrap",
+          "name": "Scrap",
+          "cost": 0,
+          "family": "engine"
+        }
+      ],
+      "equilibriumStrategies": [
+        {
+          "strategyId": "gf-10595478",
+          "selectedShare": 0.3834586466165416,
+          "archetype": "Mage",
+          "buySteps": [
+            {
+              "cardId": "starfire",
+              "desiredCount": 2,
+              "cardName": "Starfire"
+            },
+            {
+              "cardId": "muster",
+              "desiredCount": 4,
+              "cardName": "Muster"
+            },
+            {
+              "cardId": "scour",
+              "desiredCount": 3,
+              "cardName": "Scour"
+            },
+            {
+              "cardId": "silver",
+              "desiredCount": 3,
+              "cardName": "Silver"
+            },
+            {
+              "cardId": "focus",
+              "desiredCount": 3,
+              "cardName": "Focus"
+            }
+          ],
+          "expectedAcquisitions": [
+            {
+              "cardId": "silver",
+              "copiesPerPlayerSide": 2.9929323308270677,
+              "cardName": "Silver"
+            },
+            {
+              "cardId": "muster",
+              "copiesPerPlayerSide": 2.460962406015038,
+              "cardName": "Muster"
+            },
+            {
+              "cardId": "scour",
+              "copiesPerPlayerSide": 0.13249624060150378,
+              "cardName": "Scour"
+            },
+            {
+              "cardId": "starfire",
+              "copiesPerPlayerSide": 1.6774586466165415,
+              "cardName": "Starfire"
+            },
+            {
+              "cardId": "focus",
+              "copiesPerPlayerSide": 2.998827067669173,
+              "cardName": "Focus"
+            }
+          ]
+        },
+        {
+          "strategyId": "gf-5256085",
+          "selectedShare": 0.32330827067669166,
+          "archetype": "Melee",
+          "buySteps": [
+            {
+              "cardId": "muster",
+              "desiredCount": 4,
+              "cardName": "Muster"
+            },
+            {
+              "cardId": "sharpen",
+              "desiredCount": 2,
+              "cardName": "Sharpen"
+            },
+            {
+              "cardId": "silver",
+              "desiredCount": 2,
+              "cardName": "Silver"
+            },
+            {
+              "cardId": "step",
+              "desiredCount": 3,
+              "cardName": "Step"
+            },
+            {
+              "cardId": "heavyBlow",
+              "desiredCount": 3,
+              "cardName": "Heavy Blow"
+            }
+          ],
+          "expectedAcquisitions": [
+            {
+              "cardId": "silver",
+              "copiesPerPlayerSide": 1.998466165413534,
+              "cardName": "Silver"
+            },
+            {
+              "cardId": "heavyBlow",
+              "copiesPerPlayerSide": 2.440451127819549,
+              "cardName": "Heavy Blow"
+            },
+            {
+              "cardId": "muster",
+              "copiesPerPlayerSide": 3.9652781954887226,
+              "cardName": "Muster"
+            },
+            {
+              "cardId": "sharpen",
+              "copiesPerPlayerSide": 2,
+              "cardName": "Sharpen"
+            },
+            {
+              "cardId": "step",
+              "copiesPerPlayerSide": 3,
+              "cardName": "Step"
+            }
+          ]
+        },
+        {
+          "strategyId": "gf-4340254",
+          "selectedShare": 0.2932330827067653,
+          "archetype": "Melee",
+          "buySteps": [
+            {
+              "cardId": "heavyBlow",
+              "desiredCount": 1,
+              "cardName": "Heavy Blow"
+            },
+            {
+              "cardId": "sharpen",
+              "desiredCount": 2,
+              "cardName": "Sharpen"
+            },
+            {
+              "cardId": "step",
+              "desiredCount": 1,
+              "cardName": "Step"
+            },
+            {
+              "cardId": "scour",
+              "desiredCount": 3,
+              "cardName": "Scour"
+            },
+            {
+              "cardId": "rally",
+              "desiredCount": 3,
+              "cardName": "Rally"
+            }
+          ],
+          "expectedAcquisitions": [
+            {
+              "cardId": "heavyBlow",
+              "copiesPerPlayerSide": 0.3573984962406015,
+              "cardName": "Heavy Blow"
+            },
+            {
+              "cardId": "rally",
+              "copiesPerPlayerSide": 2.9607368421052636,
+              "cardName": "Rally"
+            },
+            {
+              "cardId": "scour",
+              "copiesPerPlayerSide": 0.037383458646616505,
+              "cardName": "Scour"
+            },
+            {
+              "cardId": "sharpen",
+              "copiesPerPlayerSide": 2,
+              "cardName": "Sharpen"
+            },
+            {
+              "cardId": "step",
+              "copiesPerPlayerSide": 1,
+              "cardName": "Step"
+            }
+          ]
+        }
+      ],
+      "archetypes": [
+        {
+          "archetype": "Mage",
+          "selectedShare": {
+            "before": 0,
+            "after": 0.3834586466165416,
+            "difference": 0.3834586466165416
+          }
+        },
+        {
+          "archetype": "Melee",
+          "selectedShare": {
+            "before": 1,
+            "after": 0.6165413533834585,
+            "difference": -0.3834586466165415
+          }
+        }
+      ],
+      "changedCardAcquisition": [
+        {
+          "cardId": "focus",
+          "expectedCopiesPerPlayerSide": {
+            "before": 0,
+            "after": 1.1499261688054732,
+            "difference": 1.1499261688054732
+          },
+          "acquisitionPresence": {
+            "before": 0,
+            "after": 0.3834586466165416,
+            "difference": 0.3834586466165416
+          },
+          "selectionPresence": {
+            "before": 0,
+            "after": 0.3834586466165416,
+            "difference": 0.3834586466165416
+          },
+          "meanOwnedCopies": {
+            "before": 0,
+            "after": 1.1499261688054732,
+            "difference": 1.1499261688054732
+          }
+        },
+        {
+          "cardId": "bullRush",
+          "expectedCopiesPerPlayerSide": {
+            "before": 0,
+            "after": 0,
+            "difference": 0
+          },
+          "acquisitionPresence": {
+            "before": 0,
+            "after": 0,
+            "difference": 0
+          },
+          "selectionPresence": {
+            "before": 0,
+            "after": 0,
+            "difference": 0
+          },
+          "meanOwnedCopies": {
+            "before": 0,
+            "after": 0,
+            "difference": 0
+          }
+        }
+      ],
+      "familyDamage": [
+        {
+          "family": "treasure",
+          "expectedDamagePerPlayerSide": {
+            "before": 0,
+            "after": 0,
+            "difference": 0
+          },
+          "share": {
+            "before": 0,
+            "after": 0,
+            "difference": 0
+          }
+        },
+        {
+          "family": "mana",
+          "expectedDamagePerPlayerSide": {
+            "before": 0,
+            "after": 8.088855446887903,
+            "difference": 8.088855446887903
+          },
+          "share": {
+            "before": 0,
+            "after": 0.26930816165549665,
+            "difference": 0.26930816165549665
+          }
+        },
+        {
+          "family": "melee",
+          "expectedDamagePerPlayerSide": {
+            "before": 22.76,
+            "after": 15.778911979196108,
+            "difference": -6.9810880208038935
+          },
+          "share": {
+            "before": 0.8503325113950534,
+            "after": 0.5253388202994904,
+            "difference": -0.324993691095563
+          }
+        },
+        {
+          "family": "ranged",
+          "expectedDamagePerPlayerSide": {
+            "before": 0,
+            "after": 0,
+            "difference": 0
+          },
+          "share": {
+            "before": 0,
+            "after": 0,
+            "difference": 0
+          }
+        },
+        {
+          "family": "engine",
+          "expectedDamagePerPlayerSide": {
+            "before": 4.006,
+            "after": 6.167918819605406,
+            "difference": 2.1619188196054058
+          },
+          "share": {
+            "before": 0.14966748860494658,
+            "after": 0.20535301804501294,
+            "difference": 0.055685529440066356
+          }
+        }
+      ]
+    }
+  ],
+  "crossKingdom": {
+    "supportSize": {
+      "before": 1.75,
+      "after": 1.75,
+      "difference": 0
+    },
+    "effectiveSize": {
+      "before": 1.5911208562310137,
+      "after": 1.5726743475094516,
+      "difference": -0.01844650872156217
+    },
+    "archetypes": [
+      {
+        "archetype": "Mage",
+        "selectedShare": {
+          "before": 0.125,
+          "after": 0.3495251286110022,
+          "difference": 0.2245251286110022
+        }
+      },
+      {
+        "archetype": "Melee",
+        "selectedShare": {
+          "before": 0.18402777777777843,
+          "after": 0.22128512069647777,
+          "difference": 0.03725734291869934
+        }
+      },
+      {
+        "archetype": "Melee + Mage",
+        "selectedShare": {
+          "before": 0.038194444444444246,
+          "after": 0.021727839335179033,
+          "difference": -0.016466605109265214
+        }
+      },
+      {
+        "archetype": "Melee + Ranged",
+        "selectedShare": {
+          "before": 0.25430118078042663,
+          "after": 0.15322022160664883,
+          "difference": -0.1010809591737778
+        }
+      },
+      {
+        "archetype": "Melee + Ranged + Mage",
+        "selectedShare": {
+          "before": 0,
+          "after": 0,
+          "difference": 0
+        }
+      },
+      {
+        "archetype": "Ranged",
+        "selectedShare": {
+          "before": 0.3984765969973507,
+          "after": 0.125,
+          "difference": -0.2734765969973507
+        }
+      },
+      {
+        "archetype": "Ranged + Mage",
+        "selectedShare": {
+          "before": 0,
+          "after": 0.1292416897506922,
+          "difference": 0.1292416897506922
+        }
+      }
+    ],
+    "changedCardAcquisition": [
+      {
+        "cardId": "focus",
+        "offeredKingdomCount": 8,
+        "expectedCopiesPerPlayerSide": {
+          "before": 0,
+          "after": 0.35469991237492227,
+          "difference": 0.35469991237492227
+        },
+        "acquisitionPresence": {
+          "before": 0,
+          "after": 0.1254946576968734,
+          "difference": 0.1254946576968734
+        },
+        "selectionPresence": {
+          "before": 0,
+          "after": 0.1254946576968734,
+          "difference": 0.1254946576968734
+        },
+        "meanOwnedCopies": {
+          "before": 0,
+          "after": 0.35469991237492227,
+          "difference": 0.35469991237492227
+        }
+      },
+      {
+        "cardId": "overload",
+        "offeredKingdomCount": 4,
+        "expectedCopiesPerPlayerSide": {
+          "before": 0,
+          "after": 0.0899149561467471,
+          "difference": 0.0899149561467471
+        },
+        "acquisitionPresence": {
+          "before": 0,
+          "after": 0.10318559556786898,
+          "difference": 0.10318559556786898
+        },
+        "selectionPresence": {
+          "before": 0,
+          "after": 0.10318559556786898,
+          "difference": 0.10318559556786898
+        },
+        "meanOwnedCopies": {
+          "before": 0,
+          "after": 0.0899149561467471,
+          "difference": 0.0899149561467471
+        }
+      },
+      {
+        "cardId": "bullRush",
+        "offeredKingdomCount": 4,
+        "expectedCopiesPerPlayerSide": {
+          "before": 0,
+          "after": 0.038434903047090935,
+          "difference": 0.038434903047090935
+        },
+        "acquisitionPresence": {
+          "before": 0,
+          "after": 0.03843490304709093,
+          "difference": 0.03843490304709093
+        },
+        "selectionPresence": {
+          "before": 0,
+          "after": 0.03843490304709093,
+          "difference": 0.03843490304709093
+        },
+        "meanOwnedCopies": {
+          "before": 0,
+          "after": 0.038434903047090935,
+          "difference": 0.038434903047090935
+        }
+      },
+      {
+        "cardId": "openingStrike",
+        "offeredKingdomCount": 0,
+        "expectedCopiesPerPlayerSide": {
+          "before": 0,
+          "after": 0,
+          "difference": 0
+        },
+        "acquisitionPresence": {
+          "before": 0,
+          "after": 0,
+          "difference": 0
+        },
+        "selectionPresence": {
+          "before": 0,
+          "after": 0,
+          "difference": 0
+        },
+        "meanOwnedCopies": {
+          "before": 0,
+          "after": 0,
+          "difference": 0
+        }
+      },
+      {
+        "cardId": "volley",
+        "offeredKingdomCount": 3,
+        "expectedCopiesPerPlayerSide": {
+          "before": 0.1635802469135776,
+          "after": 0,
+          "difference": -0.1635802469135776
+        },
+        "acquisitionPresence": {
+          "before": 0.07407407407407289,
+          "after": 0,
+          "difference": -0.07407407407407289
+        },
+        "selectionPresence": {
+          "before": 0.07407407407407289,
+          "after": 0,
+          "difference": -0.07407407407407289
+        },
+        "meanOwnedCopies": {
+          "before": 0.1635802469135776,
+          "after": 0,
+          "difference": -0.1635802469135776
+        }
+      }
+    ],
+    "familyDamage": [
+      {
+        "family": "treasure",
+        "expectedDamagePerPlayerSide": {
+          "before": 0,
+          "after": 0,
+          "difference": 0
+        },
+        "share": {
+          "before": 0,
+          "after": 0,
+          "difference": 0
+        }
+      },
+      {
+        "family": "mana",
+        "expectedDamagePerPlayerSide": {
+          "before": 2.8861676311728393,
+          "after": 11.07793681953491,
+          "difference": 8.191769188362072
+        },
+        "share": {
+          "before": 0.08489428748083229,
+          "after": 0.3417692830489283,
+          "difference": 0.256874995568096
+        }
+      },
+      {
+        "family": "melee",
+        "expectedDamagePerPlayerSide": {
+          "before": 6.672653538618452,
+          "after": 4.105385817319166,
+          "difference": -2.5672677212992854
+        },
+        "share": {
+          "before": 0.21769708141788058,
+          "after": 0.1285232491102305,
+          "difference": -0.08917383230765008
+        }
+      },
+      {
+        "family": "ranged",
+        "expectedDamagePerPlayerSide": {
+          "before": 14.739032892171878,
+          "after": 8.564630237308275,
+          "difference": -6.174402654863602
+        },
+        "share": {
+          "before": 0.41129999501692316,
+          "after": 0.2456590104261694,
+          "difference": -0.16564098459075377
+        }
+      },
+      {
+        "family": "engine",
+        "expectedDamagePerPlayerSide": {
+          "before": 9.88600224286229,
+          "after": 9.469326499196981,
+          "difference": -0.4166757436653086
+        },
+        "share": {
+          "before": 0.286108636084364,
+          "after": 0.2840484574146718,
+          "difference": -0.002060178669692214
+        }
+      }
+    ]
+  }
+}

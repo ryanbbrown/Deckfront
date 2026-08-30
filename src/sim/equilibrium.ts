@@ -1,4 +1,6 @@
 import { solve } from 'yalps';
+export { equilibriumGroupWeightRange } from './equilibriumGroupRange';
+export type { EquilibriumGroupWeightRange } from './equilibriumGroupRange';
 
 export const EQUILIBRIUM_TOLERANCE = 1e-7;
 export const SUPPORT_TOLERANCE = 1e-6;

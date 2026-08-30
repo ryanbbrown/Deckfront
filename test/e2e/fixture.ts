@@ -7,11 +7,13 @@ import { VARIABLE_ACTION_IDS, applyCommand, cloneGame, createCard } from '../../
 import type { PlayerId } from '../../src/game';
 import { createHexdeckServer } from '../../src/server/httpServer';
 import type { AiTrainer } from '../../src/server/aiTrainer';
-import { identify } from '../../src/sim/strategy';
+import { INFINITE_COUNT, fixedBuyPlan, identify } from '../../src/sim/strategy';
 import { FileGameRepository } from '../../src/server/persistence';
 import type { GameRecord } from '../../src/server/types';
 const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '../..');
-const aiStrategy = identify({ id: '', startingBuild: [], buyAgenda: [], repeatPurchase: 'silver' });
+const aiStrategy = identify({ id: '', startingBuild: [], buyPlan: fixedBuyPlan([
+  { kind: 'buy', cardId: 'silver', desiredCount: INFINITE_COUNT }
+]) });
 const aiTrainer: AiTrainer = { train: async () => ({
   strategy: aiStrategy, summary: { elapsedMs: 1, matches: 4, strategyId: aiStrategy.id }
 }) };

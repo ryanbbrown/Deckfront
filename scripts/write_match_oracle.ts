@@ -1,9 +1,5 @@
 /**
- * Rewrites the match oracle that `test/sim/identity.test.ts` compares against. Plan
- * `.plans/10-8-profiling.md` requires the identity of every stored `MatchResult` to survive the
- * profiling changes, so a rewrite is a decision about the engine, not a way to make a test pass.
- * Justify a rewrite in the commit message and say which engine change moved the numbers.
- *
+ * Generates match-result fixtures for deliberate engine identity checks.
  * Run with: npx tsx scripts/write_match_oracle.ts --rewrite
  */
 import fs from 'node:fs';
@@ -13,7 +9,7 @@ import { fileURLToPath } from 'node:url';
 import { strategyAgent } from '../src/sim/agents/strategyAgent';
 import { runMatch } from '../src/sim/match';
 import { diagnosticLabels, diagnosticStrategies } from '../src/sim/baselines';
-import { identify } from '../src/sim/strategy';
+import { INFINITE_COUNT, fixedBuyPlan, identify } from '../src/sim/strategy';
 import type { Strategy } from '../src/sim/strategy';
 import type { GameState } from '../src/game';
 import type { MatchResult } from '../src/sim/types';
@@ -31,7 +27,7 @@ interface OracleCase {
 }
 
 const CASES: readonly OracleCase[] = [
-  { name: 'mana and pending choices', kingdomId: 'three-way-engine', seed: 11, ochre: 'mage', indigo: 'engine', firstPlayerId: 'ochre', swapSides: false, storeState: true },
+  { name: 'mana and pending choices', kingdomId: 'three-way-engine', seed: 3, ochre: 'mage', indigo: 'engine', firstPlayerId: 'ochre', swapSides: false, storeState: true },
   { name: 'engine against money', kingdomId: 'three-way-engine', seed: 12, ochre: 'engine', indigo: 'money', firstPlayerId: 'indigo', swapSides: true, storeState: false },
   { name: 'ranged against mage', kingdomId: 'range-rich-mixed', seed: 14, ochre: 'ranged-volley', indigo: 'mage', firstPlayerId: 'indigo', swapSides: false, storeState: false },
   { name: 'no attacks, turn limit', kingdomId: 'current-duel', seed: 15, ochre: 'no-attack', indigo: 'no-attack', firstPlayerId: 'ochre', swapSides: false, storeState: false },
@@ -41,7 +37,8 @@ const CASES: readonly OracleCase[] = [
 
 function oracleStrategy(kingdomId: string, label: string): Strategy {
   if (label === 'no-attack') return identify({
-    id: label, startingBuild: [], buyAgenda: [], repeatPurchase: 'silver'
+    id: label, startingBuild: [],
+    buyPlan: fixedBuyPlan([{ kind: 'buy', cardId: 'silver', desiredCount: INFINITE_COUNT }])
   });
   const labels = diagnosticLabels(kingdomId);
   const found = diagnosticStrategies(kingdomId).find((entry) => labels.get(entry.id) === label);

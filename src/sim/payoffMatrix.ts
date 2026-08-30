@@ -1,6 +1,6 @@
 import { kingdomMarket } from '../game';
 import { emptyAggregate, mergeAggregate } from './pairing';
-import type { PairingBlockResult, PairingOutcome } from './pairing';
+import type { SeedEvaluationResult, PairingOutcome } from './pairing';
 import type { PairingJob, PairingRunner } from './pairingRunner';
 import { canonicalStrategy, stableHash } from './strategy';
 import type { Strategy } from './strategy';
@@ -16,6 +16,7 @@ export interface MatrixProtocol {
   seeds: number[];
   turnLimitPerPlayer: number;
   actionCapPerTurn: number;
+  startingDraftEnabled: boolean;
   orientationProtocol: string;
   rulesFingerprint: string;
 }
@@ -24,7 +25,7 @@ export interface MatrixCell {
   rowId: string;
   columnId: string;
   key: string;
-  blocks: PairingBlockResult[];
+  blocks: SeedEvaluationResult[];
   complete: boolean;
   centeredPayoff: number;
   matches: number;
@@ -59,22 +60,25 @@ export class DeadlineInterruptionError extends Error {
 }
 
 export function matrixProtocol(
-  kingdomId: string, seeds: readonly number[], turnLimitPerPlayer: number, actionCapPerTurn: number
+  kingdomId: string, seeds: readonly number[], turnLimitPerPlayer: number, actionCapPerTurn: number,
+  startingDraftEnabled = true
 ): MatrixProtocol {
-  const fingerprint = rulesFingerprint(kingdomId, turnLimitPerPlayer, actionCapPerTurn);
+  const fingerprint = rulesFingerprint(
+    kingdomId, turnLimitPerPlayer, actionCapPerTurn, startingDraftEnabled
+  );
   return {
     kingdomId,
     cards: kingdomMarket(kingdomId).map((card) => card),
-    seeds: [...seeds], turnLimitPerPlayer, actionCapPerTurn,
+    seeds: [...seeds], turnLimitPerPlayer, actionCapPerTurn, startingDraftEnabled,
     orientationProtocol: MATRIX_PROTOCOL_VERSION, rulesFingerprint: fingerprint.hash
   };
 }
 
-function pairKey(protocol: MatrixProtocol, left: Strategy, right: Strategy): string {
+export function payoffMatrixPairKey(protocol: MatrixProtocol, left: Strategy, right: Strategy): string {
   return stableHash(JSON.stringify({ protocol, strategies: [canonicalStrategy(left), canonicalStrategy(right)] }));
 }
 
-function payoff(blocks: readonly PairingBlockResult[]): number {
+function payoff(blocks: readonly SeedEvaluationResult[]): number {
   const games = blocks.reduce((sum, block) => sum + block.played, 0);
   const score = blocks.reduce((sum, block) => sum + block.score * block.played, 0);
   return games ? 2 * score / games - 1 : 0;
@@ -102,7 +106,7 @@ export class PayoffMatrix {
 
   private cellId(left: Strategy, right: Strategy): string {
     const [first, second] = left.id < right.id ? [left, right] : [right, left];
-    return `${pairKey(this.protocol, first, second)}:${first.id}|${second.id}`;
+    return `${payoffMatrixPairKey(this.protocol, first, second)}:${first.id}|${second.id}`;
   }
 
   private pendingCell(leftInput: Strategy, rightInput: Strategy, allowEarlyStop: boolean): PendingCell | null {
@@ -118,6 +122,7 @@ export class PayoffMatrix {
       kingdomId: this.protocol.kingdomId, seeds,
       turnLimitPerPlayer: this.protocol.turnLimitPerPlayer,
       actionCapPerTurn: this.protocol.actionCapPerTurn,
+      startingDraftEnabled: this.protocol.startingDraftEnabled,
       allowEarlyStop
     } } };
   }
@@ -138,7 +143,7 @@ export class PayoffMatrix {
     this.matches += result.matches;
     mergeAggregate(this.telemetry, result.telemetry);
     this.cells.set(id, {
-      rowId: left.id, columnId: right.id, key: pairKey(this.protocol, left, right), blocks,
+      rowId: left.id, columnId: right.id, key: payoffMatrixPairKey(this.protocol, left, right), blocks,
       complete: blocks.length === this.protocol.seeds.length,
       centeredPayoff: payoff(blocks), matches: (old?.matches ?? 0) + result.matches, telemetry
     });
@@ -198,7 +203,7 @@ export class PayoffMatrix {
     const byId = new Map(strategies.map((strategy) => [strategy.id, strategy]));
     const cells = [...this.cells.values()].filter((cell) => {
       const row = byId.get(cell.rowId), column = byId.get(cell.columnId);
-      return row && column && cell.key === pairKey(this.protocol, row, column);
+      return row && column && cell.key === payoffMatrixPairKey(this.protocol, row, column);
     })
       .sort((a, b) => a.rowId.localeCompare(b.rowId)
       || a.columnId.localeCompare(b.columnId));

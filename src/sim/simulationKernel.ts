@@ -1,16 +1,17 @@
 import {
-  ALWAYS_AVAILABLE_ACTION_IDS, ALWAYS_AVAILABLE_COUNT, ARENA_MAX, ARENA_MIN, ATTACK_MECHANICS,
-  MAX_CARRIED_MANA, cardDefinition, firstBuyCarry, isTacticalAction, kingdomEpoch, kingdomMarket,
-  kingdomOf, playerStartingHealth, resolveCardInKingdom
+  ALWAYS_AVAILABLE_ACTION_IDS, ALWAYS_AVAILABLE_COUNT, ARENA_MAX, ARENA_MIN, ATTACK_MECHANICS, cardDefinition,
+  firstBuyCarry, isTacticalAction, kingdomEpoch, kingdomMarket, kingdomOf, playerStartingHealth
 } from '../game';
 import type { CardFamily, CardMechanic, CardValues, MovementChoice, PlayerId } from '../game';
 import { repairBuildIn } from './build';
+import { fixedBuyPlan, slotWantsMore } from './strategy';
 import type { Strategy } from './strategy';
 import { chooseTacticalAction } from './tacticalPilot';
 import type { CullOption, DiscardOption, PilotCard, TacticalView } from './tacticalPilot';
 import { addProfileCard, buildAttackProfile, removeProfileCard } from './positionValue';
 import type { AttackProfile, ProfileCard } from './positionValue';
 import type { DeadDrawCounts, MatchResult, MatchTelemetry } from './types';
+import { compareUtf16 } from './utf16';
 export { SIMULATION_KERNEL_PROTOCOL_VERSION } from './protocolVersions';
 
 interface KernelCard {
@@ -49,6 +50,8 @@ interface KernelPlayer {
   purchases: number[];
   acquired: Int16Array;
   attackProfile: AttackProfile;
+  moneySpent: number;
+  unspentMoney: number;
 }
 
 interface KernelState {
@@ -70,7 +73,8 @@ interface KernelState {
   copiesPlayed: Int16Array;
   familiesPlayed: Set<CardFamily>;
   eventCount: number;
-  telemetry: MatchTelemetry;
+  telemetry: MatchTelemetry | null;
+  collectTelemetry: boolean;
 }
 
 export interface SimulationMatchConfig {
@@ -84,6 +88,47 @@ export interface SimulationMatchConfig {
   strategies: Record<PlayerId, Strategy>;
 }
 
+export interface ScoreOnlyMatchResult {
+  outcome: MatchResult['outcome'];
+  reason: MatchResult['reason'];
+  turns: number;
+}
+
+export type GoldfishMovementProfile = 'stationary' | 'chaser' | 'kiter';
+
+export interface GoldfishTrialConfig {
+  kingdomId: string;
+  seed: number;
+  strategy: Strategy;
+  turnLimit: number;
+  actionCapPerTurn: number;
+  movementProfile?: GoldfishMovementProfile;
+}
+
+export interface GoldfishTrialResult {
+  completed: boolean;
+  turnsTo50: number | null;
+  damageByTurn: number[];
+  positionsByTurn: Array<{ candidate: number; dummy: number }>;
+  moneySpent: number;
+  unspentMoney: number;
+  purchasesByCard: Record<string, number>;
+  playsByCard: Record<string, number>;
+  damageByCard: Record<string, number>;
+  reason: 'victory' | 'turnLimit' | 'actionCap';
+}
+
+/** Trial fields used by scoring. It does not retain per-turn, per-position, or per-card output. */
+export interface LeanGoldfishTrialResult {
+  completed: boolean;
+  turnsTo50: number | null;
+  damageArea: number;
+  finalDamage: number;
+  moneySpent: number;
+  unspentMoney: number;
+  reason: GoldfishTrialResult['reason'];
+}
+
 let cachedEpoch = -1;
 const kingdomCache = new Map<string, KernelKingdom>();
 
@@ -93,7 +138,7 @@ function kernelKingdom(kingdomId: string): KernelKingdom {
   const cached = kingdomCache.get(kingdomId);
   if (cached) return cached;
   const kingdom = kingdomOf(kingdomId);
-  const definitions = [...kingdomMarket(kingdomId), resolveCardInKingdom(kingdomId, 'scrap')];
+  const definitions = [...kingdomMarket(kingdomId), cardDefinition('scrap')];
   const cards = definitions.map((definition): KernelCard => ({
     id: definition.id, type: definition.type, mechanic: definition.mechanic, family: definition.family,
     cost: definition.cost, money: definition.money ?? 0, values: definition.values ?? {},
@@ -139,7 +184,7 @@ function makePlayer(kingdom: KernelKingdom, strategy: Strategy, startingDraftEna
   return {
     strategy, build, draw: [], drawHead: 0, hand: [], discard: [], play: [], money: 0, mana: 0,
     firstBuyMoney: startingDraftEnabled ? firstBuyCarry(buildCost) : 0, firstBuyPending: startingDraftEnabled, purchases: [], acquired,
-    attackProfile: buildAttackProfile([])
+    attackProfile: buildAttackProfile([]), moneySpent: 0, unspentMoney: 0
   };
 }
 
@@ -191,10 +236,10 @@ function addDamage(state: KernelState, actor: 0 | 1, amount: number, close: bool
   let actual = amount;
   if (close && state.exposed[target]) actual += kingdomValue(state, 'feint', 'bonus');
   state.health[target] = Math.max(0, state.health[target] - actual);
-  bump(state.telemetry.damageByCard[playerId(actor)], state.kingdom.cards[source]!.id, actual);
+  if (state.telemetry) bump(state.telemetry.damageByCard[playerId(actor)], state.kingdom.cards[source]!.id, actual);
   event(state);
   if (state.health[target] === 0) {
-    state.telemetry.turnsToWin = state.turn - 1;
+    if (state.telemetry) state.telemetry.turnsToWin = state.turn - 1;
     event(state);
     return true;
   }
@@ -212,18 +257,10 @@ function positionAfter(position: number, movement: MovementChoice): number {
   return position + (movement === 'left' ? -1 : movement === 'right' ? 1 : 0);
 }
 
-// These range gates include setup cards Feint and Aim, so they are intentionally not attack sets.
-const CLOSE_RANGE_MECHANICS: ReadonlySet<CardMechanic> = new Set([
-  'melee', 'drive', 'flurry', 'feint', 'openingStrike', 'rally', 'bullRush'
-]);
-const RANGED_RANGE_MECHANICS: ReadonlySet<CardMechanic> = new Set([
-  'ranged', 'repellingShot', 'volley', 'aim', 'longshot', 'salvageShot', 'precisionShot'
-]);
-
 function enabled(state: KernelState, actor: 0 | 1, card: KernelCard): boolean {
   const close = state.positions[actor] === state.positions[other(actor)];
-  if (CLOSE_RANGE_MECHANICS.has(card.mechanic) && !close) return false;
-  if (RANGED_RANGE_MECHANICS.has(card.mechanic) && close) return false;
+  if (['melee', 'drive', 'flurry', 'feint', 'openingStrike', 'rally', 'bullRush'].includes(card.mechanic) && !close) return false;
+  if (['ranged', 'repellingShot', 'volley', 'aim', 'longshot', 'salvageShot', 'precisionShot'].includes(card.mechanic) && close) return false;
   if (['spell', 'cascade'].includes(card.mechanic) && state.players[actor].mana < cardValue(card, 'manaCost')) return false;
   if (card.mechanic === 'bullRush') return state.players[actor].hand.filter((index) => state.kingdom.cards[index]!.family === 'melee').length > 1;
   if (card.mechanic === 'salvageShot') return state.players[actor].hand.filter((index) => state.kingdom.cards[index]!.family === 'ranged').length > 1;
@@ -247,13 +284,34 @@ function moneyInActionPhase(state: KernelState, actor: 0 | 1): number {
   return money;
 }
 
-function finiteStillAvailable(state: KernelState, player: KernelPlayer, acquired: Int16Array, supply: Int16Array): boolean {
-  return player.strategy.buyAgenda.some((entry) => {
-    const index = state.kingdom.index.get(entry.cardId);
-    if (index === undefined || entry.cardId === 'copper') return false;
-    const card = state.kingdom.cards[index]!;
-    return acquired[index]! < entry.desiredCount && card.cost > 0 && (card.type === 'treasure' || supply[index]! > 0);
-  });
+function purchaseProjection(state: KernelState, actor: 0 | 1, moneyLost: number): readonly number[] {
+  const player = state.players[actor];
+  const acquired = new Int16Array(player.acquired);
+  const supply = new Int16Array(state.supply);
+  const bought = player.strategy.buyPlan.map(() => 0);
+  let money = moneyInActionPhase(state, actor) - moneyLost;
+  // Every rung costs at least one money, so a finite purse always ends this loop.
+  while (true) {
+    let purchased = false;
+    let stopped = false;
+    for (let slotIndex = 0; slotIndex < player.strategy.buyPlan.length; slotIndex += 1) {
+      const slot = player.strategy.buyPlan[slotIndex]!;
+      if (slot.kind === 'inactive') continue;
+      if (slot.kind === 'stop') {
+        if (money >= slot.threshold) { stopped = true; break; }
+        continue;
+      }
+      const index = state.kingdom.index.get(slot.cardId);
+      if (index === undefined || slot.cardId === 'copper' || !slotWantsMore(slot, acquired[index]!)) continue;
+      const card = state.kingdom.cards[index]!;
+      if (card.cost <= 0 || card.cost > money || (card.type === 'action' && supply[index]! <= 0)) continue;
+      money -= card.cost; acquired[index]! += 1; bought[slotIndex]! += 1;
+      if (card.type === 'action') supply[index]!--;
+      purchased = true; break;
+    }
+    if (stopped || !purchased) break;
+  }
+  return bought;
 }
 
 function compareProjection(left: readonly number[], right: readonly number[]): number {
@@ -263,36 +321,6 @@ function compareProjection(left: readonly number[], right: readonly number[]): n
     if (difference) return difference;
   }
   return 0;
-}
-
-function purchaseProjection(state: KernelState, actor: 0 | 1, moneyLost: number): readonly number[] {
-  const player = state.players[actor];
-  const acquired = new Int16Array(player.acquired);
-  const supply = new Int16Array(state.supply);
-  const finite = player.strategy.buyAgenda.map(() => 0);
-  let repeated = 0;
-  let money = moneyInActionPhase(state, actor) - moneyLost;
-  while (true) {
-    let bought = false;
-    for (let agendaIndex = 0; agendaIndex < player.strategy.buyAgenda.length; agendaIndex += 1) {
-      const entry = player.strategy.buyAgenda[agendaIndex]!;
-      const index = state.kingdom.index.get(entry.cardId);
-      if (index === undefined || entry.cardId === 'copper' || acquired[index]! >= entry.desiredCount) continue;
-      const card = state.kingdom.cards[index]!;
-      if (card.cost <= 0 || card.cost > money || (card.type === 'action' && supply[index]! <= 0)) continue;
-      money -= card.cost; acquired[index]! += 1; finite[agendaIndex]! += 1;
-      if (card.type === 'action') supply[index]!--;
-      bought = true; break;
-    }
-    if (bought) continue;
-    if (finiteStillAvailable(state, player, acquired, supply)) break;
-    const repeatIndex = state.kingdom.index.get(player.strategy.repeatPurchase);
-    if (repeatIndex === undefined || player.strategy.repeatPurchase === 'copper') break;
-    const repeat = state.kingdom.cards[repeatIndex]!;
-    if (repeat.cost <= 0 || repeat.cost > money || (repeat.type === 'action' && supply[repeatIndex]! <= 0)) break;
-    money -= repeat.cost; repeated += 1; if (repeat.type === 'action') supply[repeatIndex]!--;
-  }
-  return [...finite, repeated];
 }
 
 function attackProfile(state: KernelState, actor: 0 | 1): AttackProfile {
@@ -325,30 +353,29 @@ function pilotView(state: KernelState, actor: 0 | 1, pending: 'discard' | 'recov
     };
   });
   const cull = hand.find((card) => card.mechanic === 'cull');
-  const copper = hand.filter((card) => card.definitionId === 'copper').map((card) => card.handIndex);
-  const scrap = hand.filter((card) => card.definitionId === 'scrap').slice(0, 2).map((card) => card.handIndex);
-  const copperIndex = state.kingdom.index.get('copper')!;
-  const scrapIndex = state.kingdom.index.get('scrap')!;
-  const copperOwned = player.hand.filter((index) => index === copperIndex).length
-    + player.draw.slice(player.drawHead).filter((index) => index === copperIndex).length
-    + player.discard.filter((index) => index === copperIndex).length
-    + player.play.filter((index) => index === copperIndex).length;
-  const scrapOwned = player.hand.filter((index) => index === scrapIndex).length
-    + player.draw.slice(player.drawHead).filter((index) => index === scrapIndex).length
-    + player.discard.filter((index) => index === scrapIndex).length
-    + player.play.filter((index) => index === scrapIndex).length;
-  const cullOptions: CullOption[] = cull ? [{
-    trashHandIndexes: scrap, trashCull: false, copperTrashed: 0, scrapTrashed: scrap.length,
-    purchaseProjection: purchaseProjection(state, actor, 0)
-  }] : [];
+  const cullOptions: CullOption[] = [];
   if (cull) {
+    const copper = hand.filter((card) => card.definitionId === 'copper').map((card) => card.handIndex);
+    const scrap = hand.filter((card) => card.definitionId === 'scrap').slice(0, 2).map((card) => card.handIndex);
+    cullOptions.push({ trashHandIndexes: scrap, trashCull: false, copperTrashed: 0,
+      scrapTrashed: scrap.length, purchaseProjection: purchaseProjection(state, actor, 0) });
     const remainingCapacity = 2 - scrap.length;
     for (let count = 1; count <= Math.min(remainingCapacity, copper.length); count += 1) cullOptions.push({
       trashHandIndexes: [...scrap, ...copper.slice(0, count)], trashCull: false,
       copperTrashed: count, scrapTrashed: scrap.length,
       purchaseProjection: purchaseProjection(state, actor, count)
     });
-    if (scrapOwned === 0 && copperOwned === 0) cullOptions.push({
+    const owned = (definitionId: string): number => {
+      const index = state.kingdom.index.get(definitionId)!;
+      let count = 0;
+      for (const held of player.hand) if (held === index) count += 1;
+      for (let offset = player.drawHead; offset < player.draw.length; offset += 1) {
+        if (player.draw[offset] === index) count += 1;
+      }
+      for (const zone of [player.discard, player.play]) for (const held of zone) if (held === index) count += 1;
+      return count;
+    };
+    if (owned('scrap') === 0 && owned('copper') === 0) cullOptions.push({
       trashHandIndexes: [], trashCull: true, copperTrashed: 0, scrapTrashed: 0,
       purchaseProjection: purchaseProjection(state, actor, 0)
     });
@@ -368,12 +395,10 @@ function pilotView(state: KernelState, actor: 0 | 1, pending: 'discard' | 'recov
     attacksPlayed: state.cardsPlayed.filter((index) => ATTACK_MECHANICS.has(state.kingdom.cards[index]!.mechanic)).length,
     copiesPlayed: Object.fromEntries(state.kingdom.cards.map((card, index) => [card.id, state.copiesPlayed[index]!])),
     familiesPlayed: [...state.familiesPlayed], positionChanged: state.spacesMoved > 0, tacticalPlayed: state.tacticalPlayed, cullOptions,
-    discardOptions: pending === 'discard'
-      ? hand.map((card): DiscardOption => ({
-        handIndex: card.handIndex,
-        purchaseProjection: purchaseProjection(state, actor, card.money)
-      }))
-      : [],
+    discardOptions: pending === 'discard' ? hand.map((card): DiscardOption => ({
+      handIndex: card.handIndex,
+      purchaseProjection: purchaseProjection(state, actor, card.money)
+    })) : [],
     actorProfile: player.attackProfile, opponentProfile: state.players[other(actor)].attackProfile
   };
 }
@@ -423,7 +448,7 @@ function playCard(state: KernelState, actor: 0 | 1, decision: Extract<ReturnType
       ? targetAfterPlay : player.hand.findIndex((index) => state.kingdom.cards[index]!.family === family);
     return target < 0 ? undefined : removeHand(player, target);
   };
-  bump(state.telemetry.playsByCard[playerId(actor)], card.id, 1);
+  if (state.telemetry) bump(state.telemetry.playsByCard[playerId(actor)], card.id, 1);
   event(state);
   const previousTactical = state.tacticalPlayed;
   if (card.tactical) state.tacticalPlayed += 1;
@@ -458,7 +483,8 @@ function playCard(state: KernelState, actor: 0 | 1, decision: Extract<ReturnType
     case 'feint': draw(state, actor, cardValue(card, 'draw')); state.exposed[other(actor)] = true; event(state); break;
     case 'drive': {
       if (addDamage(state, actor, cardValue(card, 'damage'), true, cardIndex)) return true;
-      const movement = decision.movement ?? 'left';
+      const movement = decision.movement;
+      if (movement === undefined) throw new Error('Drive has no selected direction.');
       const destination = positionAfter(state.positions[actor], movement);
       if (destination < ARENA_MIN || destination > ARENA_MAX) {
         event(state);
@@ -510,7 +536,9 @@ function playCard(state: KernelState, actor: 0 | 1, decision: Extract<ReturnType
       if (addDamage(state, actor, cardValue(card, 'damage'), false, cardIndex)) return true; break;
     case 'channel': player.mana += cardValue(card, 'mana'); event(state); draw(state, actor, cardValue(card, 'draw')); break;
     case 'leyStep': case 'step': {
-      const movement = decision.movement ?? 'left'; const next = positionAfter(state.positions[actor], movement);
+      const movement = decision.movement;
+      if (movement === undefined) throw new Error(`${card.id} has no selected direction.`);
+      const next = positionAfter(state.positions[actor], movement);
       state.spacesMoved += Math.abs(next - state.positions[actor]); state.positions[actor] = next; event(state);
       const mana = cardValue(card, 'mana') + (card.mechanic === 'leyStep' && Math.abs(state.positions[actor] - state.positions[other(actor)]) >= 2 ? cardValue(card, 'farMana') : 0); if (mana) { player.mana += mana; event(state); }
       break;
@@ -560,18 +588,18 @@ function playCard(state: KernelState, actor: 0 | 1, decision: Extract<ReturnType
     case 'sharpen': {
       draw(state, actor, cardValue(card, 'draw'));
       const scrap = state.kingdom.index.get('scrap')!;
-      const scrapHandIndex = player.hand.findIndex((index) => index === scrap);
-      if (scrapHandIndex >= 0) {
-        const trashed = removeHand(player, scrapHandIndex);
+      const scrapIndex = player.hand.findIndex((index) => index === scrap);
+      if (scrapIndex >= 0) {
+        const trashed = removeHand(player, scrapIndex);
         removeProfileCard(player.attackProfile, profileCard(state.kingdom.cards[trashed]!)); event(state);
         break;
       }
       const copper = state.kingdom.index.get('copper')!;
-      const copperHandIndex = player.hand.findIndex((index) => index === copper);
-      if (copperHandIndex >= 0 && compareProjection(
+      const copperIndex = player.hand.findIndex((index) => index === copper);
+      if (copperIndex >= 0 && compareProjection(
         purchaseProjection(state, actor, 1), purchaseProjection(state, actor, 0)
       ) >= 0) {
-        const trashed = removeHand(player, copperHandIndex);
+        const trashed = removeHand(player, copperIndex);
         removeProfileCard(player.attackProfile, profileCard(state.kingdom.cards[trashed]!)); event(state);
       }
       break;
@@ -586,7 +614,7 @@ function playCard(state: KernelState, actor: 0 | 1, decision: Extract<ReturnType
         if (candidate.id !== 'scrap' && candidate.cost <= maximum && pileAvailable(state, index)
           && (gain < 0 || candidate.cost > state.kingdom.cards[gain]!.cost
             || (candidate.cost === state.kingdom.cards[gain]!.cost
-              && candidate.id.localeCompare(state.kingdom.cards[gain]!.id) < 0))) gain = index;
+              && compareUtf16(candidate.id, state.kingdom.cards[gain]!.id) < 0))) gain = index;
       }
       if (gain >= 0) {
         const gained = state.kingdom.cards[gain]!;
@@ -621,14 +649,15 @@ function playCard(state: KernelState, actor: 0 | 1, decision: Extract<ReturnType
 }
 
 function recordDeadDraws(state: KernelState, actor: 0 | 1): void {
+  if (!state.telemetry) return;
   const player = state.players[actor];
   const counts = state.telemetry.deadDraws[playerId(actor)];
   const close = state.positions[actor] === state.positions[other(actor)];
   for (const index of player.hand) {
     const card = state.kingdom.cards[index]!;
     if (card.type !== 'action') continue;
-    if ((CLOSE_RANGE_MECHANICS.has(card.mechanic) && !close)
-      || (RANGED_RANGE_MECHANICS.has(card.mechanic) && close)) {
+    if ((['melee', 'drive', 'flurry', 'feint', 'openingStrike', 'rally', 'bullRush'].includes(card.mechanic) && !close)
+      || (['ranged', 'repellingShot', 'volley', 'aim', 'longshot', 'salvageShot', 'precisionShot'].includes(card.mechanic) && close)) {
       counts.range += 1; counts.total += 1; continue;
     }
     if (['spell', 'cascade'].includes(card.mechanic) && player.mana < cardValue(card, 'manaCost')) {
@@ -661,24 +690,19 @@ function pileAvailable(state: KernelState, cardIndex: number): boolean {
 
 function choosePurchase(state: KernelState, actor: 0 | 1): number | null {
   const player = state.players[actor];
-  for (const entry of player.strategy.buyAgenda) {
-    const index = state.kingdom.index.get(entry.cardId);
-    if (index === undefined || entry.cardId === 'copper' || entry.desiredCount <= 0) continue;
+  for (const slot of player.strategy.buyPlan) {
+    if (slot.kind === 'inactive') continue;
+    if (slot.kind === 'stop') {
+      if (player.money >= slot.threshold) return null;
+      continue;
+    }
+    const index = state.kingdom.index.get(slot.cardId);
+    if (index === undefined || slot.cardId === 'copper') continue;
     const card = state.kingdom.cards[index]!;
-    if (card.cost <= 0 || player.acquired[index]! >= entry.desiredCount) continue;
+    if (card.cost <= 0 || !slotWantsMore(slot, player.acquired[index]!)) continue;
     if (card.cost <= player.money && pileAvailable(state, index)) return index;
   }
-  const finiteDone = player.strategy.buyAgenda.every((entry) => {
-    const index = state.kingdom.index.get(entry.cardId);
-    if (index === undefined || entry.cardId === 'copper') return true;
-    const card = state.kingdom.cards[index]!;
-    return card.cost <= 0 || player.acquired[index]! >= entry.desiredCount || !pileAvailable(state, index);
-  });
-  if (!finiteDone || player.strategy.repeatPurchase === 'copper') return null;
-  const repeat = state.kingdom.index.get(player.strategy.repeatPurchase);
-  if (repeat === undefined) return null;
-  const card = state.kingdom.cards[repeat]!;
-  return card.cost > 0 && card.cost <= player.money && pileAvailable(state, repeat) ? repeat : null;
+  return null;
 }
 
 function buy(state: KernelState, actor: 0 | 1, cardIndex: number): void {
@@ -686,22 +710,25 @@ function buy(state: KernelState, actor: 0 | 1, cardIndex: number): void {
   player.money -= card.cost; if (card.type === 'action') state.supply[cardIndex]!--;
   player.discard.push(cardIndex); player.purchases.push(cardIndex); player.acquired[cardIndex]! += 1;
   addProfileCard(player.attackProfile, profileCard(card));
-  bump(state.telemetry.purchasesByCard[playerId(actor)], card.id, 1);
-  state.telemetry.moneySpent[playerId(actor)] += card.cost; event(state);
+  if (state.telemetry) bump(state.telemetry.purchasesByCard[playerId(actor)], card.id, 1);
+  player.moneySpent += card.cost;
+  if (state.telemetry) state.telemetry.moneySpent[playerId(actor)] += card.cost;
+  event(state);
 }
 
 function endBuyPhase(state: KernelState, actor: 0 | 1): void {
   const player = state.players[actor];
-  state.telemetry.unspentMoney[playerId(actor)] += player.money;
+  player.unspentMoney += player.money;
+  if (state.telemetry) state.telemetry.unspentMoney[playerId(actor)] += player.money;
   player.discard.push(...player.hand, ...player.play); player.hand = []; player.play = [];
-  player.money = 0; player.mana = Math.min(player.mana, MAX_CARRIED_MANA); player.firstBuyPending = false; player.firstBuyMoney = 0;
+  player.money = 0; player.mana = Math.min(player.mana, 3); player.firstBuyPending = false; player.firstBuyMoney = 0;
   state.aimed[actor] = false; state.exposed[other(actor)] = false;
   draw(state, actor, 5); state.tacticalPlayed = 0; state.cardsPlayed = []; state.spacesMoved = 0; state.manaSpent = 0; state.spellsPlayed = 0;
   state.copiesPlayed.fill(0); state.familiesPlayed.clear();
   state.active = other(actor); state.turn += 1; event(state);
 }
 
-function createState(config: SimulationMatchConfig): KernelState {
+function createState(config: SimulationMatchConfig, collectTelemetry = true): KernelState {
   const kingdom = kernelKingdom(config.kingdomId);
   const draft = config.startingDraftEnabled ?? true;
   const players: [KernelPlayer, KernelPlayer] = [
@@ -714,7 +741,7 @@ function createState(config: SimulationMatchConfig): KernelState {
     aimed: [false, false], exposed: [false, false], supply: new Int16Array(kingdom.initialSupply),
     active: seat(config.firstPlayerId), turn: 1, rng: config.seed >>> 0, tacticalPlayed: 0,
     cardsPlayed: [], spacesMoved: 0, manaSpent: 0, spellsPlayed: 0, copiesPlayed: new Int16Array(kingdom.cards.length), familiesPlayed: new Set(), eventCount: 2,
-    telemetry: undefined as unknown as MatchTelemetry
+    telemetry: null, collectTelemetry
   };
   const copper = kingdom.index.get('copper')!; const scrap = kingdom.index.get('scrap')!;
   const starting = (player: KernelPlayer): number[] => draft
@@ -727,17 +754,144 @@ function createState(config: SimulationMatchConfig): KernelState {
   if (!draft) state.eventCount = 1;
   players[0].attackProfile = attackProfile(state, 0);
   players[1].attackProfile = attackProfile(state, 1);
-  state.telemetry = createTelemetry(players, kingdom);
+  if (collectTelemetry) state.telemetry = createTelemetry(players, kingdom);
   return state;
 }
 
-export function runSimulationMatch(config: SimulationMatchConfig): MatchResult {
-  const state = createState(config);
+function moveGoldfishDummy(state: KernelState, profile: GoldfishMovementProfile): void {
+  if (profile === 'stationary') return;
+  const candidate = state.positions[0];
+  const dummy = state.positions[1];
+  if (profile === 'chaser') {
+    if (dummy < candidate && dummy < ARENA_MAX) state.positions[1] += 1;
+    else if (dummy > candidate && dummy > ARENA_MIN) state.positions[1] -= 1;
+    return;
+  }
+  const choices = [dummy - 1, dummy + 1].filter((position) => position >= ARENA_MIN && position <= ARENA_MAX);
+  const farther = choices.filter((position) => Math.abs(position - candidate) > Math.abs(dummy - candidate));
+  if (farther.length) state.positions[1] = farther.sort((left, right) =>
+    Math.abs(right - candidate) - Math.abs(left - candidate) || left - right)[0]!;
+}
+
+export function runGoldfishTrial(config: GoldfishTrialConfig): GoldfishTrialResult {
+  const dummy: Strategy = { id: 'goldfish-dummy', startingBuild: [], buyPlan: fixedBuyPlan([]) };
+  const state = createState({
+    kingdomId: config.kingdomId, seed: config.seed, firstPlayerId: 'ochre', swapSides: false,
+    turnLimitPerPlayer: config.turnLimit, actionCapPerTurn: config.actionCapPerTurn,
+    startingDraftEnabled: false, strategies: { ochre: config.strategy, indigo: dummy }
+  });
+  state.health[1] = 50;
+  const movementProfile = config.movementProfile ?? 'stationary';
+  const damageByTurn: number[] = [];
+  const positionsByTurn = [{ candidate: state.positions[0], dummy: state.positions[1] }];
+  let actionsInTurn = 0;
+  let phase: 'action' | 'buy' = 'action';
+  let reason: GoldfishTrialResult['reason'] = 'turnLimit';
+
+  for (;;) {
+    const actor = 0;
+    let turnChanged = false;
+    if (phase === 'action') {
+      const decision = chooseTacticalAction(pilotView(state, actor, null));
+      if (decision.type === 'play') {
+        const won = playCard(state, actor, decision); actionsInTurn += 1;
+        if (won) { damageByTurn.push(50); reason = 'victory'; break; }
+      } else {
+        endActionPhase(state, actor); actionsInTurn += 1; phase = 'buy';
+      }
+    } else {
+      const purchase = choosePurchase(state, actor);
+      if (purchase !== null) { buy(state, actor, purchase); actionsInTurn += 1; }
+      else {
+        endBuyPhase(state, actor); actionsInTurn += 1; phase = 'action';
+        state.active = 0;
+        damageByTurn.push(50 - state.health[1]);
+        moveGoldfishDummy(state, movementProfile);
+        positionsByTurn.push({ candidate: state.positions[0], dummy: state.positions[1] });
+        turnChanged = true;
+      }
+    }
+    if (actionsInTurn > config.actionCapPerTurn) { reason = 'actionCap'; break; }
+    if (state.turn > config.turnLimit) break;
+    if (turnChanged) actionsInTurn = 0;
+  }
+
+  return {
+    completed: reason === 'victory', turnsTo50: reason === 'victory' ? state.turn : null,
+    damageByTurn, positionsByTurn, moneySpent: state.players[0].moneySpent,
+    unspentMoney: state.players[0].unspentMoney,
+    purchasesByCard: state.telemetry!.purchasesByCard.ochre,
+    playsByCard: state.telemetry!.playsByCard.ochre,
+    damageByCard: state.telemetry!.damageByCard.ochre, reason
+  };
+}
+
+export function runLeanGoldfishTrial(config: GoldfishTrialConfig): LeanGoldfishTrialResult {
+  const dummy: Strategy = { id: 'goldfish-dummy', startingBuild: [], buyPlan: fixedBuyPlan([]) };
+  const state = createState({
+    kingdomId: config.kingdomId, seed: config.seed, firstPlayerId: 'ochre', swapSides: false,
+    turnLimitPerPlayer: config.turnLimit, actionCapPerTurn: config.actionCapPerTurn,
+    startingDraftEnabled: false, strategies: { ochre: config.strategy, indigo: dummy }
+  }, false);
+  state.health[1] = 50;
+  const movementProfile = config.movementProfile ?? 'stationary';
+  let completedTurns = 0;
+  let damageArea = 0;
+  let finalDamage = 0;
+  let actionsInTurn = 0;
+  let phase: 'action' | 'buy' = 'action';
+  let reason: GoldfishTrialResult['reason'] = 'turnLimit';
+
+  for (;;) {
+    const actor = 0;
+    let turnChanged = false;
+    if (phase === 'action') {
+      const decision = chooseTacticalAction(pilotView(state, actor, null));
+      if (decision.type === 'play') {
+        const won = playCard(state, actor, decision); actionsInTurn += 1;
+        if (won) {
+          finalDamage = 50;
+          damageArea += 50;
+          completedTurns += 1;
+          reason = 'victory';
+          break;
+        }
+      } else {
+        endActionPhase(state, actor); actionsInTurn += 1; phase = 'buy';
+      }
+    } else {
+      const purchase = choosePurchase(state, actor);
+      if (purchase !== null) { buy(state, actor, purchase); actionsInTurn += 1; }
+      else {
+        endBuyPhase(state, actor); actionsInTurn += 1; phase = 'action';
+        state.active = 0;
+        finalDamage = 50 - state.health[1];
+        damageArea += finalDamage;
+        completedTurns += 1;
+        moveGoldfishDummy(state, movementProfile);
+        turnChanged = true;
+      }
+    }
+    if (actionsInTurn > config.actionCapPerTurn) { reason = 'actionCap'; break; }
+    if (state.turn > config.turnLimit) break;
+    if (turnChanged) actionsInTurn = 0;
+  }
+  damageArea += (config.turnLimit - completedTurns) * finalDamage;
+  return {
+    completed: reason === 'victory', turnsTo50: reason === 'victory' ? state.turn : null,
+    damageArea, finalDamage, moneySpent: state.players[0].moneySpent,
+    unspentMoney: state.players[0].unspentMoney, reason
+  };
+}
+
+function runSimulationMatchState(
+  config: SimulationMatchConfig, collectTelemetry: boolean
+): ScoreOnlyMatchResult & { state: KernelState } {
+  const state = createState(config, collectTelemetry);
   let outcome: MatchResult['outcome'] = 'draw';
   let reason: MatchResult['reason'] = 'turnLimit';
   let actionsInTurn = 0;
   let phase: 'action' | 'buy' = 'action';
-
   for (;;) {
     const actor = state.active;
     let turnChanged = false;
@@ -746,9 +900,7 @@ export function runSimulationMatch(config: SimulationMatchConfig): MatchResult {
       if (decision.type === 'play') {
         const won = playCard(state, actor, decision); actionsInTurn += 1;
         if (won) { outcome = playerId(actor); reason = 'victory'; break; }
-      } else {
-        endActionPhase(state, actor); actionsInTurn += 1; phase = 'buy';
-      }
+      } else { endActionPhase(state, actor); actionsInTurn += 1; phase = 'buy'; }
     } else {
       const purchase = choosePurchase(state, actor);
       if (purchase !== null) { buy(state, actor, purchase); actionsInTurn += 1; }
@@ -758,16 +910,23 @@ export function runSimulationMatch(config: SimulationMatchConfig): MatchResult {
     if (state.turn > config.turnLimitPerPlayer * 2) { reason = 'turnLimit'; break; }
     if (turnChanged) actionsInTurn = 0;
   }
+  return { outcome, reason, turns: state.turn - 1, state };
+}
 
-  state.telemetry.eventCount = state.eventCount;
-  state.telemetry.finalHealth = { ochre: state.health[0], indigo: state.health[1] };
-  return {
-    config: {
-      kingdomId: config.kingdomId, seed: config.seed, firstPlayerId: config.firstPlayerId,
-      swapSides: config.swapSides, turnLimitPerPlayer: config.turnLimitPerPlayer,
-      actionCapPerTurn: config.actionCapPerTurn, startingDraftEnabled: config.startingDraftEnabled ?? true,
-      agentIds: { ochre: config.strategies.ochre.id, indigo: config.strategies.indigo.id }
-    },
-    outcome, reason, turns: state.turn - 1, telemetry: state.telemetry
-  };
+export function runSimulationMatchScoreOnly(config: SimulationMatchConfig): ScoreOnlyMatchResult {
+  const { outcome, reason, turns } = runSimulationMatchState(config, false);
+  return { outcome, reason, turns };
+}
+
+export function runSimulationMatch(config: SimulationMatchConfig): MatchResult {
+  const { outcome, reason, turns, state } = runSimulationMatchState(config, true);
+  const telemetry = state.telemetry!;
+  telemetry.eventCount = state.eventCount;
+  telemetry.finalHealth = { ochre: state.health[0], indigo: state.health[1] };
+  return { config: { kingdomId: config.kingdomId, seed: config.seed,
+    firstPlayerId: config.firstPlayerId, swapSides: config.swapSides,
+    turnLimitPerPlayer: config.turnLimitPerPlayer, actionCapPerTurn: config.actionCapPerTurn,
+    startingDraftEnabled: config.startingDraftEnabled ?? true,
+    agentIds: { ochre: config.strategies.ochre.id, indigo: config.strategies.indigo.id } },
+    outcome, reason, turns, telemetry };
 }

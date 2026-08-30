@@ -3,6 +3,7 @@ import type { GameState, LegalAction } from '../../src/game';
 import { tacticalAgent } from '../../src/sim/tacticalAgent';
 import { afterEach, describe, expect, it } from 'vitest';
 import { arena, strategy } from './fixtures';
+import { INFINITE_COUNT } from '../../src/sim/strategy';
 
 afterEach(() => { resetKingdoms(); });
 
@@ -18,6 +19,11 @@ function playedDefinition(state: GameState, action: LegalAction): string | null 
     : null;
 }
 
+function chosenDirection(action: LegalAction): string | undefined {
+  return 'movement' in action.command ? action.command.movement
+    : 'direction' in action.command ? action.command.direction : undefined;
+}
+
 describe('the shared tactical pilot', () => {
   it('uses an existing Aim on Volley before it draws or aims again', () => {
     const state = arena({ kingdomId: 'current-duel', hand: ['muster', 'aim', 'volley'], aimed: true });
@@ -30,7 +36,7 @@ describe('the shared tactical pilot', () => {
     expect(action.command).toMatchObject({ type: 'playFootwork', movement: 'left' });
   });
 
-  it('uses Step to move a Mage deck away from a Melee deck', () => {
+  it('moves a position-independent Mage profile away when retreat improves its public advantage over Melee', () => {
     const state = arena({
       kingdomId: 'three-way-open', hand: ['step'], draw: ['arcBolt'], ochre: 2, indigo: 3,
       indigoHand: ['heavyBlow'], indigoDraw: [], indigoDiscard: []
@@ -38,7 +44,7 @@ describe('the shared tactical pilot', () => {
     expect(choose(state).command).toMatchObject({ type: 'playMoveAction', direction: 'left' });
   });
 
-  it('uses the opponent deck to prefer Far over Near when Steady Shot damage ties', () => {
+  it('moves a Ranged profile away when retreat improves its public advantage over Melee', () => {
     const state = arena({
       kingdomId: 'range-rich-mixed', hand: ['footwork', 'steadyShot'], draw: [], ochre: 2, indigo: 3,
       indigoHand: ['heavyBlow'], indigoDraw: [], indigoDiscard: []
@@ -120,17 +126,32 @@ describe('the shared tactical pilot', () => {
       .toBe('heavyBlow');
   });
 
-  it('prefers first-attack Opening Strike over Strike after a setup card', () => {
-    const state = arena({ hand: ['openingStrike', 'strike'], ochre: 2, indigo: 2 });
-    state.turnState.cardsPlayed = ['channel'];
-    expect(playedDefinition(state, choose(state))).toBe('openingStrike');
+  it.each([
+    ['Step', 'step'], ['Ley Step', 'leyStep'], ['Footwork', 'footwork']
+  ] as const)('chooses mirrored %s directions when only continued movement space breaks the tie', (_name, card) => {
+    const normal = arena({
+      kingdomId: 'three-way-open', hand: [card, 'steadyShot'], draw: [], ochre: 3, indigo: 3,
+      indigoHand: [], indigoDraw: [], indigoDiscard: []
+    });
+    const reflected = arena({
+      kingdomId: 'three-way-open', hand: [card, 'steadyShot'], draw: [], ochre: 4, indigo: 4,
+      indigoHand: [], indigoDraw: [], indigoDiscard: []
+    });
+    expect(chosenDirection(choose(normal))).toBe('right');
+    expect(chosenDirection(choose(reflected))).toBe('left');
   });
 
-  it('counts a zero-damage second Scrap as an earlier attack for Opening Strike', () => {
-    const state = arena({ hand: ['openingStrike', 'strike'], ochre: 2, indigo: 2 });
-    state.turnState.cardsPlayed = ['scrap'];
-    state.turnState.copiesPlayed = { scrap: 2 };
-    expect(playedDefinition(state, choose(state))).toBe('strike');
+  it('chooses mirrored Drive directions when public position and immediate damage tie', () => {
+    const normal = arena({
+      kingdomId: 'three-way-open', hand: ['drive', 'steadyShot'], draw: [], ochre: 3, indigo: 3,
+      indigoHand: [], indigoDraw: [], indigoDiscard: []
+    });
+    const reflected = arena({
+      kingdomId: 'three-way-open', hand: ['drive', 'steadyShot'], draw: [], ochre: 4, indigo: 4,
+      indigoHand: [], indigoDraw: [], indigoDiscard: []
+    });
+    expect(chosenDirection(choose(normal))).toBe('right');
+    expect(chosenDirection(choose(reflected))).toBe('left');
   });
 
   it('chooses Drive wall damage at both arena walls', () => {
@@ -170,8 +191,63 @@ describe('the shared tactical pilot', () => {
       const targetId = action.command.type === 'playTargetedAction'
         ? action.command.targetCardInstanceIds[0] : undefined;
       expect(state.players.ochre.deck.hand.find((card) => card.id === targetId)?.definitionId).toBe('scrap');
-      resetKingdoms();
     }
+  });
+
+  it('trashes Copper with Discipline instead of trashing Discipline when no Scrap is available', () => {
+    registerKingdom({
+      id: 'discipline-policy', name: 'Discipline policy', startingHealth: 40,
+      actionPiles: [{ cardId: 'discipline', count: 10 }]
+    });
+    const state = arena({ kingdomId: 'discipline-policy', hand: ['discipline', 'copper'] });
+    const action = choose(state);
+    expect(action.command.type).toBe('playTargetedAction');
+    const targetId = action.command.type === 'playTargetedAction'
+      ? action.command.targetCardInstanceIds[0] : undefined;
+    expect(state.players.ochre.deck.hand.find((card) => card.id === targetId)?.definitionId).toBe('copper');
+  });
+
+  it('treats Opening Strike as the first attack after a setup card', () => {
+    registerKingdom({
+      id: 'opening-policy', name: 'Opening policy', startingHealth: 40,
+      actionPiles: [{ cardId: 'channel', count: 10 }, { cardId: 'openingStrike', count: 10 }]
+    });
+    const state = arena({
+      kingdomId: 'opening-policy', hand: ['openingStrike'], ochre: 2, indigo: 2
+    });
+    state.turnState.cardsPlayed = ['channel'];
+    expect(playedDefinition(state, choose(state))).toBe('openingStrike');
+  });
+
+  it('values Opening Strike at 1 after an earlier attack', () => {
+    const state = arena({
+      kingdomId: 'current-duel', hand: ['openingStrike', 'strike'], ochre: 2, indigo: 2
+    });
+    state.turnState.cardsPlayed = ['scrap'];
+    expect(playedDefinition(state, choose(state))).toBe('strike');
+  });
+
+  it('plays another affordable spell before Cascade increases its damage', () => {
+    const state = arena({
+      kingdomId: 'current-duel', hand: ['cascade', 'arcBolt'], mana: 2, health: 40
+    });
+    expect(playedDefinition(state, choose(state))).toBe('arcBolt');
+  });
+
+  it('does not count one Aim bonus once for every Ranged card while moving', () => {
+    registerKingdom({
+      id: 'aim-once-policy', name: 'Aim once policy', startingHealth: 40,
+      actionPiles: [
+        { cardId: 'footwork', count: 10 }, { cardId: 'pepperingShot', count: 10 },
+        { cardId: 'heavyBlow', count: 10 }
+      ],
+      overrides: { heavyBlow: { values: { damage: 5, draw: 0 } } }
+    });
+    const state = arena({
+      kingdomId: 'aim-once-policy', hand: ['footwork', 'pepperingShot', 'pepperingShot', 'heavyBlow'],
+      aimed: true, ochre: 2, indigo: 3, indigoHand: [], indigoDraw: [], indigoDiscard: []
+    });
+    expect(choose(state).command).toMatchObject({ type: 'playFootwork', movement: 'right' });
   });
 
   it('uses Scour on Scrap before filling its remaining capacity with Copper', () => {
@@ -189,7 +265,7 @@ describe('the shared tactical pilot', () => {
       firstBuyPending: false
     });
     const selected = choose(state, strategy({
-      buyAgenda: [{ cardId: 'footwork', desiredCount: 1 }], repeatPurchase: 'footwork'
+      buyPlan: [{ kind: 'buy', cardId: 'footwork', desiredCount: INFINITE_COUNT }]
     }));
     expect(selected.command.type).toBe('playTargetedAction');
     const selectedIds = selected.command.type === 'playTargetedAction' ? selected.command.targetCardInstanceIds : [];
@@ -287,20 +363,20 @@ describe('the shared tactical pilot', () => {
     });
     state.pendingChoice = { type: 'discard', playerId: 'ochre', remaining: 1 };
     const action = choose(state, strategy({
-      buyAgenda: [{ cardId: 'silver', desiredCount: 1 }], repeatPurchase: 'gold'
+      buyPlan: [{ kind: 'buy', cardId: 'silver', desiredCount: INFINITE_COUNT }]
     }));
     expect(action.command.type).toBe('resolveDiscard');
     const discardedId = action.command.type === 'resolveDiscard' ? action.command.discardInstanceId : null;
     expect(state.players.ochre.deck.hand.find((card) => card.id === discardedId)?.definitionId).toBe('scrap');
   });
 
-  it('retains one useful Scrap when the purchase is already safe', () => {
+  it('retains the one tactically useful Scrap when the purchase is already safe', () => {
     const state = arena({
       kingdomId: 'current-duel', hand: ['scrap', 'copper'], money: 5, firstBuyPending: false
     });
     state.pendingChoice = { type: 'discard', playerId: 'ochre', remaining: 1 };
     const action = choose(state, strategy({
-      buyAgenda: [{ cardId: 'silver', desiredCount: 1 }], repeatPurchase: 'gold'
+      buyPlan: [{ kind: 'buy', cardId: 'silver', desiredCount: 1 }]
     }));
     expect(action.command.type).toBe('resolveDiscard');
     const discardedId = action.command.type === 'resolveDiscard' ? action.command.discardInstanceId : null;
@@ -318,12 +394,34 @@ describe('the shared tactical pilot', () => {
     expect(state.players.ochre.deck.hand.find((card) => card.id === discardedId)?.definitionId).toBe('scrap');
   });
 
+  it('uses Sharpen to trash Copper when the planned purchase stays available', () => {
+    registerKingdom({
+      id: 'sharpen-policy', name: 'Sharpen policy', startingHealth: 40,
+      actionPiles: [{ cardId: 'sharpen', count: 10 }]
+    });
+    const state = arena({
+      kingdomId: 'sharpen-policy', hand: ['sharpen', 'copper'], draw: [], firstBuyPending: false
+    });
+    const finished = applyAction(state, choose(state).id);
+    expect(finished.pendingChoice?.type).toBe('optionalTrash');
+    const resolution = tacticalAgent(strategy({
+      buyPlan: [{ kind: 'buy', cardId: 'silver', desiredCount: INFINITE_COUNT }]
+    })).chooseAction(finished, 'ochre', listLegalActions(finished));
+    expect(resolution.command.type).toBe('resolveOptionalTrash');
+    const trashId = resolution.command.type === 'resolveOptionalTrash'
+      ? resolution.command.trashInstanceId : undefined;
+    expect(finished.players.ochre.deck.hand.find((card) => card.id === trashId)?.definitionId).toBe('copper');
+  });
+
   it('trashes two Coppers when the planned purchase stays available', () => {
     const state = arena({
       kingdomId: 'current-duel', hand: ['cull', 'copper', 'copper'], money: 5, firstBuyPending: false
     });
     const action = choose(state, strategy({
-      buyAgenda: [{ cardId: 'precisionShot', desiredCount: 1 }], repeatPurchase: 'footwork'
+      buyPlan: [
+        { kind: 'buy', cardId: 'precisionShot', desiredCount: 1 },
+        { kind: 'buy', cardId: 'footwork', desiredCount: INFINITE_COUNT }
+      ]
     }));
     expect(action.command.type).toBe('playTargetedAction');
     expect(action.command.type === 'playTargetedAction' ? action.command.targetCardInstanceIds : []).toHaveLength(2);
@@ -334,7 +432,10 @@ describe('the shared tactical pilot', () => {
       kingdomId: 'current-duel', hand: ['cull', 'copper', 'copper'], money: 3, firstBuyPending: false
     });
     expect(choose(state, strategy({
-      buyAgenda: [{ cardId: 'precisionShot', desiredCount: 1 }], repeatPurchase: 'footwork'
+      buyPlan: [
+        { kind: 'buy', cardId: 'precisionShot', desiredCount: 1 },
+        { kind: 'buy', cardId: 'footwork', desiredCount: INFINITE_COUNT }
+      ]
     })).command.type).toBe('endActionPhase');
   });
 });

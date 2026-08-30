@@ -13,17 +13,22 @@ const telemetry = () => ({
 });
 
 parentPort.on('message', (request) => {
-  if (request.items.some((item) => item.job.candidate.id === 'fail')) {
+  const items = request.kind === 'pairing-schedules-v3'
+    ? request.schedules.flatMap((schedule) => schedule.blocks.map((block) => ({
+      ...block, candidate: schedule.candidate, scheduleSize: schedule.blocks.length
+    })))
+    : request.items.map((item) => ({ ...item, scheduleSize: 1 }));
+  if (items.some((item) => request.candidates[item.candidate].id === 'fail')) {
     parentPort.postMessage({
       kind: 'pairing-error', name: 'Error', message: 'worker exploded'
     });
     return;
   }
-  const delay = Math.max(0, 20 - request.items[0].id * 5);
+  const delay = Math.max(0, 20 - items[0].id * 5);
   setTimeout(() => parentPort.postMessage({
-    kind: 'pairing-results', outcomes: request.items.map(({ id }) => ({ id, outcome: {
+    kind: 'pairing-results', outcomes: items.map(({ id, scheduleSize }) => ({ id, outcome: {
       record: record(), candidateScore: 0, opponentScore: 0, telemetry: telemetry(),
-      matches: id, seedBlocks: 0, stopReason: 'maximum',
+      matches: id, seedsEvaluated: scheduleSize, stopReason: 'maximum',
       candidateMean: null, opponentMean: null
     } }))
   }), delay);

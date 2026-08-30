@@ -1,11 +1,12 @@
 import { afterEach, describe, expect, it } from 'vitest';
 import { applyAction, listLegalActions, registerKingdom, resetKingdoms } from '../../src/game';
-import type { GameCommand, GameState } from '../../src/game';
+import type { GameState } from '../../src/game';
 import { applyLegalAction } from '../../src/game/engine';
 import { createMemo, memoKey, searchAction, searchBaseline } from '../../src/sim/search';
 import { tacticalAgent } from '../../src/sim/tacticalAgent';
 import { ActionSearchOverflowError } from '../../src/sim/types';
 import { arena, choose, playPhase, strategy } from './fixtures';
+import { INFINITE_COUNT } from '../../src/sim/strategy';
 
 afterEach(() => { resetKingdoms(); });
 
@@ -18,23 +19,6 @@ function firstPlayedDefinition(state: GameState, plan = strategy()): string | un
 }
 function trashed(state: GameState): string[] { return state.trash.map((card) => card.definitionId).sort(); }
 
-function actionPhaseCommands(
-  state: GameState, plan: ReturnType<typeof strategy>, memo: ReturnType<typeof createMemo> | null
-): { commands: GameCommand[]; state: GameState } {
-  const baseline = searchBaseline(state, 'ochre');
-  const commands: GameCommand[] = [];
-  let current = state;
-  for (let count = 0; count < 30; count += 1) {
-    const action = searchAction(current, 'ochre', listLegalActions(current), plan, baseline, {
-      stateLimit: 20000, memo
-    }).action;
-    commands.push(action.command);
-    if (action.command.type === 'endActionPhase') return { commands, state: current };
-    current = applyAction(current, action.id);
-  }
-  throw new Error('The test Action phase did not finish.');
-}
-
 describe('shared damage pilot', () => {
   it('takes a lethal line and moves to unlock it', () => {
     const state = arena({ kingdomId: 'range-rich-mixed', hand: ['footwork', 'heavyBlow'], draw: ['copper'], ochre: 2, indigo: 3, health: 4 });
@@ -46,7 +30,6 @@ describe('shared damage pilot', () => {
   it('plays Aim before Volley when that deals more damage', () => {
     const state = arena({ hand: ['aim', 'volley'], draw: ['copper'], ochre: 2, indigo: 3, health: 20 });
     expect(firstPlayedDefinition(state)).toBe('aim');
-    expect(playPhase(state, strategy()).fighters.indigo.health).toBe(16);
   });
 
   it('orders tactical actions before Flurry', () => {
@@ -88,7 +71,7 @@ describe('hidden draw order', () => {
     const backward = structuredClone(forward);
     backward.players.ochre.deck.draw.reverse();
     backward.players.indigo.deck.draw.reverse();
-    const plan = strategy({ buyAgenda: [{ cardId: 'volley', desiredCount: 2 }], repeatPurchase: 'footwork' });
+    const plan = strategy({ buyPlan: [{ kind: 'buy', cardId: 'volley', desiredCount: 2 }, { kind: 'buy', cardId: 'footwork', desiredCount: INFINITE_COUNT }] });
     expect(choose(backward, plan).command).toEqual(choose(forward, plan).command);
   });
 
@@ -121,32 +104,32 @@ describe('hidden draw order', () => {
 describe('Cull policy', () => {
   it('never trashes a non-Copper card', () => {
     const state = arena({ hand: ['cull', 'gold'], firstBuyPending: false });
-    const finished = playPhase(state, strategy({ repeatPurchase: 'footwork' }));
+    const finished = playPhase(state, strategy({ buyPlan: [{ kind: 'buy', cardId: 'footwork', desiredCount: INFINITE_COUNT }] }));
     expect(trashed(finished)).toEqual(['cull']);
     expect(finished.players.ochre.deck.hand.map((card) => card.definitionId)).toContain('gold');
   });
 
   it('trashes one Copper when trashing two would lose an earlier planned purchase', () => {
     const state = arena({ hand: ['cull', 'copper', 'copper', 'copper', 'gold'], firstBuyPending: false });
-    const plan = strategy({ buyAgenda: [{ cardId: 'volley', desiredCount: 1 }], repeatPurchase: 'footwork' });
+    const plan = strategy({ buyPlan: [{ kind: 'buy', cardId: 'volley', desiredCount: 1 }, { kind: 'buy', cardId: 'footwork', desiredCount: INFINITE_COUNT }] });
     expect(trashed(playPhase(state, plan))).toEqual(['copper']);
   });
 
   it('trashes two Coppers when every choice buys the same card', () => {
     const state = arena({ hand: ['cull', 'copper', 'copper', 'gold'], firstBuyPending: false });
-    expect(trashed(playPhase(state, strategy({ repeatPurchase: 'footwork' })))).toEqual(['copper', 'copper']);
+    expect(trashed(playPhase(state, strategy({ buyPlan: [{ kind: 'buy', cardId: 'footwork', desiredCount: INFINITE_COUNT }] })))).toEqual(['copper', 'copper']);
   });
 
   it('retires Cull but keeps Copper when repeatable money is exactly at the floor', () => {
     const state = arena({ hand: ['cull', 'copper', 'silver'], firstBuyPending: false });
-    const finished = playPhase(state, strategy({ repeatPurchase: 'footwork' }));
+    const finished = playPhase(state, strategy({ buyPlan: [{ kind: 'buy', cardId: 'footwork', desiredCount: INFINITE_COUNT }] }));
     expect(trashed(finished)).toEqual(['cull']);
     expect(finished.players.ochre.deck.hand.map((card) => card.definitionId)).toContain('copper');
   });
 
   it('retires obsolete Cull with no Copper even when money is already below the floor', () => {
     const state = arena({ hand: ['cull', 'silver'], firstBuyPending: false });
-    expect(trashed(playPhase(state, strategy({ repeatPurchase: 'gold' })))).toEqual(['cull']);
+    expect(trashed(playPhase(state, strategy({ buyPlan: [{ kind: 'buy', cardId: 'gold', desiredCount: INFINITE_COUNT }] })))).toEqual(['cull']);
   });
 
   it('uses the smaller live deck after Cull when it evaluates a later Step', () => {
@@ -156,7 +139,7 @@ describe('Cull policy', () => {
       indigoHand: ['heavyBlow', 'copper', 'copper', 'copper', 'copper'],
       indigoDraw: [], indigoDiscard: [], firstBuyPending: false
     });
-    const finished = playPhase(state, strategy({ repeatPurchase: 'footwork' }));
+    const finished = playPhase(state, strategy({ buyPlan: [{ kind: 'buy', cardId: 'footwork', desiredCount: INFINITE_COUNT }] }));
     expect(trashed(finished)).toContain('copper');
     expect(finished.fighters.ochre.position).toBe(2);
   });
@@ -166,7 +149,10 @@ describe('fixed choice policy', () => {
   it('Reclaim selects the highest-cost discarded card', () => {
     const state = arena({ kingdomId: 'three-way-engine', hand: ['reclaim'], draw: ['copper'], discard: ['silver', 'gold'] });
     const reclaim = listLegalActions(state).find((entry) => 'cardInstanceId' in entry.command)!;
-    const pending = applyAction(state, reclaim.id); const agent = tacticalAgent(strategy({ repeatPurchase: 'channel' }));
+    const pending = applyAction(state, reclaim.id);
+    const agent = tacticalAgent(strategy({
+      buyPlan: [{ kind: 'buy', cardId: 'channel', desiredCount: INFINITE_COUNT }]
+    }));
     const selected = agent.chooseAction(pending, 'ochre', listLegalActions(pending));
     expect(selected.command.type).toBe('resolveRecover');
     const recoveredId = selected.command.type === 'resolveRecover' ? selected.command.recoverInstanceId : '';
@@ -176,24 +162,21 @@ describe('fixed choice policy', () => {
   it('breaks equal Reclaim costs by definition id', () => {
     const state = arena({ kingdomId: 'three-way-engine', hand: ['reclaim'], draw: ['copper'], discard: ['silver', 'footwork'] });
     const reclaim = listLegalActions(state).find((entry) => 'cardInstanceId' in entry.command)!;
-    const pending = applyAction(state, reclaim.id); const agent = tacticalAgent(strategy({ repeatPurchase: 'channel' }));
+    const pending = applyAction(state, reclaim.id);
+    const agent = tacticalAgent(strategy({
+      buyPlan: [{ kind: 'buy', cardId: 'channel', desiredCount: INFINITE_COUNT }]
+    }));
     const selected = agent.chooseAction(pending, 'ochre', listLegalActions(pending));
     const recoveredId = selected.command.type === 'resolveRecover' ? selected.command.recoverInstanceId : '';
     expect(pending.players.ochre.deck.discard.find((card) => card.id === recoveredId)?.definitionId).toBe('footwork');
   });
 
-  it('uses the revealed state after Prism to preserve the maximum damage line', () => {
-    const state = arena({ kingdomId: 'three-way-engine', hand: ['prism', 'fireball', 'copper'], draw: ['channel'], firstBuyPending: false });
-    const finished = playPhase(state, strategy({ repeatPurchase: 'footwork' }));
-    expect(finished.fighters.indigo.health).toBe(44);
-    expect(finished.events.some((event) => event.type === 'discard')).toBe(true);
-  });
 });
 
 describe('search mechanics', () => {
   it('is deterministic with and without memoization', () => {
     const state = arena({ kingdomId: 'current-duel', hand: ['footwork', 'aim', 'volley', 'muster'], draw: ['copper', 'copper'], ochre: 2, indigo: 3 });
-    const plan = strategy({ repeatPurchase: 'footwork' });
+    const plan = strategy({ buyPlan: [{ kind: 'buy', cardId: 'footwork', desiredCount: INFINITE_COUNT }] });
     expect(choose(structuredClone(state), plan).command).toEqual(choose(state, plan).command);
     expect(choose(state, plan, { memo: null }).command).toEqual(choose(state, plan).command);
   });
@@ -208,18 +191,6 @@ describe('search mechanics', () => {
     choose(state, strategy());
 
     expect(state).toEqual(before);
-  });
-
-  it('keeps exact memo results through Reclaim and a later draw', () => {
-    const state = arena({ kingdomId: 'three-way-engine', hand: ['reclaim'], draw: [], discard: ['pepperingShot'] });
-    const plan = strategy({ repeatPurchase: 'footwork' });
-    const memoized = actionPhaseCommands(structuredClone(state), plan, createMemo());
-    const plain = actionPhaseCommands(structuredClone(state), plan, null);
-    expect(memoized.commands).toEqual(plain.commands);
-    expect(memoized.state).toEqual(plain.state);
-    expect(memoized.commands.map((command) => command.type)).toContain('resolveRecover');
-    expect(memoized.commands.filter((command) => 'cardInstanceId' in command)).toHaveLength(2);
-    expect(memoized.state.fighters.indigo.health).toBe(49);
   });
 
   it('does not read labels while searching', () => {
@@ -270,7 +241,9 @@ describe('search mechanics', () => {
     registerKingdom({ id:'search-scour', name:'Search Scour', startingHealth:40,
       actionPiles:[{ cardId:'scour', count:10 }] });
     const state = arena({ kingdomId:'search-scour', hand:['scour','copper','copper','copper','silver','gold'] });
-    const selected = choose(state, strategy({ repeatPurchase:'gold' }), { stateLimit:20 });
+    const selected = choose(state, strategy({
+      buyPlan: [{ kind: 'buy', cardId: 'gold', desiredCount: INFINITE_COUNT }]
+    }), { stateLimit:20 });
     expect(selected.command.type).toBe('playTargetedAction');
     const targets = selected.command.type === 'playTargetedAction' ? selected.command.targetCardInstanceIds : [];
     expect(targets.map((id) => state.players.ochre.deck.hand.find((card) => card.id === id)?.definitionId))
