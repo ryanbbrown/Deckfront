@@ -11,7 +11,7 @@ import { INFINITE_COUNT, fixedBuyPlan, identify } from '../src/sim/strategy';
 const execute = promisify(execFile);
 
 describe('playable-game seed script', () => {
-  it('writes a schema-13 draft record that passes repository validation', async () => {
+  it('writes a schema-14 draft record that passes repository validation', async () => {
     const directory = await mkdtemp(path.join(tmpdir(), 'hexdeck-seed-script-'));
     try {
       const games = path.join(directory, 'games');

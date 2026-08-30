@@ -24,7 +24,7 @@ function buyToken(cardId: string, count: number): PrefixToken {
   return `buy:${cardId}:${count}`;
 }
 
-/** One canonical complete-policy grammar for every pilot optimizer. */
+/** Canonical complete-policy grammar for random native candidate generation. */
 export class ResponsePolicyDomain {
   readonly kingdomId: string;
   readonly purchaseIds: readonly string[];
@@ -91,35 +91,6 @@ export class ResponsePolicyDomain {
       throw new Error('Response policy repair changed a grammar-valid policy.');
     }
     return strategy;
-  }
-
-  decode(strategy: Strategy): { prefix: PrefixToken[]; floor: FloorToken } {
-    const active = this.activeSlots(strategy);
-    if (!active.length || active.length > this.maxActiveSlots || strategy.startingBuild.length) {
-      throw new Error(`${strategy.id} is outside the response policy domain.`);
-    }
-    const terminal = active.at(-1)!;
-    const floor: FloorToken = terminal.kind === 'stop' && terminal.threshold === 0
-      ? 'no-buy' : terminal.kind === 'buy' && terminal.desiredCount === INFINITE_COUNT
-        ? `floor:${terminal.cardId}` : (() => { throw new Error(`${strategy.id} has no terminal floor.`); })();
-    const prefix = active.slice(0, -1).map((slot): PrefixToken => {
-      if (slot.kind === 'stop' && RESPONSE_STOP_THRESHOLDS.includes(slot.threshold as 2 | 4 | 6)) {
-        return `stop:${slot.threshold}`;
-      }
-      if (slot.kind === 'buy' && RESPONSE_FINITE_COUNTS.includes(slot.desiredCount as 1 | 2 | 3 | 4 | 5)) {
-        return buyToken(slot.cardId, slot.desiredCount);
-      }
-      throw new Error(`${strategy.id} has an invalid finite prefix slot.`);
-    });
-    const rebuilt = this.complete(prefix, floor);
-    if (canonicalStrategy(rebuilt) !== canonicalStrategy(strategy)) {
-      throw new Error(`${strategy.id} is not a canonical response policy.`);
-    }
-    return { prefix, floor };
-  }
-
-  private activeSlots(strategy: Strategy): BuyPlanSlot[] {
-    return strategy.buyPlan.filter((slot) => slot.kind !== 'inactive');
   }
 
   private prefixSlot(token: PrefixToken): BuyPlanSlot {

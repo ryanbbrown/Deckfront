@@ -48,6 +48,23 @@ const shapes = [
 ] as const;
 
 describe('Goldfish-only Modal operator', () => {
+  it('pins the scientific source list to Rust files', () => {
+    expect(JSON.parse(fs.readFileSync('strategy-search-scientific-files.json', 'utf8'))).toEqual([
+      'rust/Cargo.lock',
+      'rust/Cargo.toml',
+      'rust/goldfish/Cargo.toml',
+      'rust/goldfish/kingdoms.json',
+      'rust/goldfish/src/equilibrium.rs',
+      'rust/goldfish/src/kernel.rs',
+      'rust/goldfish/src/main.rs',
+      'rust/goldfish/src/matrix.rs',
+      'rust/goldfish/src/psro.rs',
+      'rust/goldfish/src/reservoir.rs',
+      'rust/goldfish/src/self_play.rs',
+      'rust/rust-toolchain.toml'
+    ]);
+  });
+
   it('accepts only explicit bounded paid inputs', () => {
     expect(parseGoldfishModalRequest(request(16))).toEqual(request(16));
     expect(parseGoldfishModalRequest(request(64))).toEqual(request(64));

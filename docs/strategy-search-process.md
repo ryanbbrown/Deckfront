@@ -137,5 +137,3 @@ When done, save enough evidence to reproduce and inspect every scientific decisi
 - gameplay evidence used for card-balance analysis.
 
 Validate these files before the campaign is complete. Download the validated evidence, then produce balance reports and comparisons locally. Reporting does not change the strategy search or its completion result.
-
-For a completed evidence set that predates HST, run `npm run strategy-search:self-play-backfill` locally. The command structurally checks headers, CRCs, source links, checkpoint completion, final Matrix order, and HST evidence. It creates only missing same-strategy telemetry and retains every valid HST. It does not replay Goldfish ranking, Matrix solving, PSRO screening, decisions, or races. Deep verification is a separate, deliberate `psro-verify` run.

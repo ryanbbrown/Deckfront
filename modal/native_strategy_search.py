@@ -25,8 +25,6 @@ from typing import Any
 import modal
 
 CAMPAIGN_CHECKPOINT_EVENT = "strategy-search-checkpoint"
-CAMPAIGN_STAGE_STOP_EVENT = "strategy-search-stage-stop"
-CAMPAIGN_STAGES = {"goldfish", "matrix", "psro"}
 STRATEGY_SEARCH_MAX_JOB_ATTEMPTS = 3
 GOLDFISH_MODAL_ROUTE = "goldfish-only-v2"
 GOLDFISH_MODAL_CPU_RATE_PER_CORE_SECOND = 0.0000131

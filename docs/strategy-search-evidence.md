@@ -6,7 +6,7 @@ Read this before interpreting PSRO, equilibrium, strategy-family, or balance-rep
 
 Use `classifyStrategyDamage` in `scripts/generate_balance_corpus.ts` for Melee, Ranged, Mage, and mixed strategy labels. It classifies a strategy from its starting build and recorded acquisitions. A family is part of a mixed label when it supplies at least 20% of the strategy's damage-package evidence. Improvise contributes to each damage family that the strategy owns.
 
-`npm run strategy:report` uses this classifier for the headline strategy-type chart. The chart's marker is the selected deterministic maximum-support equilibrium. Its light band is the minimum and maximum joint archetype share over all equilibria of the discovered payoff matrix.
+The v2 Rust balance report uses this classifier for strategy-family shares. Generate it with `npm run strategy-search:rust-balance-report` after the stored equilibrium acquisition rates are available.
 
 A card-family presence check on the purchase plan is not this classification. Do not use plan presence to report a kingdom's Ranged, Melee, or Mage percentage.
 
@@ -16,7 +16,7 @@ Balance headlines describe the stored equilibrium lottery playing against itself
 
 Raw unweighted full-Matrix counts are audit evidence. Do not use pooled counts, uniform opponents, or off-diagonal-only rates for strategy labels, card-usage headlines, family-damage headlines, or balance outliers. The Matrix payoff diagonal remains fixed at 50%; same-strategy games supply telemetry only.
 
-Ordinary HST backfill and v2 report generation structurally check file formats, CRCs, source links, checkpoint completion, selected Matrix order, and HST evidence. They do not replay Goldfish ranking, Matrix solving, PSRO screening, decisions, or races. Deep verification is a separate, deliberate `psro-verify` run.
+V2 report generation structurally checks file formats, CRCs, source links, checkpoint completion, selected Matrix order, and HST evidence. It does not replay Goldfish ranking, Matrix solving, PSRO screening, decisions, or races. Deep verification is a separate, deliberate `psro-verify` run.
 
 ## Separate three kinds of consistency
 
