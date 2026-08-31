@@ -1,6 +1,6 @@
 # Aim and Overload cost balance run
 
-Status: approved and in progress.
+Status: complete.
 
 ## Goal
 
@@ -29,3 +29,12 @@ Run focused card-rule tests, TypeScript and Rust parity checks, required builds,
 - Focused verification passes.
 - All 30 kingdoms complete Goldfish -> Matrix -> PSRO with no changed search rules and two clean final PSRO searches each.
 - The report passes routine structural checks and opens in Google Chrome beside the baseline report.
+
+## Result
+
+- Scientific implementation commit: `1b0f4af47d3da5129d923eae882c9e7c199db1c3`.
+- Goldfish, Matrix, and PSRO completed for all 30 kingdoms. Goldfish had no retries. Every PSRO result is valid and reached the two-clean-full-search stop.
+- Goldfish cost $0.859190. The PSRO ledger cost $0.522724. Total Modal cost was $1.381914.
+- Routine structural report validation passed. No deep verification ran.
+- Analysis: `.data/aim-overload-cost4-balance-96/rust-balance-analysis-v2.json`.
+- HTML: `.html/strategy-search-30-aim-overload-cost4-head-1b0f4af.html`.
