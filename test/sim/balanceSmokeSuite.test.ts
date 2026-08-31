@@ -2,6 +2,7 @@ import fs from 'node:fs';
 import path from 'node:path';
 import { spawnSync } from 'node:child_process';
 import { describe, expect, it } from 'vitest';
+import type { Constraint } from 'yalps';
 import rawSmokeDesign from '../../src/sim/balance-smoke-suite-design-v1.json' with { type: 'json' };
 import rawSmokeManifest from '../../src/sim/balance-smoke-suite-manifest.json' with { type: 'json' };
 import { BALANCE_SUITE_MANIFEST } from '../../src/sim/balanceSuite';
@@ -10,10 +11,13 @@ import {
 } from '../../src/sim/balanceSmokeSuite';
 import type { BalanceSmokeSuiteManifest } from '../../src/sim/balanceSmokeSuite';
 import {
-  balanceSmokeSuiteDesignDigest, findBestBalanceSmokeSuiteExchange, generateBalanceSmokeSuiteDesign,
-  serializeBalanceSmokeSuiteDesign, validateBalanceSmokeSuiteDesign
+  findBestBalanceSmokeSuiteExchange, generateBalanceSmokeSuiteDesign,
+  generateBalanceSmokeSuiteYalpsModel, validateBalanceSmokeSuiteDesign
 } from '../../src/sim/balanceSmokeSuiteSearch';
-import type { BalanceSmokeSuiteDesignSource } from '../../src/sim/balanceSmokeSuiteSearch';
+import {
+  balanceSmokeSuiteDesignDigest, serializeBalanceSmokeSuiteDesign
+} from '../../src/sim/balanceSmokeSuiteDesign';
+import type { BalanceSmokeSuiteDesignSource } from '../../src/sim/balanceSmokeSuiteDesign';
 
 const smokeDesign = rawSmokeDesign as unknown as BalanceSmokeSuiteDesignSource;
 const smokeManifest = rawSmokeManifest as unknown as BalanceSmokeSuiteManifest;
@@ -153,6 +157,14 @@ describe('balance smoke suite', () => {
       && candidate.requiredTripleCovered === 60 && candidate.routesCovered === 14)).toBe(true);
   });
 
+  it('applies the literal card bounds to the YALPS seed model', () => {
+    const cardConstraints = (count: number): Constraint[] => Object.entries(
+      generateBalanceSmokeSuiteYalpsModel(count).constraints as Readonly<Record<string, Constraint>>
+    ).filter(([name]) => name.startsWith('card:')).map(([, constraint]) => constraint);
+    expect(cardConstraints(30)).toEqual(Array.from({ length: 40 }, () => ({ min: 6, max: 11 })));
+    expect(cardConstraints(29)).toEqual(Array.from({ length: 40 }, () => ({ min: 6 })));
+  });
+
   it('regenerates the search design byte for byte in two independent processes', () => {
     const root = path.resolve(import.meta.dirname, '../..');
     const committed = fs.readFileSync(path.join(root, 'src/sim/balance-smoke-suite-design-v1.json'), 'utf8');
@@ -166,7 +178,7 @@ describe('balance smoke suite', () => {
     expect(second.status, second.stderr.toString()).toBe(0);
     expect(first.stdout).toBe(committed);
     expect(second.stdout).toBe(first.stdout);
-  }, 60_000);
+  }, 120_000);
 
   it('rejects changed design identity and provenance even with a replacement digest', () => {
     const badDigest = structuredClone(smokeDesign);

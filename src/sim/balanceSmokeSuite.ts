@@ -4,8 +4,8 @@ import {
   PRIORITY_PAIRS, REQUIRED_TRIPLES, canonicalJson, measureBalanceSuiteDesign, sha256Canonical
 } from './balanceSuiteDesign';
 import type { BalanceRouteLabel, BalanceSuiteDesign } from './balanceSuiteDesign';
-import { validateBalanceSmokeSuiteDesign } from './balanceSmokeSuiteSearch';
-import type { BalanceSmokeSuiteDesignSource } from './balanceSmokeSuiteSearch';
+import { validateBalanceSmokeSuiteDesignIdentity } from './balanceSmokeSuiteDesign';
+import type { BalanceSmokeSuiteDesignSource } from './balanceSmokeSuiteDesign';
 
 export interface BalanceSmokeCandidate {
   count: number;
@@ -49,7 +49,7 @@ export interface BalanceSmokeSuiteManifest {
   };
 }
 
-const BALANCE_SMOKE_SUITE_DESIGN = validateBalanceSmokeSuiteDesign(
+const BALANCE_SMOKE_SUITE_DESIGN = validateBalanceSmokeSuiteDesignIdentity(
   rawDesign as unknown as BalanceSmokeSuiteDesignSource
 );
 const kingdomById = new Map(BALANCE_SUITE_MANIFEST.kingdoms.map((kingdom) => [kingdom.id, kingdom]));
