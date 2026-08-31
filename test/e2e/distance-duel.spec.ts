@@ -156,7 +156,7 @@ test('DD-E2E-073: full card catalog covers the viewport and shows all cards in a
   expect((await familyCards('engine')).slice(0, 5)).toEqual(['Scrap:0', 'Discipline:2', 'Step:2', 'Cull:3', 'Footwork:3']);
   expect((await familyCards('melee')).slice(-3)).toEqual(['Feint:5', 'Flurry:5', 'Heavy Blow:5']);
   expect((await familyCards('ranged')).slice(0, 3)).toEqual(['Longshot:3', 'Peppering Shot:3', 'Steady Shot:3']);
-  expect((await familyCards('mana')).slice(-3)).toEqual(['Overload:5', 'Prism:5', 'Starfire:6']);
+  expect((await familyCards('mana')).slice(-3)).toEqual(['Overload:4', 'Prism:5', 'Starfire:6']);
   const layout = await dialog.evaluate((overlay) => {
     const rect = (element: Element) => element.getBoundingClientRect(); const overlayBox = rect(overlay);
     const cards = [...overlay.querySelectorAll('.catalog-card')].map(rect); const body = overlay.querySelector<HTMLElement>('.catalog-dialog__body')!;

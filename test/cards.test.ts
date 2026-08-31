@@ -116,9 +116,9 @@ describe('deck tools', () => {
 });
 
 describe('approved final card values', () => {
-  it('uses the literal Starfire 12 costs and damage values', () => {
+  it('uses the approved costs and damage values', () => {
     expect(Object.fromEntries([
-      'arcBolt', 'fireball', 'starfire', 'overload', 'rally', 'bullRush', 'repellingShot', 'longshot', 'volley'
+      'arcBolt', 'fireball', 'starfire', 'overload', 'rally', 'bullRush', 'aim', 'repellingShot', 'longshot', 'volley'
     ].map((id) => {
       const card = cardDefinition(id);
       return [id, { cost: card.cost, headline: card.headline, values: card.values }];
@@ -126,9 +126,10 @@ describe('approved final card values', () => {
       arcBolt: { cost: 4, headline: '3 damage', values: { damage: 3, manaCost: 1 } },
       fireball: { cost: 5, headline: '6 damage', values: { damage: 6, manaCost: 2 } },
       starfire: { cost: 6, headline: '12 damage', values: { damage: 12, manaCost: 3 } },
-      overload: { cost: 5, headline: '3 damage per mana spent', values: { perManaSpent: 3 } },
+      overload: { cost: 4, headline: '3 damage per mana spent', values: { perManaSpent: 3 } },
       rally: { cost: 3, headline: '2 damage', values: { damage: 2, perCopy: 2 } },
       bullRush: { cost: 3, headline: '7 damage', values: { damage: 7 } },
+      aim: { cost: 4, headline: '+1 card', values: { draw: 1, bonus: 2 } },
       repellingShot: { cost: 4, headline: 'Far: 2 damage · Near: 1 damage', values: { near: 1, far: 2 } },
       longshot: { cost: 3, headline: 'Damage equal to distance', values: {} },
       volley: { cost: 5, headline: 'Near: 2 damage · Far: 4 damage', values: { near: 2, far: 4 } }

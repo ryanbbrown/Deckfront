@@ -46,7 +46,7 @@
             "cardType": "action",
             "mechanic": "aim",
             "family": "ranged",
-            "cost": 5,
+            "cost": 4,
             "money": 0,
             "tactical": true,
             "supply": 10,
@@ -235,7 +235,7 @@
         "silver",
         "step"
       ],
-      "ruleFingerprint": "e953553de52"
+      "ruleFingerprint": "2bda3d32e52"
     },
     {
       "kingdomId": "balance-tuning-002",
@@ -813,7 +813,7 @@
             "cardType": "action",
             "mechanic": "overload",
             "family": "mana",
-            "cost": 5,
+            "cost": 4,
             "money": 0,
             "tactical": true,
             "supply": 10,
@@ -932,7 +932,7 @@
         "step",
         "stipend"
       ],
-      "ruleFingerprint": "076cdc33d7f"
+      "ruleFingerprint": "4dd3279ed7f"
     },
     {
       "kingdomId": "balance-tuning-005",
@@ -1036,7 +1036,7 @@
             "cardType": "action",
             "mechanic": "overload",
             "family": "mana",
-            "cost": 5,
+            "cost": 4,
             "money": 0,
             "tactical": true,
             "supply": 10,
@@ -1170,7 +1170,7 @@
         "strike",
         "volley"
       ],
-      "ruleFingerprint": "4de25d8ed14"
+      "ruleFingerprint": "a734267fd14"
     },
     {
       "kingdomId": "balance-tuning-006",
@@ -1218,7 +1218,7 @@
             "cardType": "action",
             "mechanic": "aim",
             "family": "ranged",
-            "cost": 5,
+            "cost": 4,
             "money": 0,
             "tactical": true,
             "supply": 10,
@@ -1404,7 +1404,7 @@
         "steadyShot",
         "step"
       ],
-      "ruleFingerprint": "f45b900de27"
+      "ruleFingerprint": "3ec2200ce27"
     },
     {
       "kingdomId": "balance-tuning-007",
@@ -1689,7 +1689,7 @@
             "cardType": "action",
             "mechanic": "aim",
             "family": "ranged",
-            "cost": 5,
+            "cost": 4,
             "money": 0,
             "tactical": true,
             "supply": 10,
@@ -1878,7 +1878,7 @@
         "step",
         "volley"
       ],
-      "ruleFingerprint": "7e3c63dae78"
+      "ruleFingerprint": "13d47ae9e78"
     },
     {
       "kingdomId": "balance-tuning-009",
@@ -2163,7 +2163,7 @@
             "cardType": "action",
             "mechanic": "aim",
             "family": "ranged",
-            "cost": 5,
+            "cost": 4,
             "money": 0,
             "tactical": true,
             "supply": 10,
@@ -2242,7 +2242,7 @@
             "cardType": "action",
             "mechanic": "overload",
             "family": "mana",
-            "cost": 5,
+            "cost": 4,
             "money": 0,
             "tactical": true,
             "supply": 10,
@@ -2348,7 +2348,7 @@
         "starfire",
         "step"
       ],
-      "ruleFingerprint": "fa6f2cc7e18"
+      "ruleFingerprint": "a79771d5e18"
     },
     {
       "kingdomId": "balance-tuning-011",
@@ -2396,7 +2396,7 @@
             "cardType": "action",
             "mechanic": "aim",
             "family": "ranged",
-            "cost": 5,
+            "cost": 4,
             "money": 0,
             "tactical": true,
             "supply": 10,
@@ -2584,7 +2584,7 @@
         "silver",
         "step"
       ],
-      "ruleFingerprint": "7a88fe68dac"
+      "ruleFingerprint": "14679baddac"
     },
     {
       "kingdomId": "balance-tuning-012",
@@ -2953,7 +2953,7 @@
             "cardType": "action",
             "mechanic": "overload",
             "family": "mana",
-            "cost": 5,
+            "cost": 4,
             "money": 0,
             "tactical": true,
             "supply": 10,
@@ -3058,7 +3058,7 @@
         "silver",
         "step"
       ],
-      "ruleFingerprint": "d17f5af8e82"
+      "ruleFingerprint": "16fa7a43e82"
     },
     {
       "kingdomId": "balance-tuning-014",
@@ -3339,7 +3339,7 @@
             "cardType": "action",
             "mechanic": "aim",
             "family": "ranged",
-            "cost": 5,
+            "cost": 4,
             "money": 0,
             "tactical": true,
             "supply": 10,
@@ -3394,7 +3394,7 @@
             "cardType": "action",
             "mechanic": "overload",
             "family": "mana",
-            "cost": 5,
+            "cost": 4,
             "money": 0,
             "tactical": true,
             "supply": 10,
@@ -3526,7 +3526,7 @@
         "stipend",
         "volley"
       ],
-      "ruleFingerprint": "4d30aec1d99"
+      "ruleFingerprint": "a1281c1bd99"
     },
     {
       "kingdomId": "balance-tuning-016",
@@ -3588,7 +3588,7 @@
             "cardType": "action",
             "mechanic": "aim",
             "family": "ranged",
-            "cost": 5,
+            "cost": 4,
             "money": 0,
             "tactical": true,
             "supply": 10,
@@ -3641,7 +3641,7 @@
             "cardType": "action",
             "mechanic": "overload",
             "family": "mana",
-            "cost": 5,
+            "cost": 4,
             "money": 0,
             "tactical": true,
             "supply": 10,
@@ -3760,7 +3760,7 @@
         "step",
         "stipend"
       ],
-      "ruleFingerprint": "95676d85de4"
+      "ruleFingerprint": "9b10c0cdde4"
     },
     {
       "kingdomId": "balance-tuning-017",
@@ -4155,7 +4155,7 @@
             "cardType": "action",
             "mechanic": "overload",
             "family": "mana",
-            "cost": 5,
+            "cost": 4,
             "money": 0,
             "tactical": true,
             "supply": 10,
@@ -4234,7 +4234,7 @@
         "silver",
         "step"
       ],
-      "ruleFingerprint": "5cc0eeebe49"
+      "ruleFingerprint": "ce3fc998e49"
     },
     {
       "kingdomId": "balance-tuning-019",
@@ -4580,7 +4580,7 @@
             "cardType": "action",
             "mechanic": "overload",
             "family": "mana",
-            "cost": 5,
+            "cost": 4,
             "money": 0,
             "tactical": true,
             "supply": 10,
@@ -4699,7 +4699,7 @@
         "silver",
         "step"
       ],
-      "ruleFingerprint": "73ea9196da4"
+      "ruleFingerprint": "8165bbadda4"
     },
     {
       "kingdomId": "balance-tuning-021",
@@ -5683,7 +5683,7 @@
             "cardType": "action",
             "mechanic": "aim",
             "family": "ranged",
-            "cost": 5,
+            "cost": 4,
             "money": 0,
             "tactical": true,
             "supply": 10,
@@ -5867,7 +5867,7 @@
         "step",
         "volley"
       ],
-      "ruleFingerprint": "35f1004dde1"
+      "ruleFingerprint": "267b3acade1"
     },
     {
       "kingdomId": "balance-tuning-026",
@@ -5982,7 +5982,7 @@
             "cardType": "action",
             "mechanic": "overload",
             "family": "mana",
-            "cost": 5,
+            "cost": 4,
             "money": 0,
             "tactical": true,
             "supply": 10,
@@ -6101,7 +6101,7 @@
         "step",
         "stipend"
       ],
-      "ruleFingerprint": "53a4d424d71"
+      "ruleFingerprint": "92cb02c7d71"
     },
     {
       "kingdomId": "balance-tuning-027",
@@ -6173,7 +6173,7 @@
             "cardType": "action",
             "mechanic": "overload",
             "family": "mana",
-            "cost": 5,
+            "cost": 4,
             "money": 0,
             "tactical": true,
             "supply": 10,
@@ -6332,7 +6332,7 @@
         "step",
         "volley"
       ],
-      "ruleFingerprint": "0f82a3f8d6d"
+      "ruleFingerprint": "01cd4abbd6d"
     },
     {
       "kingdomId": "balance-tuning-028",
@@ -6380,7 +6380,7 @@
             "cardType": "action",
             "mechanic": "aim",
             "family": "ranged",
-            "cost": 5,
+            "cost": 4,
             "money": 0,
             "tactical": true,
             "supply": 10,
@@ -6567,7 +6567,7 @@
         "silver",
         "step"
       ],
-      "ruleFingerprint": "d96a3e0edf1"
+      "ruleFingerprint": "acba0ccbdf1"
     },
     {
       "kingdomId": "balance-tuning-029",
@@ -6694,7 +6694,7 @@
             "cardType": "action",
             "mechanic": "overload",
             "family": "mana",
-            "cost": 5,
+            "cost": 4,
             "money": 0,
             "tactical": true,
             "supply": 10,
@@ -6800,7 +6800,7 @@
         "silver",
         "step"
       ],
-      "ruleFingerprint": "ce9ea2aad8e"
+      "ruleFingerprint": "3c772de5d8e"
     },
     {
       "kingdomId": "balance-tuning-030",
@@ -7391,7 +7391,7 @@
             "cardType": "action",
             "mechanic": "overload",
             "family": "mana",
-            "cost": 5,
+            "cost": 4,
             "money": 0,
             "tactical": true,
             "supply": 10,
@@ -7497,7 +7497,7 @@
         "step",
         "volley"
       ],
-      "ruleFingerprint": "41a39520d5b"
+      "ruleFingerprint": "8ee82bedd5b"
     },
     {
       "kingdomId": "balance-tuning-033",
@@ -7657,7 +7657,7 @@
             "cardType": "action",
             "mechanic": "overload",
             "family": "mana",
-            "cost": 5,
+            "cost": 4,
             "money": 0,
             "tactical": true,
             "supply": 10,
@@ -7735,7 +7735,7 @@
         "starfire",
         "step"
       ],
-      "ruleFingerprint": "d8e232bedce"
+      "ruleFingerprint": "b524eef3dce"
     },
     {
       "kingdomId": "balance-tuning-034",
@@ -7797,7 +7797,7 @@
             "cardType": "action",
             "mechanic": "aim",
             "family": "ranged",
-            "cost": 5,
+            "cost": 4,
             "money": 0,
             "tactical": true,
             "supply": 10,
@@ -7968,7 +7968,7 @@
         "step",
         "volley"
       ],
-      "ruleFingerprint": "dd6c9b08da2"
+      "ruleFingerprint": "fe4d6403da2"
     },
     {
       "kingdomId": "balance-tuning-035",
@@ -8309,7 +8309,7 @@
             "cardType": "action",
             "mechanic": "overload",
             "family": "mana",
-            "cost": 5,
+            "cost": 4,
             "money": 0,
             "tactical": true,
             "supply": 10,
@@ -8441,7 +8441,7 @@
         "steadyShot",
         "step"
       ],
-      "ruleFingerprint": "ef096446e12"
+      "ruleFingerprint": "92d0d103e12"
     },
     {
       "kingdomId": "balance-tuning-037",
@@ -8724,7 +8724,7 @@
             "cardType": "action",
             "mechanic": "aim",
             "family": "ranged",
-            "cost": 5,
+            "cost": 4,
             "money": 0,
             "tactical": true,
             "supply": 10,
@@ -8907,7 +8907,7 @@
         "starfire",
         "step"
       ],
-      "ruleFingerprint": "495c7a82d34"
+      "ruleFingerprint": "103ab607d34"
     },
     {
       "kingdomId": "balance-tuning-039",
@@ -9428,7 +9428,7 @@
             "cardType": "action",
             "mechanic": "aim",
             "family": "ranged",
-            "cost": 5,
+            "cost": 4,
             "money": 0,
             "tactical": true,
             "supply": 10,
@@ -9618,7 +9618,7 @@
         "step",
         "volley"
       ],
-      "ruleFingerprint": "bb073c7fe37"
+      "ruleFingerprint": "a55cd60ce37"
     },
     {
       "kingdomId": "balance-tuning-042",
@@ -9901,7 +9901,7 @@
             "cardType": "action",
             "mechanic": "aim",
             "family": "ranged",
-            "cost": 5,
+            "cost": 4,
             "money": 0,
             "tactical": true,
             "supply": 10,
@@ -10090,7 +10090,7 @@
         "steadyShot",
         "step"
       ],
-      "ruleFingerprint": "002f290de02"
+      "ruleFingerprint": "443ddaf4e02"
     },
     {
       "kingdomId": "balance-tuning-044",
@@ -10192,7 +10192,7 @@
             "cardType": "action",
             "mechanic": "overload",
             "family": "mana",
-            "cost": 5,
+            "cost": 4,
             "money": 0,
             "tactical": true,
             "supply": 10,
@@ -10326,7 +10326,7 @@
         "step",
         "strike"
       ],
-      "ruleFingerprint": "cb07ba1edd3"
+      "ruleFingerprint": "5e23051ddd3"
     },
     {
       "kingdomId": "balance-tuning-045",
@@ -10374,7 +10374,7 @@
             "cardType": "action",
             "mechanic": "aim",
             "family": "ranged",
-            "cost": 5,
+            "cost": 4,
             "money": 0,
             "tactical": true,
             "supply": 10,
@@ -10442,7 +10442,7 @@
             "cardType": "action",
             "mechanic": "overload",
             "family": "mana",
-            "cost": 5,
+            "cost": 4,
             "money": 0,
             "tactical": true,
             "supply": 10,
@@ -10560,7 +10560,7 @@
         "step",
         "volley"
       ],
-      "ruleFingerprint": "ac7abf13e0c"
+      "ruleFingerprint": "a6c70fd3e0c"
     },
     {
       "kingdomId": "balance-tuning-046",
@@ -10841,7 +10841,7 @@
             "cardType": "action",
             "mechanic": "aim",
             "family": "ranged",
-            "cost": 5,
+            "cost": 4,
             "money": 0,
             "tactical": true,
             "supply": 10,
@@ -11026,7 +11026,7 @@
         "step",
         "volley"
       ],
-      "ruleFingerprint": "8113bd82e43"
+      "ruleFingerprint": "1110d171e43"
     },
     {
       "kingdomId": "balance-tuning-048",
@@ -11543,7 +11543,7 @@
             "cardType": "action",
             "mechanic": "aim",
             "family": "ranged",
-            "cost": 5,
+            "cost": 4,
             "money": 0,
             "tactical": true,
             "supply": 10,
@@ -11730,7 +11730,7 @@
         "step",
         "strike"
       ],
-      "ruleFingerprint": "741d444ed74"
+      "ruleFingerprint": "b3053647d74"
     },
     {
       "kingdomId": "balance-tuning-051",
@@ -11778,7 +11778,7 @@
             "cardType": "action",
             "mechanic": "aim",
             "family": "ranged",
-            "cost": 5,
+            "cost": 4,
             "money": 0,
             "tactical": true,
             "supply": 10,
@@ -11968,7 +11968,7 @@
         "steadyShot",
         "step"
       ],
-      "ruleFingerprint": "582fbe7cea1"
+      "ruleFingerprint": "9b2f39d3ea1"
     },
     {
       "kingdomId": "balance-tuning-052",
@@ -12016,7 +12016,7 @@
             "cardType": "action",
             "mechanic": "aim",
             "family": "ranged",
-            "cost": 5,
+            "cost": 4,
             "money": 0,
             "tactical": true,
             "supply": 10,
@@ -12055,7 +12055,7 @@
             "cardType": "action",
             "mechanic": "overload",
             "family": "mana",
-            "cost": 5,
+            "cost": 4,
             "money": 0,
             "tactical": true,
             "supply": 10,
@@ -12202,7 +12202,7 @@
         "stipend",
         "strike"
       ],
-      "ruleFingerprint": "788a761de51"
+      "ruleFingerprint": "82c88de3e51"
     },
     {
       "kingdomId": "balance-tuning-053",
@@ -13195,7 +13195,7 @@
             "cardType": "action",
             "mechanic": "aim",
             "family": "ranged",
-            "cost": 5,
+            "cost": 4,
             "money": 0,
             "tactical": true,
             "supply": 10,
@@ -13379,7 +13379,7 @@
         "steadyShot",
         "step"
       ],
-      "ruleFingerprint": "db53956de12"
+      "ruleFingerprint": "2f1f1772e12"
     },
     {
       "kingdomId": "balance-tuning-058",
@@ -16018,7 +16018,7 @@
             "cardType": "action",
             "mechanic": "aim",
             "family": "ranged",
-            "cost": 5,
+            "cost": 4,
             "money": 0,
             "tactical": true,
             "supply": 10,
@@ -16205,7 +16205,7 @@
         "step",
         "strike"
       ],
-      "ruleFingerprint": "0ac90a79dc6"
+      "ruleFingerprint": "d6b587acdc6"
     },
     {
       "kingdomId": "balance-tuning-070",
@@ -16557,7 +16557,7 @@
             "cardType": "action",
             "mechanic": "overload",
             "family": "mana",
-            "cost": 5,
+            "cost": 4,
             "money": 0,
             "tactical": true,
             "supply": 10,
@@ -16676,7 +16676,7 @@
         "step",
         "strike"
       ],
-      "ruleFingerprint": "0b612bc0e09"
+      "ruleFingerprint": "56ee722de09"
     },
     {
       "kingdomId": "balance-tuning-072",
@@ -17206,7 +17206,7 @@
             "cardType": "action",
             "mechanic": "aim",
             "family": "ranged",
-            "cost": 5,
+            "cost": 4,
             "money": 0,
             "tactical": true,
             "supply": 10,
@@ -17377,7 +17377,7 @@
         "silver",
         "step"
       ],
-      "ruleFingerprint": "81510698d5d"
+      "ruleFingerprint": "12964953d5d"
     },
     {
       "kingdomId": "balance-tuning-075",
@@ -17534,7 +17534,7 @@
             "cardType": "action",
             "mechanic": "overload",
             "family": "mana",
-            "cost": 5,
+            "cost": 4,
             "money": 0,
             "tactical": true,
             "supply": 10,
@@ -17612,7 +17612,7 @@
         "step",
         "volley"
       ],
-      "ruleFingerprint": "ff5add25d52"
+      "ruleFingerprint": "715de8aad52"
     },
     {
       "kingdomId": "balance-tuning-076",
@@ -19058,7 +19058,7 @@
             "cardType": "action",
             "mechanic": "aim",
             "family": "ranged",
-            "cost": 5,
+            "cost": 4,
             "money": 0,
             "tactical": true,
             "supply": 10,
@@ -19246,7 +19246,7 @@
         "step",
         "volley"
       ],
-      "ruleFingerprint": "c5e7abe3ed5"
+      "ruleFingerprint": "cf7563c2ed5"
     },
     {
       "kingdomId": "balance-tuning-083",
@@ -19308,7 +19308,7 @@
             "cardType": "action",
             "mechanic": "aim",
             "family": "ranged",
-            "cost": 5,
+            "cost": 4,
             "money": 0,
             "tactical": true,
             "supply": 10,
@@ -19479,7 +19479,7 @@
         "step",
         "volley"
       ],
-      "ruleFingerprint": "627df2c5d28"
+      "ruleFingerprint": "d489235cd28"
     },
     {
       "kingdomId": "balance-tuning-084",
@@ -20469,7 +20469,7 @@
             "cardType": "action",
             "mechanic": "aim",
             "family": "ranged",
-            "cost": 5,
+            "cost": 4,
             "money": 0,
             "tactical": true,
             "supply": 10,
@@ -20655,7 +20655,7 @@
         "silver",
         "step"
       ],
-      "ruleFingerprint": "3ca0838ddd4"
+      "ruleFingerprint": "a2e0e182dd4"
     },
     {
       "kingdomId": "balance-tuning-089",
@@ -20717,7 +20717,7 @@
             "cardType": "action",
             "mechanic": "aim",
             "family": "ranged",
-            "cost": 5,
+            "cost": 4,
             "money": 0,
             "tactical": true,
             "supply": 10,
@@ -20891,7 +20891,7 @@
         "step",
         "stipend"
       ],
-      "ruleFingerprint": "76316b21dd8"
+      "ruleFingerprint": "a25aaab6dd8"
     },
     {
       "kingdomId": "balance-tuning-090",
@@ -22182,7 +22182,7 @@
             "cardType": "action",
             "mechanic": "overload",
             "family": "mana",
-            "cost": 5,
+            "cost": 4,
             "money": 0,
             "tactical": true,
             "supply": 10,
@@ -22302,7 +22302,7 @@
         "step",
         "volley"
       ],
-      "ruleFingerprint": "507cd887ea0"
+      "ruleFingerprint": "e2e7b1e4ea0"
     },
     {
       "kingdomId": "balance-tuning-096",
@@ -22364,7 +22364,7 @@
             "cardType": "action",
             "mechanic": "aim",
             "family": "ranged",
-            "cost": 5,
+            "cost": 4,
             "money": 0,
             "tactical": true,
             "supply": 10,
@@ -22443,7 +22443,7 @@
             "cardType": "action",
             "mechanic": "overload",
             "family": "mana",
-            "cost": 5,
+            "cost": 4,
             "money": 0,
             "tactical": true,
             "supply": 10,
@@ -22533,7 +22533,7 @@
         "silver",
         "step"
       ],
-      "ruleFingerprint": "4ae305f5d48"
+      "ruleFingerprint": "f91daa03d48"
     },
     {
       "kingdomId": "balance-tuning-097",
@@ -22581,7 +22581,7 @@
             "cardType": "action",
             "mechanic": "aim",
             "family": "ranged",
-            "cost": 5,
+            "cost": 4,
             "money": 0,
             "tactical": true,
             "supply": 10,
@@ -22773,7 +22773,7 @@
         "steadyShot",
         "step"
       ],
-      "ruleFingerprint": "33e5cc00df4"
+      "ruleFingerprint": "79e342cfdf4"
     },
     {
       "kingdomId": "balance-tuning-098",
@@ -22835,7 +22835,7 @@
             "cardType": "action",
             "mechanic": "aim",
             "family": "ranged",
-            "cost": 5,
+            "cost": 4,
             "money": 0,
             "tactical": true,
             "supply": 10,
@@ -22876,7 +22876,7 @@
             "cardType": "action",
             "mechanic": "overload",
             "family": "mana",
-            "cost": 5,
+            "cost": 4,
             "money": 0,
             "tactical": true,
             "supply": 10,
@@ -23009,7 +23009,7 @@
         "step",
         "strike"
       ],
-      "ruleFingerprint": "d24ea1e1d78"
+      "ruleFingerprint": "fb7b2c5dd78"
     },
     {
       "kingdomId": "balance-tuning-099",
@@ -24073,7 +24073,7 @@
             "cardType": "action",
             "mechanic": "overload",
             "family": "mana",
-            "cost": 5,
+            "cost": 4,
             "money": 0,
             "tactical": true,
             "supply": 10,
@@ -24178,7 +24178,7 @@
         "starfire",
         "step"
       ],
-      "ruleFingerprint": "d6aabb1ce16"
+      "ruleFingerprint": "06d16b5de16"
     },
     {
       "kingdomId": "balance-tuning-104",
@@ -24319,7 +24319,7 @@
             "cardType": "action",
             "mechanic": "overload",
             "family": "mana",
-            "cost": 5,
+            "cost": 4,
             "money": 0,
             "tactical": true,
             "supply": 10,
@@ -24410,7 +24410,7 @@
         "silver",
         "step"
       ],
-      "ruleFingerprint": "f76c7206e0e"
+      "ruleFingerprint": "cafc8c31e0e"
     },
     {
       "kingdomId": "balance-tuning-105",
@@ -24512,7 +24512,7 @@
             "cardType": "action",
             "mechanic": "overload",
             "family": "mana",
-            "cost": 5,
+            "cost": 4,
             "money": 0,
             "tactical": true,
             "supply": 10,
@@ -24646,7 +24646,7 @@
         "step",
         "volley"
       ],
-      "ruleFingerprint": "b8d874b3dff"
+      "ruleFingerprint": "ecc18f66dff"
     },
     {
       "kingdomId": "balance-tuning-106",
@@ -25178,7 +25178,7 @@
             "cardType": "action",
             "mechanic": "aim",
             "family": "ranged",
-            "cost": 5,
+            "cost": 4,
             "money": 0,
             "tactical": true,
             "supply": 10,
@@ -25232,7 +25232,7 @@
             "cardType": "action",
             "mechanic": "overload",
             "family": "mana",
-            "cost": 5,
+            "cost": 4,
             "money": 0,
             "tactical": true,
             "supply": 10,
@@ -25351,7 +25351,7 @@
         "step",
         "strike"
       ],
-      "ruleFingerprint": "4c9a55cadbf"
+      "ruleFingerprint": "4732ae54dbf"
     },
     {
       "kingdomId": "balance-tuning-109",
@@ -25451,7 +25451,7 @@
             "cardType": "action",
             "mechanic": "overload",
             "family": "mana",
-            "cost": 5,
+            "cost": 4,
             "money": 0,
             "tactical": true,
             "supply": 10,
@@ -25585,7 +25585,7 @@
         "step",
         "stipend"
       ],
-      "ruleFingerprint": "f75db26cd8b"
+      "ruleFingerprint": "50a4e6bdd8b"
     },
     {
       "kingdomId": "balance-tuning-110",
@@ -25712,7 +25712,7 @@
             "cardType": "action",
             "mechanic": "overload",
             "family": "mana",
-            "cost": 5,
+            "cost": 4,
             "money": 0,
             "tactical": true,
             "supply": 10,
@@ -25816,7 +25816,7 @@
         "starfire",
         "step"
       ],
-      "ruleFingerprint": "a93742b1ce8"
+      "ruleFingerprint": "0c300cf2ce8"
     },
     {
       "kingdomId": "balance-tuning-111",
@@ -26101,7 +26101,7 @@
             "cardType": "action",
             "mechanic": "aim",
             "family": "ranged",
-            "cost": 5,
+            "cost": 4,
             "money": 0,
             "tactical": true,
             "supply": 10,
@@ -26286,7 +26286,7 @@
         "steadyShot",
         "step"
       ],
-      "ruleFingerprint": "60d597acd7a"
+      "ruleFingerprint": "92f82e6bd7a"
     },
     {
       "kingdomId": "balance-tuning-113",
@@ -26428,7 +26428,7 @@
             "cardType": "action",
             "mechanic": "overload",
             "family": "mana",
-            "cost": 5,
+            "cost": 4,
             "money": 0,
             "tactical": true,
             "supply": 10,
@@ -26520,7 +26520,7 @@
         "step",
         "stipend"
       ],
-      "ruleFingerprint": "fb005ca7d87"
+      "ruleFingerprint": "78fd51d2d87"
     },
     {
       "kingdomId": "balance-tuning-114",
@@ -27348,7 +27348,7 @@
             "cardType": "action",
             "mechanic": "overload",
             "family": "mana",
-            "cost": 5,
+            "cost": 4,
             "money": 0,
             "tactical": true,
             "supply": 10,
@@ -27466,7 +27466,7 @@
         "silver",
         "step"
       ],
-      "ruleFingerprint": "cf9c8641cdb"
+      "ruleFingerprint": "6dba9ceacdb"
     },
     {
       "kingdomId": "balance-tuning-118",
@@ -27983,7 +27983,7 @@
             "cardType": "action",
             "mechanic": "aim",
             "family": "ranged",
-            "cost": 5,
+            "cost": 4,
             "money": 0,
             "tactical": true,
             "supply": 10,
@@ -28173,7 +28173,7 @@
         "step",
         "volley"
       ],
-      "ruleFingerprint": "1dcbf0ffdbc"
+      "ruleFingerprint": "71954abedbc"
     },
     {
       "kingdomId": "balance-tuning-121",
@@ -28535,7 +28535,7 @@
             "cardType": "action",
             "mechanic": "overload",
             "family": "mana",
-            "cost": 5,
+            "cost": 4,
             "money": 0,
             "tactical": true,
             "supply": 10,
@@ -28640,7 +28640,7 @@
         "step",
         "stipend"
       ],
-      "ruleFingerprint": "767d234ed65"
+      "ruleFingerprint": "82d245e3d65"
     },
     {
       "kingdomId": "balance-tuning-123",
@@ -28688,7 +28688,7 @@
             "cardType": "action",
             "mechanic": "aim",
             "family": "ranged",
-            "cost": 5,
+            "cost": 4,
             "money": 0,
             "tactical": true,
             "supply": 10,
@@ -28876,7 +28876,7 @@
         "strike",
         "volley"
       ],
-      "ruleFingerprint": "07d84eadd4f"
+      "ruleFingerprint": "099f76fed4f"
     },
     {
       "kingdomId": "balance-tuning-124",
@@ -29665,7 +29665,7 @@
             "cardType": "action",
             "mechanic": "overload",
             "family": "mana",
-            "cost": 5,
+            "cost": 4,
             "money": 0,
             "tactical": true,
             "supply": 10,
@@ -29809,7 +29809,7 @@
         "steadyShot",
         "step"
       ],
-      "ruleFingerprint": "6b6ad391d67"
+      "ruleFingerprint": "945a3ad4d67"
     },
     {
       "kingdomId": "balance-tuning-128",
@@ -30094,7 +30094,7 @@
             "cardType": "action",
             "mechanic": "aim",
             "family": "ranged",
-            "cost": 5,
+            "cost": 4,
             "money": 0,
             "tactical": true,
             "supply": 10,
@@ -30280,7 +30280,7 @@
         "step",
         "volley"
       ],
-      "ruleFingerprint": "8b86a898e3b"
+      "ruleFingerprint": "8fe02bb1e3b"
     },
     {
       "kingdomId": "balance-validation-002",
@@ -30395,7 +30395,7 @@
             "cardType": "action",
             "mechanic": "overload",
             "family": "mana",
-            "cost": 5,
+            "cost": 4,
             "money": 0,
             "tactical": true,
             "supply": 10,
@@ -30515,7 +30515,7 @@
         "silver",
         "step"
       ],
-      "ruleFingerprint": "bb9ba7ffdc9"
+      "ruleFingerprint": "ef0e4b04dc9"
     },
     {
       "kingdomId": "balance-validation-003",
@@ -30577,7 +30577,7 @@
             "cardType": "action",
             "mechanic": "aim",
             "family": "ranged",
-            "cost": 5,
+            "cost": 4,
             "money": 0,
             "tactical": true,
             "supply": 10,
@@ -30746,7 +30746,7 @@
         "silver",
         "step"
       ],
-      "ruleFingerprint": "0e206e55df8"
+      "ruleFingerprint": "7f38040cdf8"
     },
     {
       "kingdomId": "balance-validation-004",
@@ -31095,7 +31095,7 @@
             "cardType": "action",
             "mechanic": "overload",
             "family": "mana",
-            "cost": 5,
+            "cost": 4,
             "money": 0,
             "tactical": true,
             "supply": 10,
@@ -31214,7 +31214,7 @@
         "step",
         "strike"
       ],
-      "ruleFingerprint": "56675ac7dae"
+      "ruleFingerprint": "5f5a35d6dae"
     },
     {
       "kingdomId": "balance-validation-006",
@@ -31727,7 +31727,7 @@
             "cardType": "action",
             "mechanic": "aim",
             "family": "ranged",
-            "cost": 5,
+            "cost": 4,
             "money": 0,
             "tactical": true,
             "supply": 10,
@@ -31914,7 +31914,7 @@
         "step",
         "stipend"
       ],
-      "ruleFingerprint": "e5660cc1d5c"
+      "ruleFingerprint": "a9a09b58d5c"
     },
     {
       "kingdomId": "balance-validation-009",
@@ -31962,7 +31962,7 @@
             "cardType": "action",
             "mechanic": "aim",
             "family": "ranged",
-            "cost": 5,
+            "cost": 4,
             "money": 0,
             "tactical": true,
             "supply": 10,
@@ -32149,7 +32149,7 @@
         "step",
         "strike"
       ],
-      "ruleFingerprint": "1e4376a8dbc"
+      "ruleFingerprint": "fbd2304fdbc"
     },
     {
       "kingdomId": "balance-validation-010",
@@ -32197,7 +32197,7 @@
             "cardType": "action",
             "mechanic": "aim",
             "family": "ranged",
-            "cost": 5,
+            "cost": 4,
             "money": 0,
             "tactical": true,
             "supply": 10,
@@ -32385,7 +32385,7 @@
         "step",
         "stipend"
       ],
-      "ruleFingerprint": "e9dd46cbe11"
+      "ruleFingerprint": "7c55cd9ce11"
     },
     {
       "kingdomId": "balance-validation-011",
@@ -32905,7 +32905,7 @@
             "cardType": "action",
             "mechanic": "aim",
             "family": "ranged",
-            "cost": 5,
+            "cost": 4,
             "money": 0,
             "tactical": true,
             "supply": 10,
@@ -33029,7 +33029,7 @@
             "cardType": "action",
             "mechanic": "overload",
             "family": "mana",
-            "cost": 5,
+            "cost": 4,
             "money": 0,
             "tactical": true,
             "supply": 10,
@@ -33093,7 +33093,7 @@
         "silver",
         "step"
       ],
-      "ruleFingerprint": "bdad0f61dcf"
+      "ruleFingerprint": "12cecfb7dcf"
     },
     {
       "kingdomId": "balance-validation-014",
@@ -33211,7 +33211,7 @@
             "cardType": "action",
             "mechanic": "overload",
             "family": "mana",
-            "cost": 5,
+            "cost": 4,
             "money": 0,
             "tactical": true,
             "supply": 10,
@@ -33328,7 +33328,7 @@
         "step",
         "volley"
       ],
-      "ruleFingerprint": "025d1b7bd9f"
+      "ruleFingerprint": "424d4408d9f"
     },
     {
       "kingdomId": "balance-validation-015",
@@ -34100,7 +34100,7 @@
             "cardType": "action",
             "mechanic": "aim",
             "family": "ranged",
-            "cost": 5,
+            "cost": 4,
             "money": 0,
             "tactical": true,
             "supply": 10,
@@ -34271,7 +34271,7 @@
         "stipend",
         "strike"
       ],
-      "ruleFingerprint": "a326de6cd59"
+      "ruleFingerprint": "ad643ee1d59"
     },
     {
       "kingdomId": "balance-validation-019",
@@ -35093,7 +35093,7 @@
             "cardType": "action",
             "mechanic": "overload",
             "family": "mana",
-            "cost": 5,
+            "cost": 4,
             "money": 0,
             "tactical": true,
             "supply": 10,
@@ -35213,7 +35213,7 @@
         "step",
         "strike"
       ],
-      "ruleFingerprint": "ea2fe8fddf0"
+      "ruleFingerprint": "3857bb54df0"
     },
     {
       "kingdomId": "balance-validation-023",
@@ -36031,7 +36031,7 @@
             "cardType": "action",
             "mechanic": "overload",
             "family": "mana",
-            "cost": 5,
+            "cost": 4,
             "money": 0,
             "tactical": true,
             "supply": 10,
@@ -36150,7 +36150,7 @@
         "step",
         "stipend"
       ],
-      "ruleFingerprint": "6f3e7923dd4"
+      "ruleFingerprint": "4462b674dd4"
     },
     {
       "kingdomId": "balance-validation-027",
@@ -36268,7 +36268,7 @@
             "cardType": "action",
             "mechanic": "overload",
             "family": "mana",
-            "cost": 5,
+            "cost": 4,
             "money": 0,
             "tactical": true,
             "supply": 10,
@@ -36387,7 +36387,7 @@
         "steadyShot",
         "step"
       ],
-      "ruleFingerprint": "56364908e36"
+      "ruleFingerprint": "5782195fe36"
     },
     {
       "kingdomId": "balance-validation-028",
@@ -36904,7 +36904,7 @@
             "cardType": "action",
             "mechanic": "aim",
             "family": "ranged",
-            "cost": 5,
+            "cost": 4,
             "money": 0,
             "tactical": true,
             "supply": 10,
@@ -37092,7 +37092,7 @@
         "step",
         "volley"
       ],
-      "ruleFingerprint": "4005afccdd1"
+      "ruleFingerprint": "76aec453dd1"
     },
     {
       "kingdomId": "balance-validation-031",
@@ -37411,7 +37411,7 @@
             "cardType": "action",
             "mechanic": "overload",
             "family": "mana",
-            "cost": 5,
+            "cost": 4,
             "money": 0,
             "tactical": true,
             "supply": 10,
@@ -37558,7 +37558,7 @@
         "starfire",
         "step"
       ],
-      "ruleFingerprint": "eac02b59de0"
+      "ruleFingerprint": "fec67c2ade0"
     }
   ]
 }

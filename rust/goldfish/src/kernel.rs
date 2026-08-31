@@ -2762,6 +2762,7 @@ mod tests {
             "channel",
             "arcBolt",
             "overload",
+            "aim",
             "openingStrike",
             "strike",
             "volley",
@@ -2862,8 +2863,11 @@ mod tests {
     fn approved_attacks_use_native_card_data_and_first_attack_order() {
         let kingdom = focused_rules_fixture();
         let overload_card = &kingdom.cards[kingdom.card_index("overload").expect("overload")];
-        assert_eq!(overload_card.cost, 5);
+        assert_eq!(overload_card.cost, 4);
         assert_eq!(overload_card.v.per_mana_spent, 3);
+        let aim = &kingdom.cards[kingdom.card_index("aim").expect("aim")];
+        assert_eq!(aim.cost, 4);
+        assert_eq!((aim.v.draw, aim.v.bonus), (1, 2));
         let volley = &kingdom.cards[kingdom.card_index("volley").expect("volley")];
         assert_eq!(volley.cost, 5);
         assert_eq!((volley.v.near, volley.v.far), (2, 4));
