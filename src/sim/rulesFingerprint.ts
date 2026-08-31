@@ -5,7 +5,8 @@ import {
 import type { CardDefinition } from '../game';
 import { ACTION_CAP_PER_TURN, TURN_LIMIT_PER_PLAYER } from './experimentConfig';
 import {
-  MATRIX_PROTOCOL_VERSION, SIMULATION_KERNEL_PROTOCOL_VERSION, TACTICAL_PILOT_PROTOCOL_VERSION
+  LEGACY_TACTICAL_PILOT_PROTOCOL_VERSION, MATRIX_PROTOCOL_VERSION, SIMULATION_KERNEL_PROTOCOL_VERSION,
+  TACTICAL_PILOT_PROTOCOL_VERSION
 } from './protocolVersions';
 import { stableHash } from './strategy';
 
@@ -47,9 +48,10 @@ export function rulesFingerprint(
   kingdomId: string, turnLimitPerPlayer = TURN_LIMIT_PER_PLAYER, actionCapPerTurn = ACTION_CAP_PER_TURN,
   startingDraftEnabled = true
 ): RulesFingerprint {
+  const market = scientificMarket(kingdomId);
   const rules: RulesFingerprint['rules'] = {
     kingdom: structuredClone(kingdomOf(kingdomId)),
-    market: scientificMarket(kingdomId),
+    market,
     arenaMinimum: ARENA_MIN,
     arenaMaximum: ARENA_MAX,
     startingBudget: STARTING_BUDGET,
@@ -61,7 +63,8 @@ export function rulesFingerprint(
     actionCapPerTurn,
     orientationProtocol: MATRIX_PROTOCOL_VERSION,
     simulationKernelProtocol: SIMULATION_KERNEL_PROTOCOL_VERSION,
-    tacticalPilotProtocol: TACTICAL_PILOT_PROTOCOL_VERSION,
+    tacticalPilotProtocol: market.some((card) => card.id === 'aim')
+      ? TACTICAL_PILOT_PROTOCOL_VERSION : LEGACY_TACTICAL_PILOT_PROTOCOL_VERSION,
     startingDraftEnabled
   };
   return { version: RULES_FINGERPRINT_VERSION, hash: stableHash(JSON.stringify(rules)), rules };

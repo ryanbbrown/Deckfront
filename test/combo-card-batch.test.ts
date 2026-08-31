@@ -157,7 +157,8 @@ describe('combo card batch', () => {
     expect(on.telemetry.startingBuild).toEqual({ ochre: [], indigo: [] }); expect(off.telemetry.startingBuild).toEqual({ ochre: [], indigo: [] });
     const fingerprint = rulesFingerprint('distance-duel');
     expect(fingerprint).toMatchObject({ version: 3, rules: { maximumCarriedMana: 2, manaUsableTurns: 'unlimited',
-      simulationKernelProtocol: 'stacking-aim-v12' } });
+      simulationKernelProtocol: 'stacking-aim-v12', tacticalPilotProtocol: 'aim-stack-priority-v10' } });
+    expect(rulesFingerprint('three-way-open').rules.tacticalPilotProtocol).toBe('first-attack-v9');
     expect(fingerprint.hash).not.toBe(rulesFingerprint('distance-duel', undefined, undefined, false).hash);
   });
 });
