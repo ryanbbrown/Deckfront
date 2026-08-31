@@ -60,12 +60,39 @@ plateaus, the same machinery becomes ISMCTS.
 Measurement: head-to-head against the pilot with matched plans. Never prediction accuracy —
 `.plans/29-action-policy-findings.md` records why (test AUC 0.92 played at 0.484).
 
+### Why action policy alone has headroom
+
+The plans are adapted to the pilot, but the pilot was never optimized for the plans — it is a
+fixed heuristic. So "the pilot is as good as it gets for these plans" does not follow, and it is
+measured false: intra-turn full-tree search scored 0.537 against the pilot with matched plans
+(old 40-health rules; the measuring script was deleted in the legacy cleanup). Mirror headroom is
+modest because most decisions are small. The headroom against humans is larger, because human wins
+exploit multi-turn positioning (kiting, hit-and-run) that intra-turn search never sees.
+
+Before building stage 1, run the two-part headroom analysis:
+
+1. Re-measure intra-turn search vs the pilot under current 50-health rules, matched plans, both
+   seats, across kingdoms. This refreshes the stale 0.537 number.
+2. Disagreement mining: sample decision points from the saved human games and from self-play, run
+   a 2–3-turn lookahead rollout search, and count where its choice differs from the pilot's
+   (movement, targeting, Cull, end-phase). This locates the multi-turn gains stage 1 must capture.
+
 ## Stage 2 — adaptive buys by replanning
 
 At each buy decision, do not follow one ladder. Evaluate several candidate continuation plans by
 rollouts from the actual current state, and follow this turn's buy from the winner. Re-decide every
 turn. Unexpected coin rolls (5/2 openings, windfall turns) need no special handling: the decision
 always starts from the real state.
+
+### What replanning changes in practice
+
+Each player still follows an ordered buy plan at every moment; plan structure does not change. The
+AI's plan just stops being fixed at game start. At the start of each of its buy phases it asks:
+given the cards I actually own and the state right now, which library plan is best to be on from
+here? Compatible means the plan's early slots are consistent with the AI's acquisitions so far.
+Usually the answer is the same plan as last turn, and behavior matches today's. When the answer
+changes — the opponent's kiting deck appeared, so melee continuations now lose rollouts — the AI
+swaps to following a different whole coherent plan. Swapping between plans, never editing one.
 
 ### The opponent model, precisely
 
@@ -91,6 +118,31 @@ Point 2 is the part that was unclear. Three levels, weakest to strongest:
 
 Important property: every one of our candidates is evaluated against the *same* opponent model, so
 model error mostly cancels in the comparison. The model needs to be plausible, not correct.
+
+### The online matrix step
+
+"Their strongest continuation depends on ours, and ours on theirs" is a real regress. The escape
+is the same tool the offline pipeline uses: a payoff matrix, built online from the live state.
+
+Take our ~15 compatible continuations and their ~30 plausible continuations. Simulate every
+pairing from the current state. Each cell is well-defined with no regress, because inside a cell
+both sides follow fixed plans plus a fixed action policy. Then choose our row by one of:
+
+- **Weighted average** over their rows, weighted by plausibility (equilibrium prior × match with
+  their observed buys). Simple; can overfit to weak opponent rows.
+- **Maximin** over their strongest rows: keep the candidate that holds up against all of them.
+- **Subgame Nash**: solve the small matrix and play our side of the equilibrium.
+
+Maximin or Nash is why no future information is needed: we never predict their actual plan, we
+choose the continuation that survives the plausible set. This is the PSRO Matrix step run once per
+turn from the live state — online double oracle, receding-horizon planning. It also matches how
+strong turn-level rollout agents work in comparable games (for example Tales of Tribute). MCTS is
+the deeper version of the same thing; depth one is correct for stage 2.
+
+Two practical rules. Humans never exactly prefix-match an ordered plan, so opponent compatibility
+needs a tolerance — match the acquisition multiset with small allowed mismatch, or match on family
+and package instead of exact cards. And their frozen current deck (level 0) is always one of their
+rows, because it is the one continuation guaranteed to be real.
 
 ## Stage 3 — one unified search
 
