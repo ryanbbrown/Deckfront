@@ -43,4 +43,4 @@ npm run balance:smoke:manifest -- --check
 npm test -- --run test/sim/balanceSmokeSuite.test.ts
 ```
 
-`balance:smoke:search` reruns YALPS and the one-row exchange search and writes `src/sim/balance-smoke-suite-design-v1.json`. `balance:smoke:search-check` reruns the same selector and requires byte equality with that file. Normal smoke-manifest generation validates the pinned search source and remeasures its final IDs; it does not rerun the selector.
+`balance:smoke:search` reruns YALPS and the one-row exchange search for the selected 30 and prints the kingdom IDs. `balance:smoke:search-check` compares those IDs with `src/sim/balance-smoke-suite-manifest.json`. The manifest is the only committed smoke-suite data artifact. Normal manifest generation remeasures its recorded IDs without rerunning the selector.

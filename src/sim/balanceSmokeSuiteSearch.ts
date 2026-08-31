@@ -1,21 +1,26 @@
 import { solve } from 'yalps';
-import type { Constraint, Model, SolutionStatus } from 'yalps';
+import type { Constraint, Model } from 'yalps';
 import { BALANCE_SUITE_MANIFEST } from './balanceSuite';
-import { PRIORITY_PAIRS, REQUIRED_TRIPLES, canonicalJson } from './balanceSuiteDesign';
-import {
-  BALANCE_SMOKE_CANDIDATE_BOUNDS, BALANCE_SMOKE_SOLVER_OPTIONS,
-  balanceSmokeSuiteDesignDigest, createBalanceSmokeSuiteDesignContent,
-  validateBalanceSmokeSuiteDesignIdentity
-} from './balanceSmokeSuiteDesign';
-import type {
-  BalanceSmokeSearchExchange, BalanceSmokeSearchScore, BalanceSmokeSuiteDesignSource
-} from './balanceSmokeSuiteDesign';
+import { PRIORITY_PAIRS, REQUIRED_TRIPLES } from './balanceSuiteDesign';
 
-export { serializeBalanceSmokeSuiteDesign } from './balanceSmokeSuiteDesign';
-export type {
-  BalanceSmokeSearchCandidate, BalanceSmokeSearchExchange, BalanceSmokeSearchScore,
-  BalanceSmokeSuiteDesignSource
-} from './balanceSmokeSuiteDesign';
+export interface BalanceSmokeSearchScore {
+  broadPairs: number;
+  broadTriples: number;
+  maximumCardExposure: number;
+  cardExposureSquareSum: number;
+  pairExposureSquareSum: number;
+}
+
+export interface BalanceSmokeSearchResult {
+  kingdomIds: string[];
+  score: BalanceSmokeSearchScore;
+}
+
+export interface BalanceSmokeSearchExchange {
+  removeKingdomId: string;
+  insertKingdomId: string;
+  score: BalanceSmokeSearchScore;
+}
 
 interface SearchRow {
   id: string;
@@ -46,6 +51,10 @@ interface InternalExchange extends BalanceSmokeSearchExchange {
   delta: StateDelta;
 }
 
+const SELECTED_COUNT = 30;
+const CARD_MINIMUM = 6;
+const CARD_MAXIMUM = 11;
+const SOLVER_OPTIONS = Object.freeze({ maxIterations: 100_000, tolerance: 0.01 } as const);
 const compareCodeUnits = (left: string, right: string): number => left < right ? -1 : left > right ? 1 : 0;
 const squareSum = (values: readonly number[]): number => values.reduce((sum, value) => sum + value * value, 0);
 
@@ -75,17 +84,22 @@ function searchProtocol(): SearchProtocol {
     return {
       id: kingdom.id,
       cards,
-      pairs: combinations(cards.length, 2).map((positions) => pairIndex.get(positions.map((position) => cards[position]!).join('|'))!),
-      triples: combinations(cards.length, 3).map((positions) => tripleIndex.get(positions.map((position) => cards[position]!).join('|'))!),
+      pairs: combinations(cards.length, 2).map((positions) =>
+        pairIndex.get(positions.map((position) => cards[position]!).join('|'))!),
+      triples: combinations(cards.length, 3).map((positions) =>
+        tripleIndex.get(positions.map((position) => cards[position]!).join('|'))!),
       routes: kingdom.routeLabels.map((label) => routeIndex.get(label)!)
     };
   });
-  const interactionIndex = (ids: readonly string[]): number[] => ids.map((id) => cardIndex.get(id)!).sort((left, right) => left - right);
+  const interactionIndex = (ids: readonly string[]): number[] => ids.map((id) => cardIndex.get(id)!)
+    .sort((left, right) => left - right);
   return {
     sourceRows,
     cardIds,
-    priorityPairIndexes: new Set(PRIORITY_PAIRS.map((pair) => pairIndex.get(interactionIndex(pair.cards).join('|'))!)),
-    requiredTripleIndexes: new Set(REQUIRED_TRIPLES.map((triple) => tripleIndex.get(interactionIndex(triple.cards).join('|'))!)),
+    priorityPairIndexes: new Set(PRIORITY_PAIRS.map((pair) =>
+      pairIndex.get(interactionIndex(pair.cards).join('|'))!)),
+    requiredTripleIndexes: new Set(REQUIRED_TRIPLES.map((triple) =>
+      tripleIndex.get(interactionIndex(triple.cards).join('|'))!)),
     routeLabels
   };
 }
@@ -145,15 +159,19 @@ class SearchState {
     };
   }
 
-  isFeasible(delta: StateDelta | null, minimum: number, maximum: number | null): boolean {
+  isFeasible(delta: StateDelta | null): boolean {
     const value = (counts: readonly number[], index: number, changes: ReadonlyMap<number, number>): number =>
       counts[index]! + (delta ? changes.get(index) ?? 0 : 0);
     for (let index = 0; index < this.cardCounts.length; index += 1) {
       const count = value(this.cardCounts, index, delta?.cards ?? new Map());
-      if (count < minimum || (maximum !== null && count > maximum)) return false;
+      if (count < CARD_MINIMUM || count > CARD_MAXIMUM) return false;
     }
-    for (const index of this.protocol.priorityPairIndexes) if (value(this.pairCounts, index, delta?.pairs ?? new Map()) < 1) return false;
-    for (const index of this.protocol.requiredTripleIndexes) if (value(this.tripleCounts, index, delta?.triples ?? new Map()) < 1) return false;
+    for (const index of this.protocol.priorityPairIndexes) {
+      if (value(this.pairCounts, index, delta?.pairs ?? new Map()) < 1) return false;
+    }
+    for (const index of this.protocol.requiredTripleIndexes) {
+      if (value(this.tripleCounts, index, delta?.triples ?? new Map()) < 1) return false;
+    }
     for (let index = 0; index < this.routeCounts.length; index += 1) {
       if (value(this.routeCounts, index, delta?.routes ?? new Map()) < 1) return false;
     }
@@ -183,12 +201,14 @@ class SearchState {
   apply(exchange: InternalExchange): void {
     this.adjust(this.protocol.sourceRows[exchange.removeIndex]!, -1);
     this.adjust(this.protocol.sourceRows[exchange.insertIndex]!, 1);
-    this.selected.delete(exchange.removeIndex); this.selected.add(exchange.insertIndex);
+    this.selected.delete(exchange.removeIndex);
+    this.selected.add(exchange.insertIndex);
     this.score = exchange.score;
   }
 
   ids(): string[] {
-    return [...this.selected].sort((left, right) => left - right).map((index) => this.protocol.sourceRows[index]!.id);
+    return [...this.selected].sort((left, right) => left - right)
+      .map((index) => this.protocol.sourceRows[index]!.id);
   }
 }
 
@@ -205,13 +225,14 @@ function compareScores(left: BalanceSmokeSearchScore, right: BalanceSmokeSearchS
   return 0;
 }
 
-function bestExchange(state: SearchState, minimum: number, maximum: number | null): InternalExchange | null {
+function bestExchange(state: SearchState): InternalExchange | null {
   let bestScore = state.score, best: InternalExchange | null = null;
   const selected = [...state.selected].sort((left, right) => left - right);
-  const unselected = state.protocol.sourceRows.map((_, index) => index).filter((index) => !state.selected.has(index));
+  const unselected = state.protocol.sourceRows.map((_, index) => index)
+    .filter((index) => !state.selected.has(index));
   for (const removeIndex of selected) for (const insertIndex of unselected) {
     const delta = rowDelta(state.protocol.sourceRows[removeIndex]!, state.protocol.sourceRows[insertIndex]!);
-    if (!state.isFeasible(delta, minimum, maximum)) continue;
+    if (!state.isFeasible(delta)) continue;
     const score = state.scoreAfter(delta);
     if (compareScores(score, bestScore) > 0) {
       bestScore = score;
@@ -223,17 +244,10 @@ function bestExchange(state: SearchState, minimum: number, maximum: number | nul
   return best;
 }
 
-function candidateBound(count: number): typeof BALANCE_SMOKE_CANDIDATE_BOUNDS[number] {
-  const bound = BALANCE_SMOKE_CANDIDATE_BOUNDS.find((entry) => entry.count === count);
-  if (!bound) throw new Error(`Unsupported balance-smoke candidate size ${count}.`);
-  return bound;
-}
-
-function solverModel(protocol: SearchProtocol, count: number, minimum: number,
-  maximum: number | null): Model<string, string> {
-  const constraints: Record<string, Constraint> = { count: { equal: count } };
+function solverModel(protocol: SearchProtocol): Model<string, string> {
+  const constraints: Record<string, Constraint> = { count: { equal: SELECTED_COUNT } };
   for (let index = 0; index < protocol.cardIds.length; index += 1) {
-    constraints[`card:${index}`] = maximum === null ? { min: minimum } : { min: minimum, max: maximum };
+    constraints[`card:${index}`] = { min: CARD_MINIMUM, max: CARD_MAXIMUM };
   }
   for (const index of protocol.priorityPairIndexes) constraints[`pair:${index}`] = { min: 1 };
   for (const index of protocol.requiredTripleIndexes) constraints[`triple:${index}`] = { min: 1 };
@@ -250,88 +264,35 @@ function solverModel(protocol: SearchProtocol, count: number, minimum: number,
   return { direction: 'minimize', objective: 'sourceIndex', constraints, variables, binaries: true };
 }
 
-export function generateBalanceSmokeSuiteYalpsModel(count: number): Model<string, string> {
-  const protocol = searchProtocol(), bound = candidateBound(count);
-  return solverModel(protocol, bound.count, bound.minimum, bound.maximum);
+export function generateBalanceSmokeSuiteYalpsModel(): Model<string, string> {
+  return solverModel(searchProtocol());
 }
 
-function solverSeed(protocol: SearchProtocol, count: number, minimum: number, maximum: number | null): {
-  status: SolutionStatus; objective: number; ids: string[]
-} {
-  const solution = solve(solverModel(protocol, count, minimum, maximum), BALANCE_SMOKE_SOLVER_OPTIONS);
+function solverSeed(protocol: SearchProtocol): string[] {
+  const solution = solve(solverModel(protocol), SOLVER_OPTIONS);
   const indexes = solution.variables.filter(([, value]) => value > 0.5)
-    .map(([key]) => Number(String(key).slice('row:'.length))).sort((left, right) => left - right);
-  if (solution.status !== 'optimal' || indexes.length !== count) {
-    throw new Error(`YALPS did not find an optimal ${count}-kingdom balance-smoke seed: ${solution.status}.`);
+    .map(([key]) => Number(String(key).slice('row:'.length)))
+    .sort((left, right) => left - right);
+  if (solution.status !== 'optimal' || indexes.length !== SELECTED_COUNT) {
+    throw new Error(`YALPS did not find an optimal ${SELECTED_COUNT}-kingdom balance-smoke seed: ${solution.status}.`);
   }
-  const objective = indexes.reduce((sum, index) => sum + index + 1, 0);
-  return { status: solution.status, objective, ids: indexes.map((index) => protocol.sourceRows[index]!.id) };
+  return indexes.map((index) => protocol.sourceRows[index]!.id);
 }
 
-export function generateBalanceSmokeSuiteDesign(): BalanceSmokeSuiteDesignSource {
-  const protocol = searchProtocol(), content = createBalanceSmokeSuiteDesignContent();
-  for (const bound of BALANCE_SMOKE_CANDIDATE_BOUNDS) {
-    const seed = solverSeed(protocol, bound.count, bound.minimum, bound.maximum);
-    const state = new SearchState(protocol, seed.ids);
-    if (!state.isFeasible(null, bound.minimum, bound.maximum)) throw new Error(`YALPS returned an infeasible ${bound.count}-kingdom seed.`);
-    const initialScore = { ...state.score }, acceptedExchanges: BalanceSmokeSearchExchange[] = [];
-    for (let exchange = bestExchange(state, bound.minimum, bound.maximum); exchange;
-      exchange = bestExchange(state, bound.minimum, bound.maximum)) {
-      acceptedExchanges.push({ removeKingdomId: exchange.removeKingdomId,
-        insertKingdomId: exchange.insertKingdomId, score: { ...exchange.score } });
-      state.apply(exchange);
-    }
-    content.candidates.push({ count: bound.count, cardMinimum: bound.minimum, cardMaximum: bound.maximum,
-      solverStatus: seed.status, solverObjective: seed.objective, initialKingdomIds: [...seed.ids], initialScore,
-      acceptedExchanges, finalKingdomIds: state.ids(), finalScore: { ...state.score } });
-  }
-  const design = content as BalanceSmokeSuiteDesignSource;
-  return { ...design, digest: balanceSmokeSuiteDesignDigest(design) };
-}
-
-function assertSame(actual: unknown, expected: unknown, message: string): void {
-  if (canonicalJson(actual) !== canonicalJson(expected)) throw new Error(message);
-}
-
-export function validateBalanceSmokeSuiteDesign(input: BalanceSmokeSuiteDesignSource): BalanceSmokeSuiteDesignSource {
-  validateBalanceSmokeSuiteDesignIdentity(input);
+export function searchBalanceSmokeSuite(): BalanceSmokeSearchResult {
   const protocol = searchProtocol();
-  for (const [candidateIndex, candidate] of input.candidates.entries()) {
-    const bound = BALANCE_SMOKE_CANDIDATE_BOUNDS[candidateIndex]!;
-    if (candidate.count !== bound.count || candidate.cardMinimum !== bound.minimum || candidate.cardMaximum !== bound.maximum
-      || candidate.solverStatus !== 'optimal' || candidate.initialKingdomIds.length !== bound.count
-      || candidate.finalKingdomIds.length !== bound.count) {
-      throw new Error(`Balance-smoke candidate ${bound.count} provenance is invalid.`);
-    }
-    const state = new SearchState(protocol, candidate.initialKingdomIds);
-    if (!state.isFeasible(null, bound.minimum, bound.maximum)) throw new Error(`Balance-smoke candidate ${bound.count} seed is infeasible.`);
-    const objective = [...state.selected].reduce((sum, index) => sum + index + 1, 0);
-    if (candidate.solverObjective !== objective) throw new Error(`Balance-smoke candidate ${bound.count} solver objective is stale.`);
-    assertSame(candidate.initialScore, state.score, `Balance-smoke candidate ${bound.count} initial score is stale.`);
-    for (const recorded of candidate.acceptedExchanges) {
-      const exchange = bestExchange(state, bound.minimum, bound.maximum);
-      if (!exchange || exchange.removeKingdomId !== recorded.removeKingdomId
-        || exchange.insertKingdomId !== recorded.insertKingdomId) {
-        throw new Error(`Balance-smoke candidate ${bound.count} exchange provenance is stale.`);
-      }
-      assertSame(recorded.score, exchange.score, `Balance-smoke candidate ${bound.count} exchange score is stale.`);
-      state.apply(exchange);
-    }
-    if (bestExchange(state, bound.minimum, bound.maximum)) {
-      throw new Error(`Balance-smoke candidate ${bound.count} is not a one-exchange local optimum.`);
-    }
-    assertSame(candidate.finalKingdomIds, state.ids(), `Balance-smoke candidate ${bound.count} final IDs are stale.`);
-    assertSame(candidate.finalScore, state.score, `Balance-smoke candidate ${bound.count} final score is stale.`);
-  }
-  return input;
+  const state = new SearchState(protocol, solverSeed(protocol));
+  if (!state.isFeasible(null)) throw new Error('YALPS returned an infeasible 30-kingdom balance-smoke seed.');
+  for (let exchange = bestExchange(state); exchange; exchange = bestExchange(state)) state.apply(exchange);
+  return { kingdomIds: state.ids(), score: { ...state.score } };
 }
 
-export function findBestBalanceSmokeSuiteExchange(ids: readonly string[], count: number): BalanceSmokeSearchExchange | null {
-  const protocol = searchProtocol(), bound = candidateBound(count), state = new SearchState(protocol, ids);
-  if (ids.length !== count || !state.isFeasible(null, bound.minimum, bound.maximum)) {
-    throw new Error(`Balance-smoke candidate ${count} is infeasible.`);
+export function findBestBalanceSmokeSuiteExchange(ids: readonly string[]): BalanceSmokeSearchExchange | null {
+  const state = new SearchState(searchProtocol(), ids);
+  if (ids.length !== SELECTED_COUNT || !state.isFeasible(null)) {
+    throw new Error('The 30-kingdom balance-smoke selection is infeasible.');
   }
-  const exchange = bestExchange(state, bound.minimum, bound.maximum);
+  const exchange = bestExchange(state);
   return exchange ? { removeKingdomId: exchange.removeKingdomId,
     insertKingdomId: exchange.insertKingdomId, score: exchange.score } : null;
 }

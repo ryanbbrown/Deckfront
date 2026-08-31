@@ -1,11 +1,9 @@
-import rawDesign from './balance-smoke-suite-design-v1.json' with { type: 'json' };
+import rawManifest from './balance-smoke-suite-manifest.json' with { type: 'json' };
 import { BALANCE_SUITE_MANIFEST } from './balanceSuite';
 import {
   PRIORITY_PAIRS, REQUIRED_TRIPLES, canonicalJson, measureBalanceSuiteDesign, sha256Canonical
 } from './balanceSuiteDesign';
 import type { BalanceRouteLabel, BalanceSuiteDesign } from './balanceSuiteDesign';
-import { validateBalanceSmokeSuiteDesignIdentity } from './balanceSmokeSuiteDesign';
-import type { BalanceSmokeSuiteDesignSource } from './balanceSmokeSuiteDesign';
 
 export interface BalanceSmokeCandidate {
   count: number;
@@ -49,9 +47,8 @@ export interface BalanceSmokeSuiteManifest {
   };
 }
 
-const BALANCE_SMOKE_SUITE_DESIGN = validateBalanceSmokeSuiteDesignIdentity(
-  rawDesign as unknown as BalanceSmokeSuiteDesignSource
-);
+const PINNED_CANDIDATE_IDS = (rawManifest as unknown as BalanceSmokeSuiteManifest).selection.candidates
+  .map((candidate) => [...candidate.kingdomIds]);
 const kingdomById = new Map(BALANCE_SUITE_MANIFEST.kingdoms.map((kingdom) => [kingdom.id, kingdom]));
 const round = (value: number): number => Number(value.toFixed(12));
 
@@ -83,8 +80,7 @@ function measureCandidate(ids: readonly string[]): BalanceSmokeCandidate {
 }
 
 export function generateBalanceSmokeSuiteManifest(): BalanceSmokeSuiteManifest {
-  const candidates = BALANCE_SMOKE_SUITE_DESIGN.candidates.map((candidate) =>
-    measureCandidate(candidate.finalKingdomIds));
+  const candidates = PINNED_CANDIDATE_IDS.map((kingdomIds) => measureCandidate(kingdomIds));
   for (const candidate of candidates) {
     if (candidate.priorityPairCovered !== 96 || candidate.requiredTripleCovered !== 60
       || candidate.routesCovered !== candidate.routesTotal) {

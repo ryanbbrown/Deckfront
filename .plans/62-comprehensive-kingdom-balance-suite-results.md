@@ -171,7 +171,7 @@ The 60 required triples are representative. They cover Mana sequencing, Feint, B
 
 The selected 30 uses only tuning kingdoms. No validation row is needed to meet the smoke requirements. The smoke objective prefers interaction breadth after every card and named interaction is present.
 
-This is a pinned result from a YALPS 0.6.4 binary feasibility search with a kingdom-index objective, followed by deterministic one-row exchange ascent. `npm run balance:smoke:search-check` reruns the selector. `npm run balance:smoke:manifest -- --check` validates the pinned search source and remeasures its final IDs without rerunning the selector. The result is not a proof of the global subset optimum. The search source is `src/sim/balance-smoke-suite-design-v1.json`; the measured manifest is `src/sim/balance-smoke-suite-manifest.json`.
+This is a pinned result from a YALPS 0.6.4 binary feasibility search with a kingdom-index objective, followed by deterministic one-row exchange ascent. `npm run balance:smoke:search-check` reruns the selector for the chosen 30 and checks its IDs against `src/sim/balance-smoke-suite-manifest.json`. `npm run balance:smoke:manifest -- --check` remeasures the recorded IDs without rerunning the selector. The manifest is the only committed smoke-suite data artifact. The result is not a proof of the global subset optimum.
 
 ## Families, mechanics, costs, and routes
 
@@ -311,8 +311,8 @@ npm run balance:suite:design-report -- --check
 - Active manifest: `src/sim/balance-suite-manifest.json`.
 - Covering-design source: `src/sim/balance-suite-covering-design-v2.json`.
 - Executable covering search: `scripts/generate_balance_suite_covering_design.ts` and `scripts/balance_suite_covering_search.cpp`.
-- Smoke-selector source: `src/sim/balance-smoke-suite-design-v1.json`.
-- Executable smoke search: `src/sim/balanceSmokeSuiteSearch.ts` and `scripts/generate_balance_smoke_suite_design.ts`.
+- Smoke-suite record: `src/sim/balance-smoke-suite-manifest.json`.
+- Executable smoke search: `src/sim/balanceSmokeSuiteSearch.ts` and `scripts/search_balance_smoke_suite.ts`.
 - Frozen strategy-search source: `src/sim/deep-beam-balance-suite-v3.json`.
 - Design report: `.html/kingdom-suite-design.html`.
 

@@ -79,7 +79,7 @@ npm run balance:suite:design-report
 npm run balance:suite:design-report -- --check
 ```
 
-`balance:suite:search-check` compiles and reruns the fixed-seed covering search. It takes about five minutes on an Apple M4 Pro. `balance:smoke:search-check` reruns the YALPS and one-row-exchange selector for the 25-to-30 smoke curve. Normal manifest checks only validate and remeasure the pinned search sources, so they are faster. The design report is `.html/kingdom-suite-design.html`.
+`balance:suite:search-check` compiles and reruns the fixed-seed covering search. It takes about five minutes on an Apple M4 Pro. `balance:smoke:search` prints the reproducible 30-kingdom selection, and `balance:smoke:search-check` checks it against the existing smoke manifest. Normal manifest checks remeasure the recorded IDs without running either search. The design report is `.html/kingdom-suite-design.html`.
 
 ## Native strategy search
 
