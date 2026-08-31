@@ -18,7 +18,7 @@ npm run dev
 
 Open `http://127.0.0.1:4173`.
 
-The server saves games in `.data/games` by default. You can set `PORT`, `HOST`, or `HEXDECK_DATA_DIR`. Saved game records, browser game views, and exports use schema version 14. The server rejects older saves and does not migrate them.
+The server saves games in `.data/games` by default. You can set `PORT`, `HOST`, or `HEXDECK_DATA_DIR`. Saved game records, browser game views, and exports use schema version 15. The server rejects older saves and does not migrate them.
 
 ## Play
 
@@ -28,7 +28,7 @@ The server saves games in `.data/games` by default. You can set `PORT`, `HOST`, 
 4. With the local draft on, Player 1 spends up to 12 money on starting cards, then Player 2 builds. With the draft off, both players start immediately with 7 Copper and 3 Scrap.
 5. Play any number of Action cards, end the Action phase to play Treasure cards, buy affordable cards, and end the Buy phase.
 
-Draft-on decks start with 7 Copper. Up to 3 unspent starting money carries into the first Buy phase. Draft-off decks add 3 Scrap, have no carry, and skip the build. Only the first Scrap a player plays each turn deals its 1 damage. Scrap cannot be bought or gained. Starting-build cards do not reduce market piles. Mana persists between turns, but each player keeps at most 3 mana when their Buy phase ends.
+Draft-on decks start with 7 Copper. Up to 3 unspent starting money carries into the first Buy phase. Draft-off decks add 3 Scrap, have no carry, and skip the build. Only the first Scrap a player plays each turn deals its 1 damage. Scrap cannot be bought or gained. Starting-build cards do not reduce market piles. Mana gained during a player’s turn is available for that turn and the player’s next turn only. At most 2 mana carries past the end of a turn; unused carried mana expires at the end of the next turn.
 
 AI games select from the server-only `src/server/pretrained-opponents.json` catalog. The catalog contains 1,588 final-Matrix ordered plans for 30 trained kingdoms, including 71 positive-weight equilibrium entries. The plans and equilibrium weights were trained at 40 starting health; playable games use 50 starting health, so this catalog is provisional. Selection does not start strategy search or worker processes. Expert uses the saved equilibrium lottery. Easy, Normal, and Hard use the saved score against that lottery. The saved purchase plan controls buys, and the shared tactical agent controls card play and movement.
 

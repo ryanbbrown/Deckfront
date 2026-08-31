@@ -37,7 +37,7 @@ const buyPlanSlotSchema = z.discriminatedUnion('kind', [
 const strategySchema = z.object({ id: z.string(), startingBuild: z.array(z.string()),
   buyPlan: z.array(buyPlanSlotSchema).length(10) });
 const runSchema = z.looseObject({
-  schemaVersion: z.literal(5), rulesFingerprint: z.object({ version: z.literal(1), hash: z.string(), rules: z.unknown() }),
+  schemaVersion: z.literal(5), rulesFingerprint: z.object({ version: z.literal(2), hash: z.string(), rules: z.unknown() }),
   valid: z.literal(true), kingdomId: z.string(), kingdomName: z.string(), mode: z.literal('full'),
   seed: z.number().int(), limits: z.record(z.string(), z.number()), finishedAt: z.string(),
   elapsedMs: z.number().nonnegative(), stopReason: z.string(), matches: z.number().nonnegative(), aborted: z.number().nonnegative()

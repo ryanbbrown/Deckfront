@@ -7,7 +7,7 @@ export const PLAYER_IDS: readonly PlayerId[] = ['ochre', 'indigo'];
 export function opponent(playerId: PlayerId): PlayerId { return playerId === 'ochre' ? 'indigo' : 'ochre'; }
 function emptyDeck(): DeckState { return { draw: [], hand: [], discard: [], play: [] }; }
 function player(id: PlayerId, startingDraftEnabled: boolean): PlayerState {
-  return { id, deck: emptyDeck(), money: 0, mana: 0, positionChanged: false, firstBuyMoney: 0,
+  return { id, deck: emptyDeck(), money: 0, mana: 0, carriedMana: 0, positionChanged: false, firstBuyMoney: 0,
     firstBuyPending: startingDraftEnabled, startingBuild: null, purchases: [] };
 }
 export function emptyTurnState(): TurnState {
@@ -23,7 +23,7 @@ export function createGame(config: CreateGameConfig): GameState {
   const firstPlayerId = config.firstPlayerId ?? 'ochre';
   const draft = config.startingDraftEnabled ?? true;
   const state: GameState = {
-    schemaVersion: 9, seed: config.seed, rngState: config.seed >>> 0, version: 0, nextCardSerial: 1,
+    schemaVersion: 10, seed: config.seed, rngState: config.seed >>> 0, version: 0, nextCardSerial: 1,
     kingdomId: kingdom.id, startingHealth: health, startingDraftEnabled: draft,
     activePlayerId: draft ? 'ochre' : firstPlayerId, selectedFirstPlayerId: firstPlayerId,
     phase: draft ? 'startingBuild' : 'action', turn: draft ? 0 : 1, winner: null,

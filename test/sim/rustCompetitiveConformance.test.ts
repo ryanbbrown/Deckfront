@@ -128,8 +128,8 @@ describe.skipIf(!fs.existsSync(binary))('Rust competitive scorer conformance', (
     }
   }, 60_000);
 
-  it('matches persistent mana when Focus funds later-turn Starfire plays', async () => {
-    const manaKingdom = { id: 'native-persistent-mana', name: 'Native persistent mana', startingHealth: 30,
+  it('matches one-turn mana when Focus funds next-turn Starfire plays', async () => {
+    const manaKingdom = { id: 'native-one-turn-mana', name: 'Native one-turn mana', startingHealth: 30,
       actionPiles: [{ cardId: 'starfire', count: 10 }] };
     registerKingdom(manaKingdom);
     const mage = identify({ id: '', startingBuild: ['focus', 'focus', 'focus'],

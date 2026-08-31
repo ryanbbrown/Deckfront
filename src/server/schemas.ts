@@ -1,5 +1,5 @@
 import { z } from 'zod';
-import { GAME_EVENT_TYPES, MAX_FIRST_BUY_CARRY, RANDOM_KINGDOM_SIZE, VARIABLE_ACTION_IDS } from '../game';
+import { GAME_EVENT_TYPES, MAX_CARRIED_MANA, MAX_FIRST_BUY_CARRY, RANDOM_KINGDOM_SIZE, VARIABLE_ACTION_IDS } from '../game';
 import type { GameEventType } from '../game';
 import { kingdomSchema } from '../game/schema';
 import { AI_DIFFICULTIES } from '../shared/api';
@@ -41,6 +41,7 @@ const player = z.object({
   deck,
   money: z.number().int().nonnegative(),
   mana: z.number().int().nonnegative(),
+  carriedMana: z.number().int().min(0).max(MAX_CARRIED_MANA),
   positionChanged: z.boolean(),
   firstBuyMoney: z.number().int().min(0).max(MAX_FIRST_BUY_CARRY),
   firstBuyPending: z.boolean(),
@@ -99,7 +100,7 @@ const turnState = z.object({
 });
 
 export const gameStateSchema = z.object({
-  schemaVersion: z.literal(9),
+  schemaVersion: z.literal(10),
   seed: z.number().int(),
   rngState: z.number().int().nonnegative(),
   version: z.number().int().nonnegative(),
@@ -144,7 +145,7 @@ const trainingSchema = z.object({
 });
 
 export const gameRecordSchema = z.object({
-  schemaVersion: z.literal(14),
+  schemaVersion: z.literal(15),
   id: z.string().uuid(),
   revision: z.number().int().nonnegative(),
   createdAt: z.string().datetime(),

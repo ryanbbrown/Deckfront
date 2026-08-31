@@ -9,7 +9,7 @@ export interface UndoHistoryEntry {
   durationSeconds: number | null;
 }
 export interface GameRecord {
-  schemaVersion: 14;
+  schemaVersion: 15;
   id: string; revision: number; createdAt: string; updatedAt: string; finishedAt: string | null;
   completedActions: number; durationSeconds: number | null;
   buildProposal: string[];

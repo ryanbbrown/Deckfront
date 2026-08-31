@@ -51,6 +51,37 @@ describe('the compact simulation kernel', () => {
     }
   });
 
+  it('matches exact mana cap and expiration traces in deterministic local games', () => {
+    registerKingdom({ id: 'mana-lifetime-parity', name: 'Mana lifetime parity', startingHealth: 99,
+      actionPiles: [{ cardId: 'starfire', count: 10 }] });
+    const passive: Strategy = { id: 'mana-passive', startingBuild: [], buyPlan: fixedBuyPlan([]) };
+    const run = (strategy: Strategy, seed: number, turnLimitPerPlayer: number) => {
+      const endMana: number[] = [];
+      const shared = { kingdomId: 'mana-lifetime-parity', seed, firstPlayerId: 'ochre' as const,
+        swapSides: false, turnLimitPerPlayer, actionCapPerTurn: 200 };
+      const product = runMatch({ ...shared,
+        agents: { ochre: tacticalAgent(strategy), indigo: tacticalAgent(passive) } }, (state) => {
+        const latest = state.events.at(-1);
+        if (latest?.type === 'turn' && latest.playerId === 'indigo') endMana.push(state.players.ochre.mana);
+      });
+      const compact = runSimulationMatch({ ...shared, strategies: { ochre: strategy, indigo: passive } });
+      expect(compact, `seed ${seed}`).toEqual(product);
+      return { endMana, plays: compact.telemetry.playsByCard.ochre };
+    };
+
+    const capped: Strategy = { id: 'mana-cap', startingBuild: Array<string>(5).fill('focus'),
+      buyPlan: fixedBuyPlan([]) };
+    expect(run(capped, 14, 1)).toEqual({ endMana: [2], plays: { focus: 4 } });
+
+    const expiring: Strategy = { id: 'mana-expiration', startingBuild: ['focus', 'focus', 'starfire'],
+      buyPlan: fixedBuyPlan([]) };
+    for (const seed of [3, 5, 8]) {
+      const evidence = run(expiring, seed, 2);
+      expect(evidence.endMana).toEqual([2, 0]);
+      expect(evidence.plays).toEqual({ focus: 2 });
+    }
+  });
+
   it.each([
     ['three-way-open', 'melee', 'melee', 1],
     ['three-way-open', 'melee', 'mage', 1],

@@ -1,11 +1,11 @@
-import { CARDS, MAX_FIRST_BUY_CARRY } from './config';
+import { CARDS, MAX_CARRIED_MANA, MAX_FIRST_BUY_CARRY } from './config';
 import { ARENA_MAX, ARENA_MIN } from './effects';
 import { ALWAYS_AVAILABLE_ACTION_IDS, ALWAYS_AVAILABLE_COUNT, findKingdom } from './kingdom';
 import type { GameState } from './types';
 
 export function checkInvariants(state: GameState): string[] {
   const errors: string[] = [];
-  if (state.schemaVersion !== 9) errors.push('Unsupported game schema version.');
+  if (state.schemaVersion !== 10) errors.push('Unsupported game schema version.');
 
   for (const fighter of Object.values(state.fighters)) {
     if (fighter.position < ARENA_MIN || fighter.position > ARENA_MAX) {
@@ -19,6 +19,10 @@ export function checkInvariants(state: GameState): string[] {
   for (const player of Object.values(state.players)) {
     if (!Number.isInteger(player.mana) || player.mana < 0) {
       errors.push(`${player.id} has invalid mana.`);
+    }
+    if (!Number.isInteger(player.carriedMana) || player.carriedMana < 0
+      || player.carriedMana > MAX_CARRIED_MANA || player.carriedMana > player.mana) {
+      errors.push(`${player.id} has invalid carried mana.`);
     }
     if (!Number.isInteger(player.firstBuyMoney) || player.firstBuyMoney < 0
       || player.firstBuyMoney > MAX_FIRST_BUY_CARRY) {

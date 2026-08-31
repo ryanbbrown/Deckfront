@@ -16,6 +16,7 @@ const INFINITE_BUY_COUNT: i16 = 99;
 const FIRST_PLAYER_HEALTH_PENALTY: i16 = 3;
 const STARTING_BUDGET: i16 = 12;
 const MAX_FIRST_BUY_CARRY: i16 = 3;
+const MAX_CARRIED_MANA: i16 = 2;
 
 #[derive(Clone, Debug, Deserialize)]
 #[serde(rename_all = "camelCase")]
@@ -449,6 +450,7 @@ struct Player {
     play: Vec<usize>,
     money: i16,
     mana: i16,
+    carried_mana: i16,
     first_buy_money: i16,
     first_buy_pending: bool,
     acquired: Vec<i16>,
@@ -561,6 +563,7 @@ impl<'a> State<'a> {
             play: Vec::with_capacity(zone_capacity),
             money: 0,
             mana: 0,
+            carried_mana: 0,
             first_buy_money: if draft {
                 (STARTING_BUDGET - build_cost).clamp(0, MAX_FIRST_BUY_CARRY)
             } else {
@@ -1563,6 +1566,10 @@ impl<'a> State<'a> {
     fn remove_hand(&mut self, i: usize) -> usize {
         self.p.hand.remove(i)
     }
+    fn spend_mana(&mut self, amount: i16) {
+        self.p.carried_mana -= self.p.carried_mana.min(amount);
+        self.p.mana -= amount;
+    }
     fn damage(&mut self, n: i16, close: bool, family: Family) -> bool {
         let actual = n + if close && self.exposed[1] {
             self.k.feint_bonus
@@ -1791,17 +1798,18 @@ impl<'a> State<'a> {
                 self.draw(c.v.draw)
             }
             Mechanic::Spell => {
-                self.p.mana -= c.v.mana_cost;
+                self.spend_mana(c.v.mana_cost);
                 self.mana_spent += c.v.mana_cost;
                 hit!(c.v.damage, false)
             }
             Mechanic::Discharge => {
                 let n = self.p.mana * c.v.per_mana;
                 self.p.mana = 0;
+                self.p.carried_mana = 0;
                 hit!(n, false)
             }
             Mechanic::Cascade => {
-                self.p.mana -= c.v.mana_cost;
+                self.spend_mana(c.v.mana_cost);
                 self.mana_spent += c.v.mana_cost;
                 hit!(c.v.damage + (self.spells - 1) * c.v.per_spell, false)
             }
@@ -2014,7 +2022,8 @@ impl<'a> State<'a> {
         self.p.discard.append(&mut self.p.hand);
         self.p.discard.append(&mut self.p.play);
         self.p.money = 0;
-        self.p.mana = self.p.mana.min(3);
+        self.p.mana = (self.p.mana - self.p.carried_mana).min(MAX_CARRIED_MANA);
+        self.p.carried_mana = self.p.mana;
         self.p.first_buy_money = 0;
         self.p.first_buy_pending = false;
         self.aimed[0] = false;
@@ -2807,7 +2816,7 @@ mod tests {
     }
 
     #[test]
-    fn persistent_mana_caps_at_three_only_after_the_turn() {
+    fn mana_caps_at_two_then_expires_after_one_carry_turn() {
         let kingdom = focused_rules_fixture();
         let focus = kingdom.card_index("focus").expect("focus");
         assert_eq!(kingdom.cards[focus].cost, 1);
@@ -2823,7 +2832,30 @@ mod tests {
         state.end_action();
         assert_eq!(state.p.mana, 4);
         state.end_buy();
-        assert_eq!(state.p.mana, 3);
+        assert_eq!(state.p.mana, 2);
+        assert_eq!(state.p.carried_mana, 2);
+
+        set_hand(&mut state, &[]);
+        state.end_action();
+        state.end_buy();
+        assert_eq!(state.p.mana, 0);
+        assert_eq!(state.p.carried_mana, 0);
+
+        let mut spent = focused_state(&kingdom);
+        set_hand(&mut spent, &["focus", "focus"]);
+        assert!(!spent.play(Decision::Play(0, 0, None, false)));
+        assert!(!spent.play(Decision::Play(0, 0, None, false)));
+        spent.end_action();
+        spent.end_buy();
+        set_hand(&mut spent, &["focus", "arcBolt"]);
+        assert!(!spent.play(Decision::Play(0, 0, None, false)));
+        assert!(!spent.play(Decision::Play(0, 0, None, false)));
+        assert_eq!(spent.p.mana, 2);
+        assert_eq!(spent.p.carried_mana, 1);
+        spent.end_action();
+        spent.end_buy();
+        assert_eq!(spent.p.mana, 1);
+        assert_eq!(spent.p.carried_mana, 1);
     }
 
     #[test]
@@ -2885,7 +2917,7 @@ mod tests {
                 false, &alpha, &beta, 4_200_001, true, "ochre", "victory", 49,
             ),
             (
-                false, &beta, &alpha, 4_200_125, false, "ochre", "victory", 40,
+                false, &beta, &alpha, 4_200_125, false, "indigo", "victory", 45,
             ),
             (true, &alpha, &beta, 91, false, "ochre", "victory", 36),
             (true, &alpha, &beta, 4_200_001, true, "ochre", "victory", 29),
@@ -2896,9 +2928,9 @@ mod tests {
         for (draft, ochre, indigo, seed, first_indigo, outcome, reason, turns) in fixtures {
             let actual =
                 competitive_game(&kingdom, ochre, indigo, seed, first_indigo, draft, 30, 200);
-            assert_eq!(actual.result.outcome, outcome);
-            assert_eq!(actual.result.reason, reason);
-            assert_eq!(actual.result.turns, turns);
+            assert_eq!(actual.result.outcome, outcome, "draft {draft} seed {seed}");
+            assert_eq!(actual.result.reason, reason, "draft {draft} seed {seed}");
+            assert_eq!(actual.result.turns, turns, "draft {draft} seed {seed}");
         }
     }
 

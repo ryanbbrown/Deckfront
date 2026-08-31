@@ -236,20 +236,41 @@ describe('mage cards', () => {
     expect(state.players.ochre.deck.draw.map((card) => card.definitionId)).toEqual(['gold']);
     assertInvariants(state);
   });
-  it('allows current-turn mana above 3, then persists at most 3 mana between turns', () => {
+  it('allows current-turn mana above 2, then carries at most 2 mana into the next turn', () => {
     let state = ready(); isolateHand(state, 'ochre', ['focus', 'focus', 'focus', 'focus']); state.players.indigo.mana = 2;
     for (let count = 0; count < 4; count += 1) state = playCard(state, 'focus');
-    expect(state.players.ochre.mana).toBe(4); expect(state.players.indigo.mana).toBe(2);
+    expect(state.players.ochre).toMatchObject({ mana: 4, carriedMana: 0 }); expect(state.players.indigo.mana).toBe(2);
 
     state = applyAction(state, action(state, (command) => command.type === 'endActionPhase').id);
     expect(state.players.ochre.mana).toBe(4);
     state = applyAction(state, action(state, (command) => command.type === 'endBuyPhase').id);
-    expect(state.players.ochre.mana).toBe(3); expect(state.players.indigo.mana).toBe(2);
+    expect(state.players.ochre).toMatchObject({ mana: 2, carriedMana: 2 }); expect(state.players.indigo.mana).toBe(2);
     state = endTurn(state);
-    expect(state.activePlayerId).toBe('ochre'); expect(state.players.ochre.mana).toBe(3);
-    isolateHand(state, 'ochre', ['starfire']);
-    state = playCard(state, 'starfire');
-    expect(state.players.ochre.mana).toBe(0); expect(state.fighters.indigo.health).toBe(28); assertInvariants(state);
+    expect(state.activePlayerId).toBe('ochre'); expect(state.players.ochre).toMatchObject({ mana: 2, carriedMana: 2 });
+    isolateHand(state, 'ochre', ['focus', 'starfire']);
+    state = playCard(state, 'focus'); state = playCard(state, 'starfire');
+    expect(state.players.ochre).toMatchObject({ mana: 0, carriedMana: 0 });
+    expect(state.fighters.indigo.health).toBe(28); assertInvariants(state);
+  });
+  it('spends carried mana before current-turn mana', () => {
+    let state = ready(); isolateHand(state, 'ochre', ['focus', 'focus']);
+    state = playCard(state, 'focus'); state = playCard(state, 'focus'); state = endTurn(state);
+    isolateHand(state, 'indigo', []); state = endTurn(state); isolateHand(state, 'ochre', ['focus', 'arcBolt']);
+    state = playCard(state, 'focus'); state = playCard(state, 'arcBolt');
+    expect(state.players.ochre).toMatchObject({ mana: 2, carriedMana: 1 });
+    state = endTurn(state);
+    expect(state.players.ochre).toMatchObject({ mana: 1, carriedMana: 1 });
+    assertInvariants(state);
+  });
+  it('expires unspent mana before the turn after its one allowed carry turn', () => {
+    let state = ready(); isolateHand(state, 'ochre', ['focus']); state = playCard(state, 'focus');
+    state = endTurn(state); isolateHand(state, 'indigo', []); state = endTurn(state);
+    expect(state.players.ochre).toMatchObject({ mana: 1, carriedMana: 1 });
+    isolateHand(state, 'ochre', []); state = endTurn(state);
+    expect(state.players.ochre).toMatchObject({ mana: 0, carriedMana: 0 });
+    isolateHand(state, 'indigo', []); state = endTurn(state); isolateHand(state, 'ochre', ['arcBolt']);
+    expect(availability(state, 'arcBolt')).toMatchObject({ enabled: false, reasonCode: 'NEEDS_MANA' });
+    assertInvariants(state);
   });
   it('Ley Step moves exactly one space, gains mana, and offers no move into a wall', () => {
     expect(cardDefinition('leyStep').cost).toBe(3);

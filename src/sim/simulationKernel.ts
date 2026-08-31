@@ -1,6 +1,6 @@
 import {
-  ALWAYS_AVAILABLE_ACTION_IDS, ALWAYS_AVAILABLE_COUNT, ARENA_MAX, ARENA_MIN, ATTACK_MECHANICS, cardDefinition,
-  firstBuyCarry, isTacticalAction, kingdomEpoch, kingdomMarket, kingdomOf, playerStartingHealth
+  ALWAYS_AVAILABLE_ACTION_IDS, ALWAYS_AVAILABLE_COUNT, ARENA_MAX, ARENA_MIN, ATTACK_MECHANICS, MAX_CARRIED_MANA,
+  cardDefinition, firstBuyCarry, isTacticalAction, kingdomEpoch, kingdomMarket, kingdomOf, playerStartingHealth
 } from '../game';
 import type { CardFamily, CardMechanic, CardValues, MovementChoice, PlayerId } from '../game';
 import { repairBuildIn } from './build';
@@ -45,6 +45,7 @@ interface KernelPlayer {
   play: number[];
   money: number;
   mana: number;
+  carriedMana: number;
   firstBuyMoney: number;
   firstBuyPending: boolean;
   purchases: number[];
@@ -182,7 +183,7 @@ function makePlayer(kingdom: KernelKingdom, strategy: Strategy, startingDraftEna
   for (const index of build) acquired[index]! += 1;
   const buildCost = build.reduce((total, index) => total + kingdom.cards[index]!.cost, 0);
   return {
-    strategy, build, draw: [], drawHead: 0, hand: [], discard: [], play: [], money: 0, mana: 0,
+    strategy, build, draw: [], drawHead: 0, hand: [], discard: [], play: [], money: 0, mana: 0, carriedMana: 0,
     firstBuyMoney: startingDraftEnabled ? firstBuyCarry(buildCost) : 0, firstBuyPending: startingDraftEnabled, purchases: [], acquired,
     attackProfile: buildAttackProfile([]), moneySpent: 0, unspentMoney: 0
   };
@@ -216,6 +217,10 @@ function shuffle(state: KernelState, source: readonly number[]): number[] {
 }
 
 function event(state: KernelState, count = 1): void { state.eventCount += count; }
+function spendMana(player: KernelPlayer, amount: number): void {
+  player.carriedMana -= Math.min(player.carriedMana, amount);
+  player.mana -= amount;
+}
 
 function draw(state: KernelState, playerIndex: 0 | 1, count: number): number {
   const player = state.players[playerIndex];
@@ -532,7 +537,7 @@ function playCard(state: KernelState, actor: 0 | 1, decision: Extract<ReturnType
       break;
     }
     case 'spell':
-      player.mana -= cardValue(card, 'manaCost'); state.manaSpent += cardValue(card, 'manaCost'); event(state);
+      spendMana(player, cardValue(card, 'manaCost')); state.manaSpent += cardValue(card, 'manaCost'); event(state);
       if (addDamage(state, actor, cardValue(card, 'damage'), false, cardIndex)) return true; break;
     case 'channel': player.mana += cardValue(card, 'mana'); event(state); draw(state, actor, cardValue(card, 'draw')); break;
     case 'leyStep': case 'step': {
@@ -549,11 +554,11 @@ function playCard(state: KernelState, actor: 0 | 1, decision: Extract<ReturnType
     case 'discharge': {
       const mana = player.mana;
       const won = addDamage(state, actor, mana * cardValue(card, 'perMana'), false, cardIndex);
-      player.mana = 0; if (mana) event(state);
+      player.mana = 0; player.carriedMana = 0; if (mana) event(state);
       if (won) return true;
       break;
     }
-    case 'cascade': player.mana -= cardValue(card, 'manaCost'); state.manaSpent += cardValue(card, 'manaCost'); event(state); if (addDamage(state, actor, cardValue(card, 'damage') + (state.spellsPlayed - 1) * cardValue(card, 'perSpell'), false, cardIndex)) return true; break;
+    case 'cascade': spendMana(player, cardValue(card, 'manaCost')); state.manaSpent += cardValue(card, 'manaCost'); event(state); if (addDamage(state, actor, cardValue(card, 'damage') + (state.spellsPlayed - 1) * cardValue(card, 'perSpell'), false, cardIndex)) return true; break;
     case 'overload': if (addDamage(state, actor, state.manaSpent * cardValue(card, 'perManaSpent'), false, cardIndex)) return true; break;
     case 'openingStrike': if (addDamage(state, actor, cardValue(card,
       state.cardsPlayed.slice(0, -1).some((index) => ATTACK_MECHANICS.has(state.kingdom.cards[index]!.mechanic)) ? 'later' : 'first'), true, cardIndex)) return true; break;
@@ -721,7 +726,8 @@ function endBuyPhase(state: KernelState, actor: 0 | 1): void {
   player.unspentMoney += player.money;
   if (state.telemetry) state.telemetry.unspentMoney[playerId(actor)] += player.money;
   player.discard.push(...player.hand, ...player.play); player.hand = []; player.play = [];
-  player.money = 0; player.mana = Math.min(player.mana, 3); player.firstBuyPending = false; player.firstBuyMoney = 0;
+  player.money = 0; player.mana = Math.min(player.mana - player.carriedMana, MAX_CARRIED_MANA); player.carriedMana = player.mana;
+  player.firstBuyPending = false; player.firstBuyMoney = 0;
   state.aimed[actor] = false; state.exposed[other(actor)] = false;
   draw(state, actor, 5); state.tacticalPlayed = 0; state.cardsPlayed = []; state.spacesMoved = 0; state.manaSpent = 0; state.spellsPlayed = 0;
   state.copiesPlayed.fill(0); state.familiesPlayed.clear();

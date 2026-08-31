@@ -44,7 +44,7 @@ export class GameService {
     const startingDraftEnabled = mode === 'ai' ? false : input.startingDraftEnabled ?? false;
     const initialState = createGame({ seed, firstPlayerId: 'ochre', kingdomId: kingdom.id, startingDraftEnabled });
     const record: GameRecord = {
-      schemaVersion: 14, id, revision: 0, createdAt: now, updatedAt: now, finishedAt: null,
+      schemaVersion: 15, id, revision: 0, createdAt: now, updatedAt: now, finishedAt: null,
       completedActions: 0, durationSeconds: null, buildProposal: [], kingdom, startingDraftEnabled, mode, humanPlayerId,
       aiDifficulty,
       aiStrategy: trained?.strategy ?? null, training: trained?.summary ?? null,
@@ -149,7 +149,7 @@ export class GameService {
     });
   }
   async exportGame(id: string): Promise<GameExport> {
-    return { schemaVersion: 14, exportedAt: new Date().toISOString(), game: this.gameView(await this.repository.load(id)) };
+    return { schemaVersion: 15, exportedAt: new Date().toISOString(), game: this.gameView(await this.repository.load(id)) };
   }
   private advanceComputer(record: GameRecord, frames: PresentationFrame[]): void {
     if (record.mode !== 'ai' || !record.aiStrategy || !record.humanPlayerId) return;
@@ -378,7 +378,7 @@ export class GameService {
       ? { ochre: [...state.players.ochre.startingBuild], indigo: [...state.players.indigo.startingBuild] }
       : null;
     return {
-      schemaVersion: 14, id: record.id, revision: record.revision, createdAt: record.createdAt, updatedAt: record.updatedAt,
+      schemaVersion: 15, id: record.id, revision: record.revision, createdAt: record.createdAt, updatedAt: record.updatedAt,
       elapsedSeconds: Math.max(0, Math.floor((Date.parse(record.updatedAt) - Date.parse(record.createdAt)) / 1000)),
       completedActions: record.completedActions, durationSeconds: record.durationSeconds,
       activePlayerId: state.activePlayerId, selectedFirstPlayerId: state.selectedFirstPlayerId, phase: state.phase,

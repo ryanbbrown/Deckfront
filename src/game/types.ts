@@ -41,6 +41,7 @@ export interface PlayerState {
   deck: DeckState;
   money: number;
   mana: number;
+  carriedMana: number;
   positionChanged: boolean;
   firstBuyMoney: number;
   firstBuyPending: boolean;
@@ -81,7 +82,7 @@ export interface GameEvent {
   detail: Record<string, unknown>;
 }
 export interface GameState {
-  schemaVersion: 9;
+  schemaVersion: 10;
   seed: number;
   rngState: number;
   version: number;

@@ -31,7 +31,7 @@ describe('playable-game seed script', () => {
       expect(files).toHaveLength(1);
       const id = files[0]!.replace(/\.json$/, '');
       const record = await new FileGameRepository(games).load(id);
-      expect(record.schemaVersion).toBe(14);
+      expect(record.schemaVersion).toBe(15);
       expect(record.startingDraftEnabled).toBe(true);
       expect(record.initialState.startingDraftEnabled).toBe(true);
       expect(record.state.startingDraftEnabled).toBe(true);
