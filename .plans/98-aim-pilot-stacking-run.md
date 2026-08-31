@@ -1,6 +1,6 @@
 # Aim-stacking pilot balance run
 
-Status: approved and in progress.
+Status: complete.
 
 ## Goal
 
@@ -29,3 +29,15 @@ Update the shared TypeScript tactical policy and the native Rust policy. Bump th
 - TypeScript and Rust agree on the policy.
 - All eight affected kingdoms complete Goldfish -> Matrix -> PSRO with two clean final searches each.
 - The combined report contains all 30 smoke kingdoms and passes routine structural checks.
+
+## Result
+
+Scientific policy commit: `f746a8767b9164e3b29bfa2b9204a57b98738d66`. Mixed-evidence fingerprint and verifier commit: `ab08a790a46c6e521924e56a437a4d02a8d1fded`.
+
+All eight Aim kingdoms completed fresh Goldfish, local Matrix, and Modal PSRO evidence. Goldfish completed 16 tasks with no retries or admission failures. Every kingdom passed PSRO validation with two clean final searches. Modal cost was $0.3068 for Goldfish and $0.1503 for PSRO, for $0.4571 total.
+
+The combined report reuses the unchanged Goldfish, Matrix, and PSRO evidence for the other 22 kingdoms. The current verifier regenerated self-play telemetry for all 30 kingdoms; every regenerated HST file was byte-identical to its corresponding prior or fresh source file.
+
+Compared with stacking Aim under the old pilot, Aim selection increased from 38.21% to 59.66%, expected acquired copies increased from 0.692 to 1.299, and conditional copies increased from 1.812 to 2.177. Ranged expected damage increased from 9.9155 to 11.2074 per player side. Pure Ranged share increased from 20.27% to 24.19%, and any-Ranged presence increased from 43.07% to 46.33%.
+
+The report is `.html/strategy-search-30-aim-stack-pilot-head-f746a87.html`.
