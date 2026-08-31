@@ -386,6 +386,8 @@ export function chooseTacticalAction(view: TacticalView): TacticalDecision {
   }
   if (view.pendingChoice === 'discard') return pickDiscard(view);
 
+  const aim = first(view, 'aim');
+  if (view.aimed && aim) return play(aim);
   const volley = first(view, 'volley');
   if (view.aimed && volley) return play(volley);
 
@@ -404,7 +406,6 @@ export function chooseTacticalAction(view: TacticalView): TacticalDecision {
   if (muster) return play(muster);
   const stipend = first(view, 'stipend');
   if (stipend) return play(stipend);
-  const aim = first(view, 'aim');
   if (aim) return play(aim);
 
   const adapt = first(view, 'adapt');

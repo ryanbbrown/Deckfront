@@ -25,9 +25,12 @@ function chosenDirection(action: LegalAction): string | undefined {
 }
 
 describe('the shared tactical pilot', () => {
-  it('uses an existing Aim on Volley before it draws or aims again', () => {
-    const state = arena({ kingdomId: 'current-duel', hand: ['muster', 'aim', 'volley'], aimed: true });
-    expect(choose(state).command.type).toBe('playVolley');
+  it('stacks every available Aim before spending the bonus on Volley', () => {
+    let state = arena({ kingdomId: 'current-duel', hand: ['aim', 'volley'], aimed: true });
+    expect(playedDefinition(state, choose(state))).toBe('aim');
+
+    state = arena({ kingdomId: 'current-duel', hand: ['volley'], aimed: true });
+    expect(playedDefinition(state, choose(state))).toBe('volley');
   });
 
   it('moves to the range with the largest visible attack value', () => {

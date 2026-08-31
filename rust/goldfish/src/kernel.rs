@@ -1285,7 +1285,11 @@ impl<'a> State<'a> {
                 .find(|&(_, &ci)| self.enabled(ci) && self.k.cards[ci].mechanic == m)
                 .map(|(i, _)| i)
         };
+        let aim = find(Mechanic::Aim);
         if self.aim_bonus[0] > 0 {
+            if let Some(i) = aim {
+                return Decision::Play(i, 0, None, false);
+            }
             if let Some(i) = find(Mechanic::Volley) {
                 return Decision::Play(i, 0, None, false);
             }
@@ -1312,7 +1316,7 @@ impl<'a> State<'a> {
         if let Some(i) = find(Mechanic::Stipend) {
             return Decision::Play(i, 0, None, false);
         }
-        if let Some(i) = find(Mechanic::Aim) {
+        if let Some(i) = aim {
             return Decision::Play(i, 0, None, false);
         }
         let adapt = find(Mechanic::Adapt);
@@ -2864,6 +2868,19 @@ mod tests {
         let bull_rush = &kingdom.cards[kingdom.card_index("bullRush").expect("bull rush")];
         assert_eq!(bull_rush.cost, 3);
         assert_eq!(bull_rush.v.damage, 7);
+
+        let mut aim_priority = focused_state(&kingdom);
+        aim_priority.aim_bonus[0] = 2;
+        set_hand(&mut aim_priority, &["aim", "volley"]);
+        match aim_priority.choose() {
+            Decision::Play(hand_index, _, _, _) => assert_eq!(hand_index, 0),
+            Decision::End => panic!("expected Aim"),
+        }
+        set_hand(&mut aim_priority, &["volley"]);
+        match aim_priority.choose() {
+            Decision::Play(hand_index, _, _, _) => assert_eq!(hand_index, 0),
+            Decision::End => panic!("expected Volley"),
+        }
 
         let mut stacked_aim = focused_state(&kingdom);
         stacked_aim.pos = [2, 3];
