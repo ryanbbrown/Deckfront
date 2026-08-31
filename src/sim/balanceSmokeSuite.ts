@@ -1,8 +1,11 @@
+import rawDesign from './balance-smoke-suite-design-v1.json' with { type: 'json' };
 import { BALANCE_SUITE_MANIFEST } from './balanceSuite';
 import {
   PRIORITY_PAIRS, REQUIRED_TRIPLES, canonicalJson, measureBalanceSuiteDesign, sha256Canonical
 } from './balanceSuiteDesign';
 import type { BalanceRouteLabel, BalanceSuiteDesign } from './balanceSuiteDesign';
+import { validateBalanceSmokeSuiteDesign } from './balanceSmokeSuiteSearch';
+import type { BalanceSmokeSuiteDesignSource } from './balanceSmokeSuiteSearch';
 
 export interface BalanceSmokeCandidate {
   count: number;
@@ -46,53 +49,9 @@ export interface BalanceSmokeSuiteManifest {
   };
 }
 
-const CANDIDATE_IDS: Readonly<Record<number, readonly string[]>> = Object.freeze({
-  25: ['balance-tuning-009', 'balance-tuning-011', 'balance-tuning-013', 'balance-tuning-015',
-    'balance-tuning-022', 'balance-tuning-023', 'balance-tuning-029', 'balance-tuning-031',
-    'balance-tuning-033', 'balance-tuning-034', 'balance-tuning-037', 'balance-tuning-047',
-    'balance-tuning-056', 'balance-tuning-057', 'balance-tuning-060', 'balance-tuning-064',
-    'balance-tuning-077', 'balance-tuning-082', 'balance-tuning-085', 'balance-tuning-087',
-    'balance-tuning-090', 'balance-tuning-091', 'balance-tuning-103', 'balance-tuning-118',
-    'balance-tuning-124'],
-  26: ['balance-tuning-005', 'balance-tuning-006', 'balance-tuning-007', 'balance-tuning-008',
-    'balance-tuning-009', 'balance-tuning-010', 'balance-tuning-011', 'balance-tuning-012',
-    'balance-tuning-013', 'balance-tuning-014', 'balance-tuning-024', 'balance-tuning-029',
-    'balance-tuning-031', 'balance-tuning-033', 'balance-tuning-034', 'balance-tuning-039',
-    'balance-tuning-056', 'balance-tuning-065', 'balance-tuning-068', 'balance-tuning-082',
-    'balance-tuning-087', 'balance-tuning-090', 'balance-tuning-099', 'balance-tuning-102',
-    'balance-tuning-123', 'balance-tuning-126'],
-  27: ['balance-tuning-005', 'balance-tuning-007', 'balance-tuning-009', 'balance-tuning-010',
-    'balance-tuning-011', 'balance-tuning-013', 'balance-tuning-014', 'balance-tuning-015',
-    'balance-tuning-017', 'balance-tuning-024', 'balance-tuning-029', 'balance-tuning-031',
-    'balance-tuning-033', 'balance-tuning-034', 'balance-tuning-042', 'balance-tuning-047',
-    'balance-tuning-053', 'balance-tuning-056', 'balance-tuning-057', 'balance-tuning-064',
-    'balance-tuning-080', 'balance-tuning-082', 'balance-tuning-086', 'balance-tuning-089',
-    'balance-tuning-090', 'balance-tuning-102', 'balance-tuning-118'],
-  28: ['balance-tuning-005', 'balance-tuning-006', 'balance-tuning-007', 'balance-tuning-010',
-    'balance-tuning-012', 'balance-tuning-015', 'balance-tuning-022', 'balance-tuning-023',
-    'balance-tuning-029', 'balance-tuning-031', 'balance-tuning-032', 'balance-tuning-033',
-    'balance-tuning-034', 'balance-tuning-040', 'balance-tuning-042', 'balance-tuning-056',
-    'balance-tuning-057', 'balance-tuning-060', 'balance-tuning-062', 'balance-tuning-064',
-    'balance-tuning-065', 'balance-tuning-068', 'balance-tuning-079', 'balance-tuning-082',
-    'balance-tuning-083', 'balance-tuning-090', 'balance-tuning-102', 'balance-tuning-126'],
-  29: ['balance-tuning-005', 'balance-tuning-006', 'balance-tuning-007', 'balance-tuning-009',
-    'balance-tuning-010', 'balance-tuning-011', 'balance-tuning-013', 'balance-tuning-014',
-    'balance-tuning-015', 'balance-tuning-017', 'balance-tuning-024', 'balance-tuning-025',
-    'balance-tuning-029', 'balance-tuning-031', 'balance-tuning-033', 'balance-tuning-034',
-    'balance-tuning-036', 'balance-tuning-039', 'balance-tuning-042', 'balance-tuning-056',
-    'balance-tuning-057', 'balance-tuning-065', 'balance-tuning-067', 'balance-tuning-080',
-    'balance-tuning-082', 'balance-tuning-083', 'balance-tuning-090', 'balance-tuning-102',
-    'balance-tuning-118'],
-  30: ['balance-tuning-005', 'balance-tuning-007', 'balance-tuning-009', 'balance-tuning-010',
-    'balance-tuning-011', 'balance-tuning-013', 'balance-tuning-014', 'balance-tuning-015',
-    'balance-tuning-018', 'balance-tuning-021', 'balance-tuning-024', 'balance-tuning-029',
-    'balance-tuning-031', 'balance-tuning-033', 'balance-tuning-034', 'balance-tuning-037',
-    'balance-tuning-042', 'balance-tuning-047', 'balance-tuning-053', 'balance-tuning-056',
-    'balance-tuning-057', 'balance-tuning-064', 'balance-tuning-067', 'balance-tuning-080',
-    'balance-tuning-082', 'balance-tuning-086', 'balance-tuning-090', 'balance-tuning-097',
-    'balance-tuning-116', 'balance-tuning-126']
-});
-
+const BALANCE_SMOKE_SUITE_DESIGN = validateBalanceSmokeSuiteDesign(
+  rawDesign as unknown as BalanceSmokeSuiteDesignSource
+);
 const kingdomById = new Map(BALANCE_SUITE_MANIFEST.kingdoms.map((kingdom) => [kingdom.id, kingdom]));
 const round = (value: number): number => Number(value.toFixed(12));
 
@@ -124,8 +83,8 @@ function measureCandidate(ids: readonly string[]): BalanceSmokeCandidate {
 }
 
 export function generateBalanceSmokeSuiteManifest(): BalanceSmokeSuiteManifest {
-  const candidates = Object.entries(CANDIDATE_IDS).sort(([left], [right]) => Number(left) - Number(right))
-    .map(([, ids]) => measureCandidate(ids));
+  const candidates = BALANCE_SMOKE_SUITE_DESIGN.candidates.map((candidate) =>
+    measureCandidate(candidate.finalKingdomIds));
   for (const candidate of candidates) {
     if (candidate.priorityPairCovered !== 96 || candidate.requiredTripleCovered !== 60
       || candidate.routesCovered !== candidate.routesTotal) {
