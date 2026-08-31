@@ -1,4 +1,4 @@
-import { readFile } from 'node:fs/promises';
+import { readFile, writeFile } from 'node:fs/promises';
 import path from 'node:path';
 
 interface SourceBuyStep { cardId: string; desiredCount: number }
@@ -19,15 +19,23 @@ const FIXED_SOURCE_CARD_IDS = new Set(['copper', 'silver', 'gold', 'step', 'focu
 const root = path.resolve(import.meta.dirname, '..');
 const catalogPath = path.join(root, 'src/server/pretrained-opponents.json');
 
-function sourceArgument(args: string[]): string {
-  if (args.length === 1 && !args[0]!.startsWith('-')) return args[0]!;
-  if (args.length === 2 && args[0] === '--source') return args[1]!;
-  const inline = args.find((argument) => argument.startsWith('--source='));
-  if (args.length === 1 && inline) return inline.slice('--source='.length);
-  throw new Error('Usage: tsx scripts/verify_pretrained_catalog.ts [--source] <analysis-path>');
+function parseArguments(args: string[]): { sourcePath: string; write: boolean } {
+  const write = args.includes('--write');
+  const sourceArgs = args.filter((argument) => argument !== '--write');
+  const positional = sourceArgs.length === 1 && !sourceArgs[0]!.startsWith('-') ? sourceArgs[0] : undefined;
+  const named = sourceArgs[0] === '--source' && sourceArgs.length === 2 ? sourceArgs[1] : undefined;
+  const inline = sourceArgs.length === 1 && sourceArgs[0]!.startsWith('--source=')
+    ? sourceArgs[0]!.slice('--source='.length)
+    : undefined;
+  const sourcePath = positional ?? named ?? inline;
+  if (!sourcePath) {
+    throw new Error('Usage: tsx scripts/verify_pretrained_catalog.ts [--write] [--source] <analysis-path>');
+  }
+  return { sourcePath: path.resolve(sourcePath), write };
 }
 
-const sourcePath = path.resolve(sourceArgument(process.argv.slice(2)));
+const options = parseArguments(process.argv.slice(2));
+const sourcePath = options.sourcePath;
 const source = JSON.parse(await readFile(sourcePath, 'utf8')) as SourceReport;
 for (const kingdom of source.kingdoms) {
   const variableCards = kingdom.kingdom.offeredCards
@@ -60,6 +68,7 @@ const derived = {
 };
 
 const expectedBytes = Buffer.from(`${JSON.stringify(derived)}\n`);
+if (options.write) await writeFile(catalogPath, expectedBytes);
 const catalogBytes = await readFile(catalogPath);
 if (!catalogBytes.equals(expectedBytes)) {
   throw new Error(`The pretrained catalog is not byte-equal to data derived from ${sourcePath}.`);

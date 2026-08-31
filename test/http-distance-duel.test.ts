@@ -7,6 +7,7 @@ import { VARIABLE_ACTION_IDS } from '../src/game';
 import type { AiTrainer } from '../src/server/aiTrainer';
 import { createHexdeckServer } from '../src/server/httpServer';
 import type { GameUpdateView, GameView } from '../src/shared/api';
+import rawBalanceSuite from '../src/sim/balance-suite-manifest.json' with { type: 'json' };
 import { fixedBuyPlan } from '../src/sim/strategy';
 const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
 const cleanups: Array<() => Promise<void>> = [];
@@ -35,8 +36,11 @@ describe('local game HTTP interface', () => {
     expect(setup.fixedCardIds).toEqual(['copper', 'silver', 'gold', 'step', 'focus']);
     expect(setup.variableCardIds).toContain('footwork'); expect(setup.variableCardIds).not.toContain('step');
     expect(Object.keys(setup.cards)).toContain('starfire');
-    expect(setup.trainedVariableCardSets).toHaveLength(30);
-    expect(new Set(setup.trainedVariableCardSets.map((cards) => [...cards].sort().join('|'))).size).toBe(30);
+    expect(setup.trainedVariableCardSets.map((cards) => [...cards].sort().join('|'))).toEqual(
+      rawBalanceSuite.kingdoms.map((kingdom) => kingdom.actionPiles.map((pile) => pile.cardId).sort().join('|'))
+    );
+    expect(setup.trainedVariableCardSets).toHaveLength(160);
+    expect(new Set(setup.trainedVariableCardSets.map((cards) => [...cards].sort().join('|'))).size).toBe(160);
     expect(setup.trainedVariableCardSets.every((cards) => cards.length === 10 && new Set(cards).size === 10
       && cards.every((cardId) => setup.variableCardIds.includes(cardId)))).toBe(true);
   });

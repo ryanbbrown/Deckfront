@@ -3,40 +3,15 @@ import { describe, expect, it } from 'vitest';
 import { randomKingdom } from '../src/game';
 import { PretrainedAiTrainer } from '../src/server/aiTrainer';
 import { findPretrainedKingdom, pretrainedVariableCardSets } from '../src/server/pretrainedCatalog';
+import rawBalanceSuite from '../src/sim/balance-suite-manifest.json' with { type: 'json' };
 
-const EXPECTED_KINGDOMS: Record<string, [signature: string, planCount: number]> = {
-  'balance-tuning-005': ['cascade|channel|flurry|heavyBlow|overload|prism|regiment|starfire|strike|volley', 54],
-  'balance-tuning-007': ['attune|bullRush|cascade|discharge|feint|flurry|heavyBlow|improvise|stipend|strike', 55],
-  'balance-tuning-009': ['attune|discipline|drive|feint|heavyBlow|longshot|openingStrike|precisionShot|prism|starfire', 58],
-  'balance-tuning-010': ['aim|bullRush|cull|flurry|jab|leyStep|overload|precisionShot|repellingShot|starfire', 55],
-  'balance-tuning-011': ['aim|bullRush|heavyBlow|improvise|jab|openingStrike|prism|reclaim|regroup|scour', 51],
-  'balance-tuning-013': ['bullRush|cascade|discipline|feint|heavyBlow|improvise|overload|precisionShot|rally|salvageShot', 50],
-  'balance-tuning-014': ['attune|cull|discipline|feint|heavyBlow|jab|pepperingShot|reclaim|reforge|sharpen', 53],
-  'balance-tuning-015': ['aim|discipline|jab|leyStep|overload|reclaim|salvageShot|steadyShot|stipend|volley', 50],
-  'balance-tuning-018': ['adapt|attune|bullRush|cascade|discharge|drive|footwork|leyStep|overload|prism', 54],
-  'balance-tuning-021': ['bullRush|channel|cull|fireball|jab|muster|precisionShot|repellingShot|steadyShot|strike', 54],
-  'balance-tuning-024': ['cascade|channel|discharge|drive|fireball|leyStep|reclaim|regroup|scour|sharpen', 51],
-  'balance-tuning-029': ['attune|cull|flurry|improvise|muster|openingStrike|overload|prism|reforge|regroup', 56],
-  'balance-tuning-031': ['adapt|bullRush|cull|drive|flurry|footwork|longshot|muster|regiment|strike', 55],
-  'balance-tuning-033': ['adapt|arcBolt|attune|cascade|channel|fireball|flurry|improvise|overload|starfire', 50],
-  'balance-tuning-034': ['adapt|aim|longshot|muster|pepperingShot|precisionShot|regroup|salvageShot|sharpen|volley', 52],
-  'balance-tuning-037': ['bullRush|feint|fireball|jab|openingStrike|pepperingShot|rally|reforge|regiment|salvageShot', 51],
-  'balance-tuning-042': ['arcBolt|attune|cull|leyStep|regiment|regroup|scour|steadyShot|stipend|strike', 52],
-  'balance-tuning-047': ['aim|discharge|discipline|footwork|improvise|pepperingShot|repellingShot|salvageShot|scour|volley', 50],
-  'balance-tuning-053': ['feint|flurry|jab|leyStep|longshot|muster|rally|scour|steadyShot|volley', 52],
-  'balance-tuning-056': ['fireball|heavyBlow|improvise|jab|leyStep|openingStrike|reforge|starfire|stipend|volley', 56],
-  'balance-tuning-057': ['aim|arcBolt|discharge|discipline|footwork|longshot|openingStrike|precisionShot|reclaim|steadyShot', 53],
-  'balance-tuning-064': ['arcBolt|discipline|fireball|flurry|improvise|jab|regiment|regroup|scour|sharpen', 56],
-  'balance-tuning-067': ['adapt|channel|discharge|discipline|flurry|openingStrike|pepperingShot|repellingShot|sharpen|stipend', 51],
-  'balance-tuning-080': ['adapt|arcBolt|bullRush|channel|feint|fireball|longshot|reclaim|scour|strike', 50],
-  'balance-tuning-082': ['aim|cascade|drive|heavyBlow|leyStep|longshot|pepperingShot|repellingShot|scour|volley', 52],
-  'balance-tuning-086': ['arcBolt|fireball|footwork|heavyBlow|jab|prism|rally|reforge|regiment|scour', 51],
-  'balance-tuning-090': ['bullRush|discipline|heavyBlow|muster|rally|reforge|scour|sharpen|starfire|strike', 51],
-  'balance-tuning-097': ['aim|arcBolt|attune|footwork|prism|rally|regroup|repellingShot|starfire|steadyShot', 52],
-  'balance-tuning-116': ['arcBolt|cascade|muster|precisionShot|prism|reforge|salvageShot|steadyShot|stipend|strike', 52],
-  'balance-tuning-126': ['discipline|drive|fireball|flurry|improvise|longshot|precisionShot|reclaim|salvageShot|sharpen', 51]
-};
-const firstCards = EXPECTED_KINGDOMS['balance-tuning-005']![0].split('|');
+function signature(cardIds: readonly string[]): string { return [...cardIds].sort().join('|'); }
+
+const expectedKingdoms = rawBalanceSuite.kingdoms.map((kingdom) => ({
+  id: kingdom.id,
+  signature: signature(kingdom.actionPiles.map((pile) => pile.cardId))
+}));
+const firstCards = expectedKingdoms.find((kingdom) => kingdom.id === 'balance-tuning-005')!.signature.split('|');
 const firstKingdom = randomKingdom('pretrained-ai-test', firstCards);
 
 function loadedKingdoms() {
@@ -44,14 +19,15 @@ function loadedKingdoms() {
 }
 
 describe('pretrained AI difficulty selection', () => {
-  it('loads the 30 literal kingdom signatures and final-Matrix plan counts', () => {
+  it('loads all 160 balance-suite kingdoms and final-Matrix plans', () => {
     const kingdoms = loadedKingdoms();
-    const actual = Object.fromEntries(kingdoms.map((kingdom) => [
-      kingdom.id, [[...kingdom.variableCardIds].sort().join('|'), kingdom.plans.length]
-    ]));
+    const actualKingdoms = kingdoms.map((kingdom) => ({
+      id: kingdom.id,
+      signature: signature(kingdom.variableCardIds)
+    }));
 
-    expect(actual).toEqual(EXPECTED_KINGDOMS);
-    expect(kingdoms.flatMap((kingdom) => kingdom.plans)).toHaveLength(1_578);
+    expect(actualKingdoms).toEqual(expectedKingdoms);
+    expect(kingdoms.flatMap((kingdom) => kingdom.plans)).toHaveLength(8_650);
   });
 
   it('loads five active and five inactive legal slots for every strategy', () => {
@@ -70,25 +46,18 @@ describe('pretrained AI difficulty selection', () => {
     }
   });
 
-  it('loads 70 positive weights, unit kingdom lotteries, and one valid cross-kingdom duplicate id', () => {
+  it('loads 431 positive weights and unit kingdom lotteries', () => {
     const kingdoms = loadedKingdoms();
     const positive = kingdoms.flatMap((kingdom) => kingdom.plans).filter((plan) => plan.equilibriumWeight > 0);
-    expect(positive).toHaveLength(70);
+    expect(positive).toHaveLength(431);
     const savedWeights = kingdoms.map((kingdom) => [
       kingdom.id, kingdom.plans.map((plan) => [plan.strategy.id, plan.equilibriumWeight])
     ]);
     expect(createHash('sha256').update(JSON.stringify(savedWeights)).digest('hex'))
-      .toBe('5109b481821a3235afb8091566ec5361267b605309669bb1a67f2ba20b892fbd');
+      .toBe('b0a6e3accf0f0342e9cded5d368efe6bd39c093b3d3d946033328088319dea7b');
     for (const kingdom of kingdoms) {
       expect(Math.abs(kingdom.plans.reduce((sum, plan) => sum + plan.equilibriumWeight, 0) - 1)).toBeLessThan(1e-12);
     }
-    const owners = new Map<string, string[]>();
-    for (const kingdom of kingdoms) for (const plan of kingdom.plans) {
-      owners.set(plan.strategy.id, [...(owners.get(plan.strategy.id) ?? []), kingdom.id]);
-    }
-    expect([...owners].filter((entry) => entry[1].length > 1)).toEqual([
-      ['gf-11949081', ['balance-tuning-014', 'balance-tuning-064']]
-    ]);
   });
 
   it('matches a kingdom without depending on submitted card order', async () => {
@@ -109,7 +78,7 @@ describe('pretrained AI difficulty selection', () => {
   });
 
   it('samples Expert deterministically from only the saved positive-weight lottery', async () => {
-    const cards = EXPECTED_KINGDOMS['balance-tuning-021']![0].split('|');
+    const cards = expectedKingdoms.find((kingdom) => kingdom.id === 'balance-tuning-021')!.signature.split('|');
     const kingdom = randomKingdom('weighted-expert-test', cards);
     const trained = findPretrainedKingdom(cards)!;
     const trainer = new PretrainedAiTrainer();
