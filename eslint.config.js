@@ -3,7 +3,7 @@ import tseslint from 'typescript-eslint';
 
 export default tseslint.config(
   { ignores: [
-    'dist/**', 'dist-sim/**', 'dist-benchmark/**', 'rust/target/**', 'coverage/**', '.reviews/**',
+    'build/**', 'dist/**', 'dist-sim/**', 'dist-benchmark/**', 'rust/target/**', 'coverage/**', '.reviews/**',
     '.e2e-report/**', '.e2e-results/**'
   ] },
   eslint.configs.recommended,

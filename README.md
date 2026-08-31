@@ -18,7 +18,21 @@ npm run dev
 
 Open `http://127.0.0.1:4173`.
 
-The server saves games in `.data/games` by default. You can set `PORT`, `HOST`, or `HEXDECK_DATA_DIR`. Saved game records, browser game views, and exports use schema version 15. The server rejects older saves and does not migrate them.
+The server saves games in `.data/games` by default. You can set `PORT`, `HOST`, `HEXDECK_DATA_DIR`, or `HEXDECK_STATIC_DIR`. Saved game records, browser game views, and exports use schema version 15. The server rejects older saves and does not migrate them.
+
+## Deploy to Render
+
+The root [`render.yaml`](render.yaml) creates one paid `0.5c-512mb` Docker web service and a 1 GB persistent disk.
+
+1. Push the repository and the branch that you want Render to deploy to your Git provider.
+2. In the [Render Dashboard](https://dashboard.render.com/), select **New > Blueprint**.
+3. Connect the Git provider, select the Deckfront repository, and select `main`.
+4. Review the `deckfront` service and `deckfront-data` disk, then select **Deploy Blueprint**.
+5. Wait for the service to become live. Open `https://<your-service-host>/api/health`; a healthy service returns `{"ok":true}`.
+
+Render deploys new commits from the connected branch. To deploy the current branch tip by hand, open the service, select **Manual Deploy > Deploy latest commit**, and wait for the health check to pass. The image reads Render's `PORT`, binds to `0.0.0.0`, serves the Vite client and API from one process, and saves games in `/var/data/games`.
+
+Render's free web service cannot attach a persistent disk. It spins down after 15 inactive minutes and loses local files on spin-down, restart, or redeploy. The paid disk keeps saved games, but a service with a disk cannot use horizontal scaling or zero-downtime deploys.
 
 ## Play
 
