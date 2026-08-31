@@ -1,6 +1,6 @@
 # Stacking Aim balance run
 
-Status: approved and in progress.
+Status: complete.
 
 ## Goal
 
@@ -29,3 +29,13 @@ Update the playable TypeScript engine, compact TypeScript simulation, tactical s
 - Focused verification passes.
 - All 30 kingdoms complete Goldfish -> Matrix -> PSRO with two clean final searches each.
 - The report passes routine structural checks.
+
+## Result
+
+Scientific commit: `9e159057b22a860d65a7cf79fd19d335a034d29c`.
+
+All 30 kingdoms completed Goldfish, local Matrix, and Modal PSRO. Goldfish completed 60 tasks with no retries or admission failures. Every kingdom passed PSRO validation with two clean final searches.
+
+Modal cost was $0.9247 for Goldfish and $0.5045 for PSRO, for $1.4292 total. The report is `.html/strategy-search-30-stacking-aim-head-9e15905.html`.
+
+Stacking increased Aim's equilibrium selection rate from 15.77% to 38.21% across the eight kingdoms that offered it. Conditional acquired copies increased from 0.539 to 1.812. Ranged expected damage increased from 9.7948 to 9.9155 per player side, while Ranged-family presence increased from 42.39% to 43.07%.
