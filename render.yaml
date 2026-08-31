@@ -1,0 +1,13 @@
+services:
+  - type: web
+    name: deckfront
+    runtime: docker
+    plan: "0.5c-512mb"
+    numInstances: 1
+    dockerContext: .
+    dockerfilePath: ./Dockerfile
+    healthCheckPath: /api/health
+    disks:
+      - name: deckfront-data
+        mountPath: /var/data
+        sizeGB: 1

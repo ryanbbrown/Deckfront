@@ -23,6 +23,11 @@ async function create(base: string, body: Record<string, unknown> = {}) {
   return fetch(`${base}/api/games`, { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ seed: 2, mode: 'local', variableCardIds: TEST_MARKET, startingDraftEnabled: true, ...body }) });
 }
 describe('local game HTTP interface', () => {
+  it('reports server health', async () => {
+    const { base } = await server(); const response = await fetch(`${base}/api/health`);
+    expect(response.status).toBe(200);
+    expect(await response.json()).toEqual({ ok: true });
+  });
   it('serves the setup catalog with fixed and variable cards separated', async () => {
     const { base } = await server(); const response = await fetch(`${base}/api/setup`);
     const setup = await response.json() as { fixedCardIds: string[]; variableCardIds: string[]; trainedVariableCardSets: string[][]; cards: Record<string, unknown> };
