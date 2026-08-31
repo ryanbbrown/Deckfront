@@ -31,7 +31,7 @@ describe('starting build', () => {
     expect(state.activePlayerId).toBe('indigo'); expect(state.players.ochre.deck.hand).toEqual([]); expect(state.nextCardSerial).toBe(1);
     state = submitStartingBuild(state, 'indigo', ['feint', 'drive']);
     expect(state.phase).toBe('action'); expect(state.activePlayerId).toBe('indigo'); expect(state.turn).toBe(1);
-    expect(state.players.ochre.firstBuyMoney).toBe(2); expect(state.players.indigo.firstBuyMoney).toBe(3);
+    expect(state.players.ochre.firstBuyMoney).toBe(3); expect(state.players.indigo.firstBuyMoney).toBe(3);
     expect(state.players.ochre.deck.hand).toHaveLength(5); expect(state.players.indigo.deck.hand).toHaveLength(5);
     expect(state.nextCardSerial).toBe(19); expect(state.fighters.ochre).toMatchObject({ position: 3, health: 50 }); expect(state.fighters.indigo).toMatchObject({ position: 4, health: 47 });
     assertInvariants(state);
@@ -39,7 +39,7 @@ describe('starting build', () => {
   it('creates instances, shuffles, and draws in the exact approved player order', () => {
     let state = createGame({ seed: 7, firstPlayerId: 'ochre' }); state = submitStartingBuild(state, 'ochre', ['aim', 'volley']); state = submitStartingBuild(state, 'indigo', ['feint', 'drive']);
     expect(state.nextCardSerial).toBe(19); expect(state.rngState).toBe(3338981911); expect(state.players.ochre.deck.hand.map((card) => [card.id, card.definitionId])).toEqual([['card-9', 'volley'], ['card-7', 'copper'], ['card-2', 'copper'], ['card-4', 'copper'], ['card-1', 'copper']]);
-    expect(state.players.indigo.deck.hand.map((card) => [card.id, card.definitionId])).toEqual([['card-18', 'drive'], ['card-15', 'copper'], ['card-11', 'copper'], ['card-14', 'copper'], ['card-12', 'copper']]); expect(state.fighters).toEqual({ ochre: { playerId: 'ochre', position: 3, health: 47, aimed: false, exposed: false }, indigo: { playerId: 'indigo', position: 4, health: 50, aimed: false, exposed: false } });
+    expect(state.players.indigo.deck.hand.map((card) => [card.id, card.definitionId])).toEqual([['card-18', 'drive'], ['card-15', 'copper'], ['card-11', 'copper'], ['card-14', 'copper'], ['card-12', 'copper']]); expect(state.fighters).toEqual({ ochre: { playerId: 'ochre', position: 3, health: 47, aimBonus: 0, exposed: false }, indigo: { playerId: 'indigo', position: 4, health: 50, aimBonus: 0, exposed: false } });
   });
   it('accepts no paid cards, repeats, and free Copper but rejects bad builds', () => {
     const initial = createGame({ seed: 2 }); expect(submitStartingBuild(initial, 'ochre', []).players.ochre.startingBuild).toEqual([]);
@@ -157,14 +157,14 @@ describe('cards and conditions', () => {
     for (let index = 0; index < 6; index += 1) state = applyAction(state, action(state, (command) => command.type === 'playFootwork' && command.movement === 'stay').id);
     state = play(state, 'playFlurry'); expect(state.fighters.indigo.health).toBe(34);
   });
-  it('Aim draws and refreshes, while Volley resolves literal Near and Far damage', () => {
+  it('Aim draws and stacks, while Volley resolves literal Near and Far damage', () => {
     for (const test of [
       { enemy: 3, aimed: false, damage: 2 }, { enemy: 5, aimed: false, damage: 4 },
-      { enemy: 3, aimed: true, damage: 4 }, { enemy: 5, aimed: true, damage: 6 }
+      { enemy: 3, aimed: true, damage: 6 }, { enemy: 5, aimed: true, damage: 8 }
     ]) {
       let state = ready(); state.fighters.ochre.position = 2; state.fighters.indigo.position = test.enemy; isolateHand(state, 'ochre', test.aimed ? ['aim', 'aim', 'volley'] : ['volley']);
-      if (test.aimed) { state = play(state, 'playAim'); state = play(state, 'playAim'); expect(state.fighters.ochre.aimed).toBe(true); }
-      state = play(state, 'playVolley'); expect(state.fighters.indigo.health).toBe(40 - test.damage); expect(state.fighters.ochre.aimed).toBe(false);
+      if (test.aimed) { state = play(state, 'playAim'); state = play(state, 'playAim'); expect(state.fighters.ochre.aimBonus).toBe(4); }
+      state = play(state, 'playVolley'); expect(state.fighters.indigo.health).toBe(40 - test.damage); expect(state.fighters.ochre.aimBonus).toBe(0);
     }
     const close = ready(); close.fighters.ochre.position = 2; close.fighters.indigo.position = 2; isolateHand(close, 'ochre', ['aim', 'volley']); expect(listActionAvailability(close, 'ochre').map((item) => item.reasonCode)).toEqual(['NEEDS_NEAR_OR_FAR', 'NEEDS_NEAR_OR_FAR']);
   });
@@ -179,8 +179,8 @@ describe('complete turns and purchases', () => {
     state = applyAction(state, action(state, (command) => command.type === 'buyCard' && command.definitionId === 'silver').id);
     state = applyAction(state, action(state, (command) => command.type === 'buyCard' && command.definitionId === 'copper').id);
     expect(state.phase).toBe('buy'); expect(state.players.ochre.money).toBe(1); expect(state.supply.feint).toBe(9);
-    state.fighters.ochre.aimed = true; state.fighters.indigo.exposed = true; state = play(state, 'endBuyPhase');
-    expect(state.activePlayerId).toBe('indigo'); expect(state.phase).toBe('action'); expect(state.players.ochre.money).toBe(0); expect(state.fighters.ochre.aimed).toBe(false); expect(state.fighters.indigo.exposed).toBe(false);
+    state.fighters.ochre.aimBonus = 2; state.fighters.indigo.exposed = true; state = play(state, 'endBuyPhase');
+    expect(state.activePlayerId).toBe('indigo'); expect(state.phase).toBe('action'); expect(state.players.ochre.money).toBe(0); expect(state.fighters.ochre.aimBonus).toBe(0); expect(state.fighters.indigo.exposed).toBe(false);
     expect(state.players.ochre.deck.hand).toHaveLength(5); assertInvariants(state);
   });
   it('depletes the 10th Action but never base Treasures', () => {
@@ -192,7 +192,7 @@ describe('complete turns and purchases', () => {
   });
   it('keeps Aimed and Exposed through Buy actions and expires them exactly at Buy completion', () => {
     let exposed = ready(); exposed.fighters.ochre.position = 2; exposed.fighters.indigo.position = 2; isolateHand(exposed, 'ochre', ['feint']); exposed = play(exposed, 'playFeint'); exposed = play(exposed, 'endActionPhase'); expect(exposed.fighters.indigo.exposed).toBe(true); exposed = applyAction(exposed, action(exposed, (command) => command.type === 'buyCard' && command.definitionId === 'copper').id); expect(exposed.fighters.indigo.exposed).toBe(true); exposed = play(exposed, 'endBuyPhase'); expect(exposed.fighters.indigo.exposed).toBe(false);
-    let aimed = ready(); isolateHand(aimed, 'ochre', ['aim']); aimed = play(aimed, 'playAim'); aimed = play(aimed, 'endActionPhase'); expect(aimed.fighters.ochre.aimed).toBe(true); aimed = play(aimed, 'endBuyPhase'); expect(aimed.fighters.ochre.aimed).toBe(false);
+    let aimed = ready(); isolateHand(aimed, 'ochre', ['aim']); aimed = play(aimed, 'playAim'); aimed = play(aimed, 'endActionPhase'); expect(aimed.fighters.ochre.aimBonus).toBe(2); aimed = play(aimed, 'endBuyPhase'); expect(aimed.fighters.ochre.aimBonus).toBe(0);
   });
   it('keeps replay equivalent after every representative command', () => {
     let state = ready(14); isolateHand(state, 'ochre', ['aim', 'volley', 'copper']); const initial = structuredClone(state); const commands: GameCommand[] = [];

@@ -93,7 +93,7 @@ describe('telemetry accumulator', () => {
       availability(liveFlurry!.id, { enabled: true })
     ];
 
-    expect(state.fighters.ochre.aimed).toBe(false);
+    expect(state.fighters.ochre.aimBonus).toBe(0);
     expect(deadDrawCounts({ playerId: 'ochre', state, availability: list })).toEqual({ range: 1, mana: 1, setup: 2, total: 3 });
   });
 
@@ -105,7 +105,7 @@ describe('telemetry accumulator', () => {
       availability(volley!.id, { enabled: true }),
       availability(flurry!.id, { enabled: true })
     ];
-    state.fighters.ochre.aimed = true;
+    state.fighters.ochre.aimBonus = 2;
     state.turnState.cardsPlayed = ['footwork'];
     expect(deadDrawCounts({ playerId: 'ochre', state, availability: list })).toEqual({ range: 0, mana: 0, setup: 0, total: 0 });
   });

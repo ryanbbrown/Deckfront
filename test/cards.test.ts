@@ -199,9 +199,9 @@ describe('attacks', () => {
   it('Repelling Shot is illegal at Close and consumes Aimed when played at range', () => {
     const close = ready(); close.fighters.indigo.position = 3; isolateHand(close, 'ochre', ['repellingShot']);
     expect(availability(close, 'repellingShot')).toMatchObject({ enabled: false, reasonCode: 'NEEDS_NEAR_OR_FAR' });
-    let aimed = ready(); aimed.fighters.ochre.aimed = true; isolateHand(aimed, 'ochre', ['repellingShot']);
+    let aimed = ready(); aimed.fighters.ochre.aimBonus = 2; isolateHand(aimed, 'ochre', ['repellingShot']);
     aimed = playCard(aimed, 'repellingShot');
-    expect(aimed.fighters.ochre.aimed).toBe(false); expect(aimed.fighters.indigo.health).toBe(37);
+    expect(aimed.fighters.ochre.aimBonus).toBe(0); expect(aimed.fighters.indigo.health).toBe(37);
   });
   it('a spell leaves Exposed alone while Close attacks use it without consuming it', () => {
     let spell = ready(); spell.fighters.indigo.position = 3; spell.fighters.indigo.exposed = true; spell.players.ochre.mana = 1; isolateHand(spell, 'ochre', ['arcBolt']);

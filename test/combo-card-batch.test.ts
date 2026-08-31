@@ -97,7 +97,7 @@ describe('combo card batch', () => {
     expect(state.fighters.indigo.exposed).toBe(false);
 
     state = ready(); hand(state, ['aim','repellingShot','steadyShot']); state = play(state, 'aim'); state = play(state, 'repellingShot');
-    expect(state.fighters.indigo.health).toBe(37); expect(state.fighters.ochre.aimed).toBe(false);
+    expect(state.fighters.indigo.health).toBe(37); expect(state.fighters.ochre.aimBonus).toBe(0);
     state = play(state, 'steadyShot'); expect(state.fighters.indigo.health).toBe(35);
   });
 
@@ -157,7 +157,7 @@ describe('combo card batch', () => {
     expect(on.telemetry.startingBuild).toEqual({ ochre: [], indigo: [] }); expect(off.telemetry.startingBuild).toEqual({ ochre: [], indigo: [] });
     const fingerprint = rulesFingerprint('distance-duel');
     expect(fingerprint).toMatchObject({ version: 3, rules: { maximumCarriedMana: 2, manaUsableTurns: 'unlimited',
-      simulationKernelProtocol: 'persistent-mana-cap2-v11' } });
+      simulationKernelProtocol: 'stacking-aim-v12' } });
     expect(fingerprint.hash).not.toBe(rulesFingerprint('distance-duel', undefined, undefined, false).hash);
   });
 });
@@ -234,7 +234,7 @@ describe('complete public card coverage', () => {
       };
       const plain = setup(false); const aimed = setup(true);
       expect(aimed.fighters.indigo.health).toBe(plain.fighters.indigo.health - 2);
-      expect(aimed.fighters.ochre.aimed).toBe(false);
+      expect(aimed.fighters.ochre.aimBonus).toBe(0);
     }
   );
 

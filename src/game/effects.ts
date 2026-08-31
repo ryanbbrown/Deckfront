@@ -94,7 +94,7 @@ const EFFECT_MAP: Record<CardMechanic, CardEffect> = {
   flurry: { ...BASE, tactical: true, gate: needsClose, command: (cardInstanceId) => ({ type: 'playFlurry', cardInstanceId }),
     resolve: (context, values) => { const tactical = context.state.turnState.cardsPlayed.slice(0, -1).filter((id) => EFFECTS[cardDefinition(id).mechanic].tactical).length; closeAttack(context, tactical * value(values, 'perAction')); } },
   aim: { ...BASE, tactical: true, gate: needsRange, command: (cardInstanceId) => ({ type: 'playAim', cardInstanceId }),
-    resolve: (context, values) => { context.draw(context.actorId, value(values, 'draw')); context.state.fighters[context.actorId].aimed = true; context.record('condition', { condition: 'Aimed', change: 'set', targetId: context.actorId }); } },
+    resolve: (context, values) => { context.draw(context.actorId, value(values, 'draw')); context.state.fighters[context.actorId].aimBonus += value(values, 'bonus'); context.record('condition', { condition: 'Aimed', change: 'set', targetId: context.actorId }); } },
   volley: { ...BASE, tactical: true, gate: needsRange, command: (cardInstanceId) => ({ type: 'playVolley', cardInstanceId }),
     resolve: (context, values) => rangedAttack(context, value(values, rangeBand(context.state) === 'Near' ? 'near' : 'far')) },
   stipend: { ...BASE, tactical: false, command: playAction, resolve: (context, values) => { context.draw(context.actorId, value(values, 'draw')); context.state.players[context.actorId].money += value(values, 'money'); } },

@@ -466,7 +466,7 @@ struct State<'a> {
     op: Player,
     pos: [i16; 2],
     health: [i16; 2],
-    aimed: [bool; 2],
+    aim_bonus: [i16; 2],
     exposed: [bool; 2],
     active_seat: u8,
     supply: Vec<i16>,
@@ -596,7 +596,7 @@ impl<'a> State<'a> {
             op,
             pos: [3, 4],
             health: [(k.health - FIRST_PLAYER_HEALTH_PENALTY).max(1), 50],
-            aimed: [false, false],
+            aim_bonus: [0, 0],
             exposed: [false, false],
             active_seat: 0,
             supply: k.cards.iter().map(|c| c.supply).collect(),
@@ -654,7 +654,7 @@ impl<'a> State<'a> {
                     k.health
                 },
             ],
-            aimed: [false, false],
+            aim_bonus: [0, 0],
             exposed: [false, false],
             active_seat: 0,
             supply: k.cards.iter().map(|c| c.supply).collect(),
@@ -683,7 +683,7 @@ impl<'a> State<'a> {
         std::mem::swap(&mut self.p, &mut self.op);
         self.pos.swap(0, 1);
         self.health.swap(0, 1);
-        self.aimed.swap(0, 1);
+        self.aim_bonus.swap(0, 1);
         self.exposed.swap(0, 1);
         self.active_seat ^= 1;
     }
@@ -986,7 +986,7 @@ impl<'a> State<'a> {
         } else {
             0
         };
-        let aim_bonus = if self.aimed[0] { self.k.aim_bonus } else { 0 };
+        let aim_bonus = self.aim_bonus[0];
         match card.mechanic {
             Mechanic::Melee => card.v.damage + close_bonus,
             Mechanic::Drive => {
@@ -1118,13 +1118,7 @@ impl<'a> State<'a> {
                 ranged = true
             }
         }
-        total
-            + if ranged && self.aimed[0] {
-                self.k.aim_bonus
-            } else {
-                0
-            }
-            + *spell.last().unwrap_or(&0)
+        total + if ranged { self.aim_bonus[0] } else { 0 } + *spell.last().unwrap_or(&0)
     }
     fn profile_value(&self, player: &Player, ap: i16, op: i16) -> i32 {
         let mut total = 0i32;
@@ -1291,7 +1285,7 @@ impl<'a> State<'a> {
                 .find(|&(_, &ci)| self.enabled(ci) && self.k.cards[ci].mechanic == m)
                 .map(|(i, _)| i)
         };
-        if self.aimed[0] {
+        if self.aim_bonus[0] > 0 {
             if let Some(i) = find(Mechanic::Volley) {
                 return Decision::Play(i, 0, None, false);
             }
@@ -1601,13 +1595,9 @@ impl<'a> State<'a> {
                 | Mechanic::PrecisionShot
                 | Mechanic::Volley
         );
-        let aim_bonus = if ranged_attack && self.aimed[0] {
-            self.k.aim_bonus
-        } else {
-            0
-        };
+        let aim_bonus = if ranged_attack { self.aim_bonus[0] } else { 0 };
         if ranged_attack {
-            self.aimed[0] = false;
+            self.aim_bonus[0] = 0;
         }
         if c.tactical {
             self.tactical += 1
@@ -1828,7 +1818,7 @@ impl<'a> State<'a> {
             Mechanic::Rally => hit!(c.v.damage + (self.copies[ci] - 1) * c.v.per_copy, true),
             Mechanic::Flurry => hit!(prev * c.v.per_action, true),
             Mechanic::Aim => {
-                self.aimed[0] = true;
+                self.aim_bonus[0] += c.v.bonus;
                 self.draw(c.v.draw)
             }
             Mechanic::Stipend => {
@@ -2026,7 +2016,7 @@ impl<'a> State<'a> {
         self.p.carried_mana = self.p.mana;
         self.p.first_buy_money = 0;
         self.p.first_buy_pending = false;
-        self.aimed[0] = false;
+        self.aim_bonus[0] = 0;
         self.exposed[1] = false;
         self.draw(5);
         self.tactical = 0;
@@ -2874,6 +2864,16 @@ mod tests {
         let bull_rush = &kingdom.cards[kingdom.card_index("bullRush").expect("bull rush")];
         assert_eq!(bull_rush.cost, 3);
         assert_eq!(bull_rush.v.damage, 7);
+
+        let mut stacked_aim = focused_state(&kingdom);
+        stacked_aim.pos = [2, 3];
+        set_hand(&mut stacked_aim, &["aim", "aim", "volley"]);
+        assert!(!stacked_aim.play(Decision::Play(0, 0, None, false)));
+        assert!(!stacked_aim.play(Decision::Play(0, 0, None, false)));
+        assert_eq!(stacked_aim.aim_bonus[0], 4);
+        assert!(!stacked_aim.play(Decision::Play(0, 0, None, false)));
+        assert_eq!(stacked_aim.health[1], 44);
+        assert_eq!(stacked_aim.aim_bonus[0], 0);
 
         let mut setup = focused_state(&kingdom);
         setup.pos = [2, 2];

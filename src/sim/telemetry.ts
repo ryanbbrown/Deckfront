@@ -73,7 +73,7 @@ export function deadDrawCounts(snapshot: DeadDrawSnapshot): DeadDrawCounts {
       continue;
     }
     // A legal card whose setup is missing. No reason code can report this, because the play is legal.
-    if (definition.mechanic === 'volley' && !state.fighters[playerId].aimed) counts.setup += 1;
+    if (definition.mechanic === 'volley' && state.fighters[playerId].aimBonus === 0) counts.setup += 1;
     else if (definition.mechanic === 'flurry' && tacticalPlayed === 0) counts.setup += 1;
   }
   return counts;

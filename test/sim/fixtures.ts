@@ -1,4 +1,4 @@
-import { applyAction, assertInvariants, createCard, createGame, listLegalActions, submitStartingBuild } from '../../src/game';
+import { applyAction, assertInvariants, cardDefinition, createCard, createGame, listLegalActions, submitStartingBuild } from '../../src/game';
 import type { CardInstance, GameState, LegalAction } from '../../src/game';
 import { DEFAULT_STATE_LIMIT, createMemo, searchAction, searchBaseline } from '../../src/sim/search';
 import type { SearchMemo } from '../../src/sim/search';
@@ -64,7 +64,7 @@ export function arena(options: ArenaOptions = {}): GameState {
   if (options.health !== undefined) state.fighters.indigo.health = options.health;
   if (options.mana !== undefined) state.players.ochre.mana = options.mana;
   if (options.money !== undefined) state.players.ochre.money = options.money;
-  if (options.aimed) state.fighters.ochre.aimed = true;
+  if (options.aimed) state.fighters.ochre.aimBonus = cardDefinition('aim').values?.bonus ?? 0;
   if (options.firstBuyPending === false) state.players.ochre.firstBuyPending = false;
   if (options.startingBuild) state.players.ochre.startingBuild = [...options.startingBuild];
   if (options.purchases) state.players.ochre.purchases = [...options.purchases];
