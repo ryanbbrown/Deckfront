@@ -26,7 +26,7 @@ The root [`render.yaml`](render.yaml) creates one paid `0.5c-512mb` Docker web s
 
 1. Push the repository and the branch that you want Render to deploy to your Git provider.
 2. In the [Render Dashboard](https://dashboard.render.com/), select **New > Blueprint**.
-3. Connect the Git provider, select the Deckfront repository, and select the branch that contains `render.yaml`.
+3. Connect the Git provider, select the Deckfront repository, and select `main`.
 4. Review the `deckfront` service and `deckfront-data` disk, then select **Deploy Blueprint**.
 5. Wait for the service to become live. Open `https://<your-service-host>/api/health`; a healthy service returns `{"ok":true}`.
 

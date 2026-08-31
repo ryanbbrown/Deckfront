@@ -2,6 +2,7 @@ services:
   - type: web
     name: deckfront
     runtime: docker
+    branch: main
     plan: "0.5c-512mb"
     numInstances: 1
     dockerContext: .

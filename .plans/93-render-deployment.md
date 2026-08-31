@@ -12,7 +12,7 @@ Deploy Deckfront as one Render Docker web service. The service serves the built 
 - Use a distroless Node 22 final stage. Copy only the Vite `dist` directory, bundled server file, and empty `/var/data` mount directory. Do not copy project source, npm dependencies, scripts, tests, Rust, Modal files, package tools, or build tools.
 - Keep `npm run dev` unchanged. `HEXDECK_STATIC_DIR` overrides the local static path only when production sets it.
 - Set the image defaults to `HOST=0.0.0.0`, `/app/dist`, and `/var/data/games`. Keep `PORT` unset so Render supplies it.
-- Define one `0.5c-512mb` Docker web instance in `render.yaml`, with `/api/health` as its health check and a 1 GB disk at `/var/data`.
+- Define one `0.5c-512mb` Docker web instance from `main` in `render.yaml`, with `/api/health` as its health check and a 1 GB disk at `/var/data`.
 - Keep the existing 30-kingdom pretrained catalog as the only AI selection path. Do not change game, AI, training, search, optimization, or balance behavior and artifacts.
 
 ## Validation
