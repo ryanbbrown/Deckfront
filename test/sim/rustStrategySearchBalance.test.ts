@@ -113,18 +113,19 @@ describe('Rust strategy-search balance analysis', () => {
     });
   });
 
-  it('produces deterministic v2 JSON and useful HTML with audit-only raw telemetry', () => {
-    const held = evidence(temporary()), analysis = buildRustBalanceAnalysis([held], provenance([held.kingdomId]));
+  it('produces deterministic v2 JSON and compact HTML that lists only selected strategies', () => {
+    const held = evidence(temporary()); held.matrix.weights = [1, 0]; held.completion.finalWeights = [1, 0];
+    const analysis = buildRustBalanceAnalysis([held], provenance([held.kingdomId]));
     const json = stringifyRustBalanceAnalysis(analysis), html = renderRustBalanceReport(analysis);
     expect(json).toBe(stringifyRustBalanceAnalysis(analysis));
     expect(JSON.parse(json)).toEqual(analysis);
     expect(analysis).toMatchObject({ schemaVersion: 2, protocol: 'rust-strategy-search-balance-v2' });
-    expect(html).toContain('both the acting strategy and opponent use the stored equilibrium weights');
-    expect(html).toContain('Same-strategy purchases and family damage are available');
-    expect(html).toContain('Unweighted full-Matrix observed counts (audit only)');
-    expect(html).not.toMatch(/uniform off-diagonal|Diagonal self-play telemetry is absent|win rate|draw rate/iu);
-    const embedded = html.match(/<script id="rust-balance-analysis" type="application\/json">([\s\S]+)<\/script>/u)?.[1];
-    expect(JSON.parse(embedded!)).toEqual(analysis);
+    expect(html).toContain('both players use the stored equilibrium lottery');
+    expect(html).toContain('Same-strategy purchases and family damage use');
+    expect(html).toContain('Selected when offered');
+    expect(html).toContain(analysis.kingdoms[0]!.strategies[0]!.strategyId);
+    expect(html).not.toContain(analysis.kingdoms[0]!.strategies[1]!.strategyId);
+    expect(html).not.toMatch(/Complete 75-seed score matrix|Unweighted full-Matrix observed counts|rust-balance-analysis/iu);
   });
 
   it('preserves historical execution hashes and binds the local telemetry execution to the current binary', () => {

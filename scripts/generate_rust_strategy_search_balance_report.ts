@@ -229,88 +229,85 @@ export function strongestNonWinningArchetype(input: ArchetypeDominanceInput): Ar
       gapBelowFiftyPercent: Math.max(0, 50 - alternative.selectedLotteryScorePercent) } : null };
 }
 
-function dominanceText(row: ArchetypeDominanceRow): string {
-  const leaders = row.winningArchetypes.join(' and ');
-  if (!row.alternative) return `${escape(leaders)} leads at ${percent(row.selectedShare)} selected share. No alternative classifier label exists in the final discovered Matrix.`;
-  return `${escape(leaders)} leads at ${percent(row.selectedShare)} selected share. The strongest non-winning-archetype strategy is ${escape(row.alternative.strategyId)} (${escape(row.alternative.archetype)}) at ${row.alternative.selectedLotteryScorePercent.toFixed(2)}%, ${row.alternative.gapBelowFiftyPercent.toFixed(2)} percentage points below 50%.`;
+function familyName(family: string): string {
+  return ({ mana: 'Mage', melee: 'Melee', ranged: 'Ranged', engine: 'Engine', treasure: 'Treasure' } as Record<string, string>)[family] ?? family;
 }
 
-function outlierTable(title: string, entries: RustBalanceAnalysisV2['outliers']['pairScoreSkew75']): string {
-  return `<section><h3>${escape(title)}</h3>${table(['Kingdom', 'Metric', 'Strategy', 'Opponent', 'Card', 'Family'], entries.map((row) => [
-    escape(row.kingdomId), number(row.metric), escape(row.strategyNumber ?? '—'), escape(row.opponentNumber ?? '—'),
-    escape(row.cardId ?? '—'), escape(row.family ?? '—')]))}</section>`;
+function barList(values: ReadonlyArray<{ label: string; value: number }>, label: string): string {
+  const tones = ['var(--series-1)', 'var(--series-2)', 'var(--series-3)', 'var(--series-4)', 'var(--series-5)'];
+  return `<div class="bar-list" role="img" aria-label="${escape(label)}">${values.map((row, index) =>
+    `<div class="bar-row"><span class="bar-label">${escape(row.label)}</span><span class="bar-track"><span class="bar-fill" style="width:${Math.max(0, Math.min(100, row.value * 100)).toFixed(2)}%;background:${tones[index % tones.length]}"></span></span><strong>${percent(row.value)}</strong></div>`).join('')}</div>`;
 }
 
 export function renderRustBalanceReport(analysis: RustBalanceAnalysisV2): string {
-  const archetypes = table(['Archetype', 'Selected', 'Mean minimum', 'Mean maximum', 'Selected kingdoms', 'Feasible kingdoms'],
-    analysis.crossKingdom.archetypes.map((row) => [escape(row.archetype), percent(row.selectedShare),
-      percent(row.meanMinimumFeasibleShare), percent(row.meanMaximumFeasibleShare), String(row.selectedKingdomCount), String(row.feasibleKingdomCount)]));
-  const dominance = analysis.kingdoms.map((kingdom) => strongestNonWinningArchetype({ kingdomId: kingdom.kingdom.id,
-    archetypes: kingdom.archetypes, strategies: kingdom.strategies }));
-  const dominanceTable = table(['Kingdom', 'Leading archetype(s)', 'Selected share', 'Alternative archetype',
-    'Strategy', 'Score vs selected lottery', 'Gap below 50%'], dominance.map((row) => row.alternative
-    ? [escape(row.kingdomId), escape(row.winningArchetypes.join(' and ')), percent(row.selectedShare),
-      escape(row.alternative.archetype), escape(row.alternative.strategyId),
-      `${row.alternative.selectedLotteryScorePercent.toFixed(2)}%`, `${row.alternative.gapBelowFiftyPercent.toFixed(2)} pp`]
-    : [escape(row.kingdomId), escape(row.winningArchetypes.join(' and ')), percent(row.selectedShare),
-      'No alternative label in final Matrix', '—', '—', '—']), 'Archetype leaders and strongest non-winning-archetype strategies for all kingdoms');
-  const dominanceByKingdom = new Map(dominance.map((row) => [row.kingdomId, row]));
-  const cards = table(['Card', 'Offered kingdoms', 'Kingdoms with use', 'Acquisition presence', 'Selection presence', 'Mean owned copies'],
-    analysis.crossKingdom.cards.map((row) => [escape(row.cardId), String(row.offeredKingdomCount), String(row.positiveUsageKingdomCount),
-      percent(row.meanEquilibriumAcquisitionRate), percent(row.meanEquilibriumSelectionRate), number(row.meanEquilibriumOwnedCopies)]));
-  const families = table(['Family', 'Expected damage / player side', 'Mean kingdom share'],
-    analysis.crossKingdom.familyDamage.map((row) => [escape(row.family), number(row.meanExpectedDamagePerPlayerSide),
-      percent(row.meanKingdomShare)]));
+  const cardNames = new Map(analysis.kingdoms.flatMap((kingdom) => kingdom.kingdom.offeredCards.map((card) => [card.id, card.name] as const)));
+  const archetypeRows = analysis.crossKingdom.archetypes.filter((row) => row.selectedKingdomCount > 0)
+    .sort((left, right) => right.selectedShare - left.selectedShare || left.archetype.localeCompare(right.archetype));
+  const damageRows = [...analysis.crossKingdom.familyDamage].sort((left, right) => right.meanKingdomShare - left.meanKingdomShare);
+  const cardRows = [...analysis.crossKingdom.cards].sort((left, right) => right.meanEquilibriumSelectionRate - left.meanEquilibriumSelectionRate
+    || left.cardId.localeCompare(right.cardId));
+  const archetypes = table(['Archetype', 'Metagame share', 'Mean feasible minimum', 'Mean feasible maximum', 'Kingdoms selected'],
+    archetypeRows.map((row) => [escape(row.archetype), percent(row.selectedShare), percent(row.meanMinimumFeasibleShare),
+      percent(row.meanMaximumFeasibleShare), `${row.selectedKingdomCount} / ${analysis.scope.kingdomCount}`]));
+  const cards = table(['Card', 'Offered in', 'Selected when offered', 'Acquired by selected strategy', 'Expected buys / player side', 'Mean owned copies'],
+    cardRows.map((row) => [escape(cardNames.get(row.cardId) ?? row.cardId), `${row.offeredKingdomCount} kingdoms`,
+      percent(row.meanEquilibriumSelectionRate), percent(row.meanEquilibriumAcquisitionRate),
+      number(row.meanExpectedAcquiredCopiesPerPlayerSide), number(row.meanEquilibriumOwnedCopies)]));
+  const families = table(['Damage family', 'Metagame damage share', 'Expected damage / player side'], damageRows.map((row) => [
+    escape(familyName(row.family)), percent(row.meanKingdomShare), number(row.meanExpectedDamagePerPlayerSide)]));
+  const selectedStrategyCount = analysis.kingdoms.reduce((total, kingdom) => total + kingdom.equilibrium.supportSize, 0);
+  const singleStrategyKingdoms = analysis.kingdoms.filter((kingdom) => kingdom.equilibrium.supportSize === 1).length;
+  const kingdomLinks = analysis.kingdoms.map((kingdom) => `<a href="#${escape(kingdom.kingdom.id)}">${escape(kingdom.kingdom.id.replace('balance-tuning-', ''))}</a>`).join('');
   const kingdomSections = analysis.kingdoms.map((kingdom) => {
-    const mix = table(['Strategy', 'Weight', 'Archetype', 'Feasible minimum', 'Feasible maximum', 'Score against selected mix'],
-      kingdom.strategies.map((strategy) => [escape(strategy.strategyId), percent(strategy.selectedWeight), escape(strategy.archetype),
-        percent(strategy.feasibleWeightRange.minimum), percent(strategy.feasibleWeightRange.maximum),
-        `${strategy.selectedLotteryScorePercent.toFixed(2)}%`]));
-    const ranges = table(['Archetype', 'Selected', 'Minimum', 'Maximum'], kingdom.archetypes.map((row) => [escape(row.archetype),
-      percent(row.selectedShare), percent(row.minimumFeasibleShare), percent(row.maximumFeasibleShare)]));
-    const definitions = table(['Strategy', 'Goldfish rank', 'Buy definition'], kingdom.strategies.map((strategy) => [
-      escape(strategy.strategyId), String(strategy.goldfishRank),
-      escape(strategy.buySteps.map((step) => `${step.cardId} × ${step.desiredCount}`).join(' → '))]));
-    const cardUse = table(['Card', 'Acquisition presence', 'Selection presence', 'Mean owned copies', 'Expected acquired copies / player side'],
-      kingdom.cards.map((card) => [escape(card.cardId), percent(card.equilibriumAcquisitionRate),
-        percent(card.equilibriumSelectionRate), number(card.equilibriumMeanOwnedCopies),
-        number(card.expectedAcquiredCopiesPerPlayerSide)]));
-    const damage = table(['Family', 'Expected damage / player side', 'Share'], kingdom.familyDamage.map((row) => [
-      escape(row.family), number(row.expectedDamagePerPlayerSide), percent(row.share)]));
-    const pairEvidence = table(['First strategy', 'Second strategy', 'First-75 score', 'All-125 score', 'Point bytes 0–4'],
-      kingdom.pairedScoreEvidence.pairs.map((pair) => [escape(pair.firstStrategyNumber), escape(pair.secondStrategyNumber),
-        `${pair.percent75.toFixed(2)}%`, `${pair.percent125.toFixed(2)}%`, pair.byteCounts.join(', ')]));
-    const source = table(['Path', 'Bytes', 'SHA-256'], kingdom.sourceFiles.map((file) => [escape(file.path), String(file.bytes), `<code>${escape(file.sha256)}</code>`]));
-    const matrix = table(['Strategy', ...kingdom.strategies.map((row) => row.strategyId)], kingdom.pairedScoreEvidence.percentages75.map((row, index) =>
-      [escape(kingdom.strategies[index]!.strategyId), ...row.map((value) => `${value.toFixed(2)}%`)]));
-    const audit = table(['Strategy', 'Off-diagonal player sides', 'Diagonal player sides'],
-      kingdom.auditTelemetry.strategies.map((row) => [escape(row.strategyNumber), String(row.offDiagonal.playerSides), String(row.diagonal.playerSides)]));
-    const kingdomDominance = dominanceByKingdom.get(kingdom.kingdom.id)!;
-    return `<section class="kingdom"><h2>${escape(kingdom.kingdom.name)}</h2><p>${kingdom.completion.finalStrategyCount} final strategies; ${kingdom.completion.admissions} admissions; support ${kingdom.equilibrium.supportSize}; effective size ${number(kingdom.equilibrium.effectiveSize)}.</p>
-      <p>${dominanceText(kingdomDominance)}</p><p>${escape(kingdom.telemetryBasis)}.</p><h3>Selected mix and strategy ranges</h3>${mix}<h3>Archetype ranges</h3>${ranges}
-      <h3>Equilibrium self-play card acquisition usage</h3>${cardUse}<h3>Equilibrium self-play family damage</h3>${damage}
-      <details><summary>Strategy definitions</summary>${definitions}</details><details><summary>Unweighted full-Matrix observed counts (audit only)</summary>${audit}</details>
-      <details><summary>Paired-game score evidence</summary>${pairEvidence}</details><details><summary>Complete 75-seed score matrix</summary>${matrix}</details>
-      <details><summary>Source hashes</summary>${source}</details></section>`;
+    const selectedStrategies = kingdom.strategies.filter((strategy) => strategy.supportMember)
+      .sort((left, right) => right.selectedWeight - left.selectedWeight || left.strategyNumber - right.strategyNumber);
+    const selectedLabels = new Set(selectedStrategies.map((strategy) => strategy.archetype));
+    const selectedArchetypes = kingdom.archetypes.filter((row) => selectedLabels.has(row.archetype))
+      .sort((left, right) => right.selectedShare - left.selectedShare || left.archetype.localeCompare(right.archetype));
+    const selectedCards = [...kingdom.cards].sort((left, right) => right.equilibriumSelectionRate - left.equilibriumSelectionRate
+      || left.cardId.localeCompare(right.cardId));
+    const selectedDamage = [...kingdom.familyDamage].sort((left, right) => right.share - left.share);
+    const mix = table(['Strategy', 'Weight', 'Archetype', 'Score against metagame', 'Goldfish rank', 'Purchase priority'],
+      selectedStrategies.map((strategy) => [escape(strategy.strategyId), percent(strategy.selectedWeight), escape(strategy.archetype),
+        `${strategy.selectedLotteryScorePercent.toFixed(2)}%`, String(strategy.goldfishRank),
+        `<span class="wrap">${escape(strategy.buySteps.map((step) => `${cardNames.get(step.cardId) ?? step.cardId} × ${step.desiredCount}`).join(' → '))}</span>`]),
+    `Selected strategies for ${kingdom.kingdom.name}`);
+    const ranges = table(['Archetype', 'Selected share', 'Feasible minimum', 'Feasible maximum'], selectedArchetypes.map((row) => [
+      escape(row.archetype), percent(row.selectedShare), percent(row.minimumFeasibleShare), percent(row.maximumFeasibleShare)]));
+    const cardUse = table(['Card', 'Selected', 'Acquired', 'Expected buys / player side', 'Mean owned copies'], selectedCards.map((card) => [
+      escape(cardNames.get(card.cardId) ?? card.cardId), percent(card.equilibriumSelectionRate), percent(card.equilibriumAcquisitionRate),
+      number(card.expectedAcquiredCopiesPerPlayerSide), number(card.equilibriumMeanOwnedCopies)]));
+    const damage = table(['Damage family', 'Share', 'Expected damage / player side'], selectedDamage.map((row) => [
+      escape(familyName(row.family)), percent(row.share), number(row.expectedDamagePerPlayerSide)]));
+    const source = table(['Path', 'Bytes', 'SHA-256'], kingdom.sourceFiles.map((file) => [escape(file.path), String(file.bytes),
+      `<code>${escape(file.sha256)}</code>`]));
+    return `<section class="kingdom" id="${escape(kingdom.kingdom.id)}"><div class="section-heading"><div><p class="eyebrow">${escape(kingdom.kingdom.id)}</p><h2>${escape(kingdom.kingdom.name)}</h2></div><a href="#top">Back to top</a></div>
+      <p class="summary">${kingdom.equilibrium.supportSize} selected ${kingdom.equilibrium.supportSize === 1 ? 'strategy' : 'strategies'} from ${kingdom.completion.finalStrategyCount} evaluated; ${kingdom.completion.admissions} PSRO admissions; effective strategy count ${number(kingdom.equilibrium.effectiveSize)}.</p>
+      <div class="two-up"><div><h3>Archetype metagame</h3>${barList(selectedArchetypes.map((row) => ({ label: row.archetype, value: row.selectedShare })), `${kingdom.kingdom.name} archetype shares`)}${ranges}</div>
+      <div><h3>Damage by card family</h3>${barList(selectedDamage.map((row) => ({ label: familyName(row.family), value: row.share })), `${kingdom.kingdom.name} damage shares`)}${damage}</div></div>
+      <h3>Card selection priority</h3><p class="note">Selected is the equilibrium chance that a strategy starts with or acquires the card. Acquired excludes starting cards.</p>${cardUse}
+      <details><summary>Show ${selectedStrategies.length} selected ${selectedStrategies.length === 1 ? 'strategy' : 'strategies'}</summary>${mix}</details>
+      <details><summary>Show source hashes</summary>${source}</details></section>`;
   }).join('\n');
-  const embedded = JSON.stringify(analysis).replaceAll('<', '\\u003c');
   return `<!doctype html>
-<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Rust strategy-search balance analysis</title><style>
-:root{color-scheme:light dark;font:16px/1.45 system-ui,sans-serif}body{margin:0;background:#10141b;color:#edf2f7}main{max-width:1440px;margin:auto;padding:28px}h1,h2,h3{line-height:1.15}section{margin:30px 0;padding:20px;background:#18202b;border:1px solid #334155;border-radius:12px}.limits{border-color:#eab308;background:#30290f}.table-wrap{overflow:auto}table{width:100%;border-collapse:collapse;font-size:.9rem}th,td{text-align:left;padding:8px 10px;border-bottom:1px solid #334155;white-space:nowrap;font-variant-numeric:tabular-nums}th{background:#202b39}thead th{position:sticky;top:0}.sr-only{position:absolute;width:1px;height:1px;padding:0;margin:-1px;overflow:hidden;clip:rect(0,0,0,0);white-space:nowrap;border:0}code{font-size:.78rem;overflow-wrap:break-word}details{margin:16px 0}summary{cursor:pointer;font-weight:700}.lede{max-width:80ch;color:#cbd5e1}@media print{body{background:#fff;color:#111}section{break-inside:avoid;background:#fff;border-color:#aaa}th{background:#eee}}
-</style></head><body><main><h1>Rust strategy-search balance analysis</h1>
-<p class="lede">Equal-weight analysis of ${analysis.scope.kingdomCount} kingdoms in the ${escape(analysis.scope.suiteId)} tuning set. Within each kingdom, both the acting strategy and opponent use the stored equilibrium weights.</p>
-<section class="limits"><h2>Evidence limits</h2><p>Same-strategy purchases and family damage are available from 500 player sides per strategy. The payoff diagonal remains fixed at 50% and does not use those games.</p><p>A paired point byte of 2 can mean one success and one failure, or two ties. Exact W/D/L and first-player outcome rates are not available. Card-play counts, per-card damage, and turns-to-finish are also absent.</p></section>
-<section><h2>Source and verification</h2><p>This routine tuning report uses the completed Goldfish, Matrix, and PSRO evidence without a separate deep replay. Report generation checks file structure, CRCs, source links, checkpoint completion, selected Matrix order, and HST evidence. Provenance SHA-256: <code>${escape(analysis.provenance.provenanceFileSha256)}</code>. Backfill and audit binary SHA-256: <code>${escape(analysis.provenance.verifierBinarySha256)}</code>.</p></section>
-<section><h2>Archetype dominance by kingdom</h2><p>This comparison uses the selected deterministic witness and the final discovered Matrix. A winning archetype is a classifier label tied for the largest selected share in its kingdom. Feasible archetype ranges remain separate evidence in the next section.</p>${dominanceTable}</section>
-<section><h2>Archetype shares and full feasible ranges</h2>${archetypes}</section>
-<section><h2>Support and effective sizes</h2>${table(['Measure','Minimum','Median','Mean','Maximum'], [
-    ['Support size', number(analysis.crossKingdom.supportSize.minimum), number(analysis.crossKingdom.supportSize.median), number(analysis.crossKingdom.supportSize.mean), number(analysis.crossKingdom.supportSize.maximum)],
-    ['Effective size', number(analysis.crossKingdom.effectiveSize.minimum), number(analysis.crossKingdom.effectiveSize.median), number(analysis.crossKingdom.effectiveSize.mean), number(analysis.crossKingdom.effectiveSize.maximum)]])}</section>
-<section><h2>Card offering and equilibrium acquisition usage</h2><p>Usage means acquired copies, not card plays. Each kingdom has equal weight.</p>${cards}</section>
-<section><h2>Equilibrium family damage</h2>${families}</section>
-<section><h2>Paired-game score evidence</h2><p>Point bytes 0–4: ${analysis.crossKingdom.pairedScoreEvidence.byteCounts.join(', ')}. Ambiguous byte-2 share: ${percent(analysis.crossKingdom.pairedScoreEvidence.byteTwoShare)}.</p></section>
-<section><h2>Outliers to inspect</h2>${outlierTable('All-125 score skew', analysis.outliers.pairScoreSkew125)}${outlierTable('First-75 score skew', analysis.outliers.pairScoreSkew75)}${outlierTable('Low effective size', analysis.outliers.lowestEffectiveSize)}${outlierTable('High equilibrium acquisition intensity', analysis.outliers.equilibriumCardCopiesPerPlayerSide)}${outlierTable('High equilibrium family damage', analysis.outliers.equilibriumFamilyDamagePerPlayerSide)}</section>
-${kingdomSections}<script id="rust-balance-analysis" type="application/json">${embedded}</script></main></body></html>\n`;
+<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>30-kingdom metagame balance report</title><style>
+:root{color-scheme:light;--surface:#f7f7f4;--panel:#fff;--panel-alt:#f0f1ed;--text:#171815;--muted:#60645d;--border:#d7d9d2;--accent:#285f96;--series-1:#2774ae;--series-2:#d7662f;--series-3:#278c6d;--series-4:#a66bb6;--series-5:#b58a16;font:16px/1.5 system-ui,-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif}
+@media(prefers-color-scheme:dark){:root{color-scheme:dark;--surface:#121512;--panel:#1a1e1a;--panel-alt:#222722;--text:#f4f5f1;--muted:#b7bdb4;--border:#3a413a;--accent:#78b7f1;--series-1:#4f9bd3;--series-2:#e47b4b;--series-3:#49b38f;--series-4:#bd89ca;--series-5:#d2aa3e}}
+*{box-sizing:border-box}html{scroll-behavior:smooth}body{margin:0;background:var(--surface);color:var(--text)}main{max-width:1220px;margin:auto;padding:36px 22px 80px}h1,h2,h3{line-height:1.15;text-wrap:balance}h1{font-size:clamp(2rem,5vw,3.6rem);margin:.15em 0}h2{font-size:clamp(1.5rem,3vw,2.15rem);margin:0}h3{font-size:1.05rem;margin:26px 0 10px}p{max-width:78ch;text-wrap:pretty}.lede{font-size:1.12rem;color:var(--muted)}.eyebrow{margin:0;color:var(--accent);font-size:.78rem;font-weight:750;letter-spacing:.08em;text-transform:uppercase}.metrics{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:12px;margin:28px 0}.metric{background:var(--panel);border:1px solid var(--border);border-radius:12px;padding:16px}.metric strong{display:block;font-size:1.8rem;font-variant-numeric:tabular-nums}.metric span{color:var(--muted);font-size:.83rem}.overview,.kingdom,.method{margin:28px 0;padding:22px;background:var(--panel);border:1px solid var(--border);border-radius:14px}.two-up{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:22px}.two-up>div{min-width:0}.bar-list{display:grid;gap:9px;margin:14px 0 20px}.bar-row{display:grid;grid-template-columns:minmax(105px,1fr) minmax(130px,2.5fr) 68px;gap:10px;align-items:center;font-size:.9rem}.bar-track{height:11px;background:var(--panel-alt);border-radius:999px;overflow:hidden}.bar-fill{display:block;height:100%;border-radius:inherit}.bar-row strong{text-align:end;font-variant-numeric:tabular-nums}.table-wrap{overflow:auto;border:1px solid var(--border);border-radius:10px}table{width:100%;border-collapse:collapse;font-size:.87rem}th,td{text-align:start;padding:9px 11px;border-bottom:1px solid var(--border);font-variant-numeric:tabular-nums;white-space:nowrap}thead th{background:var(--panel-alt);color:var(--muted);font-size:.78rem}tbody tr:last-child th,tbody tr:last-child td{border-bottom:0}.wrap{display:inline-block;max-width:46ch;white-space:normal;overflow-wrap:break-word}.section-heading{display:flex;align-items:start;justify-content:space-between;gap:20px}.section-heading a,.kingdom-nav a{color:var(--accent);text-underline-position:from-font;text-decoration-thickness:from-font}.summary,.note{color:var(--muted)}.kingdom-nav{display:flex;flex-wrap:wrap;gap:8px;margin:22px 0}.kingdom-nav a{display:inline-grid;place-items:center;min-width:40px;min-height:40px;border:1px solid var(--border);border-radius:8px;text-decoration:none;background:var(--panel)}details{margin-top:18px}summary{cursor:pointer;font-weight:700;min-height:40px;padding-block:8px}code{font-size:.78rem;overflow-wrap:break-word}.method{border-inline-start:5px solid var(--series-5)}.method li{margin:.45em 0}.sr-only{position:absolute;width:1px;height:1px;padding:0;margin:-1px;overflow:hidden;clip:rect(0,0,0,0);white-space:nowrap;border:0}
+@media(max-width:820px){.metrics,.two-up{grid-template-columns:1fr 1fr}.bar-row{grid-template-columns:100px 1fr 62px}}@media(max-width:580px){main{padding:24px 14px 60px}.metrics,.two-up{grid-template-columns:1fr}.bar-row{grid-template-columns:90px 1fr 58px}.overview,.kingdom,.method{padding:16px}.section-heading{display:block}.section-heading>a{display:inline-block;margin-top:10px}}
+@media(prefers-reduced-motion:reduce){html{scroll-behavior:auto}}@media print{:root{color-scheme:light}body{background:#fff}.overview,.kingdom,.method,.metric{break-inside:avoid;background:#fff}}
+</style></head><body><main id="top"><p class="eyebrow">Final 30-kingdom search · source ${escape(analysis.provenance.scientificImplementationCommits.goldfish.slice(0, 7))}</p><h1>Metagame balance report</h1>
+<p class="lede">Each kingdom has equal weight. Within a kingdom, both players use the stored equilibrium lottery. Archetype classification uses the selected strategy’s observed acquisitions against that lottery.</p>
+<div class="metrics"><div class="metric"><span>Kingdoms</span><strong>${analysis.scope.kingdomCount}</strong></div><div class="metric"><span>Selected strategies</span><strong>${selectedStrategyCount}</strong></div><div class="metric"><span>Single-strategy kingdoms</span><strong>${singleStrategyKingdoms}</strong></div><div class="metric"><span>Mean effective strategy count</span><strong>${analysis.crossKingdom.effectiveSize.mean.toFixed(2)}</strong></div></div>
+<section class="overview"><h2>Archetype metagame</h2><p class="note">Pure and mixed classifier labels are shown separately. Shares use equilibrium weights, then give each kingdom equal weight.</p>${barList(archetypeRows.map((row) => ({ label: row.archetype, value: row.selectedShare })), 'Cross-kingdom archetype shares')}${archetypes}</section>
+<section class="overview"><h2>Damage by card family</h2><p class="note">Damage is weighted by both players’ equilibrium strategy weights. Family share is calculated inside each kingdom before the 30 kingdoms are averaged.</p>${barList(damageRows.map((row) => ({ label: familyName(row.family), value: row.meanKingdomShare })), 'Cross-kingdom damage family shares')}${families}</section>
+<section class="overview"><h2>Card selection priority</h2><p class="note">“Selected when offered” is the equilibrium chance that a strategy starts with or acquires the card, averaged equally across kingdoms where that card is offered. It is not a per-shop click rate. “Acquired” excludes starting cards.</p>${cards}</section>
+<section class="overview"><h2>Strategy diversity</h2>${table(['Measure','Minimum','Median','Mean','Maximum'], [
+    ['Selected strategy count', number(analysis.crossKingdom.supportSize.minimum), number(analysis.crossKingdom.supportSize.median), number(analysis.crossKingdom.supportSize.mean), number(analysis.crossKingdom.supportSize.maximum)],
+    ['Effective strategy count', number(analysis.crossKingdom.effectiveSize.minimum), number(analysis.crossKingdom.effectiveSize.median), number(analysis.crossKingdom.effectiveSize.mean), number(analysis.crossKingdom.effectiveSize.maximum)]])}</section>
+<nav class="kingdom-nav" aria-label="Kingdom details">${kingdomLinks}</nav>${kingdomSections}
+<section class="method"><h2>Method and evidence limits</h2><ul><li>Only strategies with positive selected equilibrium weight appear in this HTML. The companion JSON keeps the complete Matrix evidence.</li><li>Same-strategy purchases and family damage use 500 player sides per strategy. The payoff diagonal stays fixed at 50%.</li><li>Card selection means starting with or acquiring a card. The evidence does not contain card-play counts or per-card damage.</li><li>Report generation checked file structure, CRCs, source links, checkpoint completion, selected Matrix order, and same-strategy telemetry. It did not run a separate deep replay.</li></ul><p class="note">Provenance SHA-256: <code>${escape(analysis.provenance.provenanceFileSha256)}</code><br>Verifier binary SHA-256: <code>${escape(analysis.provenance.verifierBinarySha256)}</code></p></section>
+</main></body></html>\n`;
 }
 
 function availableBytes(directory: string): number {
