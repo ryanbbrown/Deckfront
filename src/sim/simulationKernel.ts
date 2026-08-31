@@ -726,7 +726,7 @@ function endBuyPhase(state: KernelState, actor: 0 | 1): void {
   player.unspentMoney += player.money;
   if (state.telemetry) state.telemetry.unspentMoney[playerId(actor)] += player.money;
   player.discard.push(...player.hand, ...player.play); player.hand = []; player.play = [];
-  player.money = 0; player.mana = Math.min(player.mana - player.carriedMana, MAX_CARRIED_MANA); player.carriedMana = player.mana;
+  player.money = 0; player.mana = Math.min(player.mana, MAX_CARRIED_MANA); player.carriedMana = player.mana;
   player.firstBuyPending = false; player.firstBuyMoney = 0;
   state.aimed[actor] = false; state.exposed[other(actor)] = false;
   draw(state, actor, 5); state.tacticalPlayed = 0; state.cardsPlayed = []; state.spacesMoved = 0; state.manaSpent = 0; state.spellsPlayed = 0;

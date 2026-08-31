@@ -16,7 +16,7 @@ const INFINITE_BUY_COUNT: i16 = 99;
 const FIRST_PLAYER_HEALTH_PENALTY: i16 = 3;
 const STARTING_BUDGET: i16 = 12;
 const MAX_FIRST_BUY_CARRY: i16 = 3;
-const MAX_CARRIED_MANA: i16 = 3;
+const MAX_CARRIED_MANA: i16 = 2;
 
 #[derive(Clone, Debug, Deserialize)]
 #[serde(rename_all = "camelCase")]
@@ -2022,7 +2022,7 @@ impl<'a> State<'a> {
         self.p.discard.append(&mut self.p.hand);
         self.p.discard.append(&mut self.p.play);
         self.p.money = 0;
-        self.p.mana = (self.p.mana - self.p.carried_mana).min(MAX_CARRIED_MANA);
+        self.p.mana = self.p.mana.min(MAX_CARRIED_MANA);
         self.p.carried_mana = self.p.mana;
         self.p.first_buy_money = 0;
         self.p.first_buy_pending = false;
@@ -2816,7 +2816,7 @@ mod tests {
     }
 
     #[test]
-    fn mana_caps_at_three_then_expires_after_one_carry_turn() {
+    fn mana_caps_at_two_and_persists_until_spent() {
         let kingdom = focused_rules_fixture();
         let focus = kingdom.card_index("focus").expect("focus");
         assert_eq!(kingdom.cards[focus].cost, 1);
@@ -2832,14 +2832,14 @@ mod tests {
         state.end_action();
         assert_eq!(state.p.mana, 4);
         state.end_buy();
-        assert_eq!(state.p.mana, 3);
-        assert_eq!(state.p.carried_mana, 3);
+        assert_eq!(state.p.mana, 2);
+        assert_eq!(state.p.carried_mana, 2);
 
         set_hand(&mut state, &[]);
         state.end_action();
         state.end_buy();
-        assert_eq!(state.p.mana, 0);
-        assert_eq!(state.p.carried_mana, 0);
+        assert_eq!(state.p.mana, 2);
+        assert_eq!(state.p.carried_mana, 2);
 
         let mut spent = focused_state(&kingdom);
         set_hand(&mut spent, &["focus", "focus"]);
@@ -2854,8 +2854,8 @@ mod tests {
         assert_eq!(spent.p.carried_mana, 1);
         spent.end_action();
         spent.end_buy();
-        assert_eq!(spent.p.mana, 1);
-        assert_eq!(spent.p.carried_mana, 1);
+        assert_eq!(spent.p.mana, 2);
+        assert_eq!(spent.p.carried_mana, 2);
     }
 
     #[test]

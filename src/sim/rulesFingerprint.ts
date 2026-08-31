@@ -9,7 +9,7 @@ import {
 } from './protocolVersions';
 import { stableHash } from './strategy';
 
-export const RULES_FINGERPRINT_VERSION = 2;
+export const RULES_FINGERPRINT_VERSION = 3;
 
 type ScientificCardDefinition = Omit<CardDefinition, 'headline' | 'detail'>;
 function scientificMarket(kingdomId: string): ScientificCardDefinition[] {
@@ -32,7 +32,7 @@ export interface RulesFingerprint {
     startingBudget: number;
     maximumFirstBuyCarry: number;
     maximumCarriedMana: number;
-    manaUsableTurns: number;
+    manaUsableTurns: number | 'unlimited';
     firstPlayerHealthPenalty: number;
     turnLimitPerPlayer: number;
     actionCapPerTurn: number;

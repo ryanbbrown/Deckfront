@@ -156,8 +156,8 @@ describe('combo card batch', () => {
     expect(on.config.startingDraftEnabled).toBe(true); expect(off.config.startingDraftEnabled).toBe(false);
     expect(on.telemetry.startingBuild).toEqual({ ochre: [], indigo: [] }); expect(off.telemetry.startingBuild).toEqual({ ochre: [], indigo: [] });
     const fingerprint = rulesFingerprint('distance-duel');
-    expect(fingerprint).toMatchObject({ version: 2, rules: { maximumCarriedMana: 3, manaUsableTurns: 2,
-      simulationKernelProtocol: 'one-turn-mana-v10' } });
+    expect(fingerprint).toMatchObject({ version: 3, rules: { maximumCarriedMana: 2, manaUsableTurns: 'unlimited',
+      simulationKernelProtocol: 'persistent-mana-cap2-v11' } });
     expect(fingerprint.hash).not.toBe(rulesFingerprint('distance-duel', undefined, undefined, false).hash);
   });
 });

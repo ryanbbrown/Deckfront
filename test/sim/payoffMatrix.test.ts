@@ -38,7 +38,7 @@ describe('protocol-keyed payoff matrix', () => {
   it('uses the final balance-source protocol identities', () => {
     expect([
       MATRIX_PROTOCOL_VERSION, SIMULATION_KERNEL_PROTOCOL_VERSION, TACTICAL_PILOT_PROTOCOL_VERSION
-    ]).toEqual(['two-games-shared-seed-v1', 'one-turn-mana-v10', 'first-attack-v9']);
+    ]).toEqual(['two-games-shared-seed-v1', 'persistent-mana-cap2-v11', 'first-attack-v9']);
   });
 
   it('runs each unordered pair once, mirrors it, and adds only a new row and column', async () => {
