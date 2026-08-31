@@ -71,7 +71,7 @@ describe('the compact simulation kernel', () => {
 
     const capped: Strategy = { id: 'mana-cap', startingBuild: Array<string>(5).fill('focus'),
       buyPlan: fixedBuyPlan([]) };
-    expect(run(capped, 14, 1)).toEqual({ endMana: [2], plays: { focus: 4 } });
+    expect(run(capped, 14, 1)).toEqual({ endMana: [3], plays: { focus: 4 } });
 
     const expiring: Strategy = { id: 'mana-expiration', startingBuild: ['focus', 'focus', 'starfire'],
       buyPlan: fixedBuyPlan([]) };

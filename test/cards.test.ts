@@ -236,7 +236,7 @@ describe('mage cards', () => {
     expect(state.players.ochre.deck.draw.map((card) => card.definitionId)).toEqual(['gold']);
     assertInvariants(state);
   });
-  it('allows current-turn mana above 2, then carries at most 2 mana into the next turn', () => {
+  it('allows current-turn mana above 3, then carries at most 3 mana into the next turn', () => {
     let state = ready(); isolateHand(state, 'ochre', ['focus', 'focus', 'focus', 'focus']); state.players.indigo.mana = 2;
     for (let count = 0; count < 4; count += 1) state = playCard(state, 'focus');
     expect(state.players.ochre).toMatchObject({ mana: 4, carriedMana: 0 }); expect(state.players.indigo.mana).toBe(2);
@@ -244,12 +244,12 @@ describe('mage cards', () => {
     state = applyAction(state, action(state, (command) => command.type === 'endActionPhase').id);
     expect(state.players.ochre.mana).toBe(4);
     state = applyAction(state, action(state, (command) => command.type === 'endBuyPhase').id);
-    expect(state.players.ochre).toMatchObject({ mana: 2, carriedMana: 2 }); expect(state.players.indigo.mana).toBe(2);
+    expect(state.players.ochre).toMatchObject({ mana: 3, carriedMana: 3 }); expect(state.players.indigo.mana).toBe(2);
     state = endTurn(state);
-    expect(state.activePlayerId).toBe('ochre'); expect(state.players.ochre).toMatchObject({ mana: 2, carriedMana: 2 });
+    expect(state.activePlayerId).toBe('ochre'); expect(state.players.ochre).toMatchObject({ mana: 3, carriedMana: 3 });
     isolateHand(state, 'ochre', ['focus', 'starfire']);
     state = playCard(state, 'focus'); state = playCard(state, 'starfire');
-    expect(state.players.ochre).toMatchObject({ mana: 0, carriedMana: 0 });
+    expect(state.players.ochre).toMatchObject({ mana: 1, carriedMana: 0 });
     expect(state.fighters.indigo.health).toBe(28); assertInvariants(state);
   });
   it('spends carried mana before current-turn mana', () => {

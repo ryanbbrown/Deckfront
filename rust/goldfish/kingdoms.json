@@ -235,7 +235,7 @@
         "silver",
         "step"
       ],
-      "ruleFingerprint": "6fb1868be41"
+      "ruleFingerprint": "b26a0454e41"
     },
     {
       "kingdomId": "balance-tuning-002",
@@ -465,7 +465,7 @@
         "stipend",
         "volley"
       ],
-      "ruleFingerprint": "06fbb1c3dab"
+      "ruleFingerprint": "b5267a8cdab"
     },
     {
       "kingdomId": "balance-tuning-003",
@@ -695,7 +695,7 @@
         "step",
         "strike"
       ],
-      "ruleFingerprint": "7bb7fe06dd8"
+      "ruleFingerprint": "2b4fd115dd8"
     },
     {
       "kingdomId": "balance-tuning-004",
@@ -932,7 +932,7 @@
         "step",
         "stipend"
       ],
-      "ruleFingerprint": "d67c89fdd6e"
+      "ruleFingerprint": "edca4a0ed6e"
     },
     {
       "kingdomId": "balance-tuning-005",
@@ -1170,7 +1170,7 @@
         "strike",
         "volley"
       ],
-      "ruleFingerprint": "25d258dad03"
+      "ruleFingerprint": "fda1b7f9d03"
     },
     {
       "kingdomId": "balance-tuning-006",
@@ -1404,7 +1404,7 @@
         "steadyShot",
         "step"
       ],
-      "ruleFingerprint": "cd26753be16"
+      "ruleFingerprint": "9ed978c4e16"
     },
     {
       "kingdomId": "balance-tuning-007",
@@ -1641,7 +1641,7 @@
         "stipend",
         "strike"
       ],
-      "ruleFingerprint": "ea0649f4dcc"
+      "ruleFingerprint": "57e0ad2bdcc"
     },
     {
       "kingdomId": "balance-tuning-008",
@@ -1878,7 +1878,7 @@
         "step",
         "volley"
       ],
-      "ruleFingerprint": "14b9238ee67"
+      "ruleFingerprint": "fd6b637de67"
     },
     {
       "kingdomId": "balance-tuning-009",
@@ -2115,7 +2115,7 @@
         "starfire",
         "step"
       ],
-      "ruleFingerprint": "cb93cd3ee9c"
+      "ruleFingerprint": "a720cc6de9c"
     },
     {
       "kingdomId": "balance-tuning-010",
@@ -2348,7 +2348,7 @@
         "starfire",
         "step"
       ],
-      "ruleFingerprint": "8f923759e07"
+      "ruleFingerprint": "c414c73ae07"
     },
     {
       "kingdomId": "balance-tuning-011",
@@ -2584,7 +2584,7 @@
         "silver",
         "step"
       ],
-      "ruleFingerprint": "a3a0c7e0d9b"
+      "ruleFingerprint": "99280a67d9b"
     },
     {
       "kingdomId": "balance-tuning-012",
@@ -2823,7 +2823,7 @@
         "step",
         "stipend"
       ],
-      "ruleFingerprint": "2d8768b7da0"
+      "ruleFingerprint": "77900930da0"
     },
     {
       "kingdomId": "balance-tuning-013",
@@ -3058,7 +3058,7 @@
         "silver",
         "step"
       ],
-      "ruleFingerprint": "307a9c90e71"
+      "ruleFingerprint": "1c06eb17e71"
     },
     {
       "kingdomId": "balance-tuning-014",
@@ -3291,7 +3291,7 @@
         "silver",
         "step"
       ],
-      "ruleFingerprint": "1ae892bfd5d"
+      "ruleFingerprint": "578539b8d5d"
     },
     {
       "kingdomId": "balance-tuning-015",
@@ -3526,7 +3526,7 @@
         "stipend",
         "volley"
       ],
-      "ruleFingerprint": "a7c0a0e7d88"
+      "ruleFingerprint": "b2395e60d88"
     },
     {
       "kingdomId": "balance-tuning-016",
@@ -3760,7 +3760,7 @@
         "step",
         "stipend"
       ],
-      "ruleFingerprint": "c2a12c23dd3"
+      "ruleFingerprint": "a5c34e6cdd3"
     },
     {
       "kingdomId": "balance-tuning-017",
@@ -3996,7 +3996,7 @@
         "silver",
         "step"
       ],
-      "ruleFingerprint": "16783f02daa"
+      "ruleFingerprint": "80acfb81daa"
     },
     {
       "kingdomId": "balance-tuning-018",
@@ -4234,7 +4234,7 @@
         "silver",
         "step"
       ],
-      "ruleFingerprint": "0aef7aa5e38"
+      "ruleFingerprint": "7966a516e38"
     },
     {
       "kingdomId": "balance-tuning-019",
@@ -4468,7 +4468,7 @@
         "step",
         "stipend"
       ],
-      "ruleFingerprint": "c2d2401beab"
+      "ruleFingerprint": "9f750924eab"
     },
     {
       "kingdomId": "balance-tuning-020",
@@ -4699,7 +4699,7 @@
         "silver",
         "step"
       ],
-      "ruleFingerprint": "e8a177d2d93"
+      "ruleFingerprint": "ef00f951d93"
     },
     {
       "kingdomId": "balance-tuning-021",
@@ -4933,7 +4933,7 @@
         "step",
         "strike"
       ],
-      "ruleFingerprint": "492c6e0cd3b"
+      "ruleFingerprint": "9b01a543d3b"
     },
     {
       "kingdomId": "balance-tuning-022",
@@ -5165,7 +5165,7 @@
         "silver",
         "step"
       ],
-      "ruleFingerprint": "734a2b3ada1"
+      "ruleFingerprint": "3ec79b59da1"
     },
     {
       "kingdomId": "balance-tuning-023",
@@ -5399,7 +5399,7 @@
         "stipend",
         "volley"
       ],
-      "ruleFingerprint": "95e0cd27e24"
+      "ruleFingerprint": "0baf6ca0e24"
     },
     {
       "kingdomId": "balance-tuning-024",
@@ -5635,7 +5635,7 @@
         "silver",
         "step"
       ],
-      "ruleFingerprint": "084cbe31df6"
+      "ruleFingerprint": "0f090432df6"
     },
     {
       "kingdomId": "balance-tuning-025",
@@ -5867,7 +5867,7 @@
         "step",
         "volley"
       ],
-      "ruleFingerprint": "ff0ce77bdd0"
+      "ruleFingerprint": "422b1704dd0"
     },
     {
       "kingdomId": "balance-tuning-026",
@@ -6101,7 +6101,7 @@
         "step",
         "stipend"
       ],
-      "ruleFingerprint": "5f070c74d60"
+      "ruleFingerprint": "cce16fabd60"
     },
     {
       "kingdomId": "balance-tuning-027",
@@ -6332,7 +6332,7 @@
         "step",
         "volley"
       ],
-      "ruleFingerprint": "28d90f90d5c"
+      "ruleFingerprint": "14655e17d5c"
     },
     {
       "kingdomId": "balance-tuning-028",
@@ -6567,7 +6567,7 @@
         "silver",
         "step"
       ],
-      "ruleFingerprint": "083ae65ade0"
+      "ruleFingerprint": "e00a4579de0"
     },
     {
       "kingdomId": "balance-tuning-029",
@@ -6800,7 +6800,7 @@
         "silver",
         "step"
       ],
-      "ruleFingerprint": "17bce5bed7d"
+      "ruleFingerprint": "f349e4edd7d"
     },
     {
       "kingdomId": "balance-tuning-030",
@@ -7033,7 +7033,7 @@
         "steadyShot",
         "step"
       ],
-      "ruleFingerprint": "47d2c31de1d"
+      "ruleFingerprint": "0d907faee1d"
     },
     {
       "kingdomId": "balance-tuning-031",
@@ -7261,7 +7261,7 @@
         "step",
         "strike"
       ],
-      "ruleFingerprint": "7cab1a1dcfb"
+      "ruleFingerprint": "4268d6aecfb"
     },
     {
       "kingdomId": "balance-tuning-032",
@@ -7497,7 +7497,7 @@
         "step",
         "volley"
       ],
-      "ruleFingerprint": "8ffcc9c8d4a"
+      "ruleFingerprint": "911b990fd4a"
     },
     {
       "kingdomId": "balance-tuning-033",
@@ -7735,7 +7735,7 @@
         "starfire",
         "step"
       ],
-      "ruleFingerprint": "be63e96adbd"
+      "ruleFingerprint": "8fed4f49dbd"
     },
     {
       "kingdomId": "balance-tuning-034",
@@ -7968,7 +7968,7 @@
         "step",
         "volley"
       ],
-      "ruleFingerprint": "f2a93600d91"
+      "ruleFingerprint": "175c8a87d91"
     },
     {
       "kingdomId": "balance-tuning-035",
@@ -8206,7 +8206,7 @@
         "starfire",
         "step"
       ],
-      "ruleFingerprint": "22d0f2c8de1"
+      "ruleFingerprint": "23efc20fde1"
     },
     {
       "kingdomId": "balance-tuning-036",
@@ -8441,7 +8441,7 @@
         "steadyShot",
         "step"
       ],
-      "ruleFingerprint": "fc4b1fa2e01"
+      "ruleFingerprint": "121ba4a1e01"
     },
     {
       "kingdomId": "balance-tuning-037",
@@ -8676,7 +8676,7 @@
         "silver",
         "step"
       ],
-      "ruleFingerprint": "e50644afdbe"
+      "ruleFingerprint": "9e28a868dbe"
     },
     {
       "kingdomId": "balance-tuning-038",
@@ -8907,7 +8907,7 @@
         "starfire",
         "step"
       ],
-      "ruleFingerprint": "cac21326d23"
+      "ruleFingerprint": "89b66f35d23"
     },
     {
       "kingdomId": "balance-tuning-039",
@@ -9142,7 +9142,7 @@
         "step",
         "strike"
       ],
-      "ruleFingerprint": "f4f76db6d4a"
+      "ruleFingerprint": "46d0f0c5d4a"
     },
     {
       "kingdomId": "balance-tuning-040",
@@ -9380,7 +9380,7 @@
         "silver",
         "step"
       ],
-      "ruleFingerprint": "f08e1acde86"
+      "ruleFingerprint": "e404f49ee86"
     },
     {
       "kingdomId": "balance-tuning-041",
@@ -9618,7 +9618,7 @@
         "step",
         "volley"
       ],
-      "ruleFingerprint": "75d0b721e26"
+      "ruleFingerprint": "60003222e26"
     },
     {
       "kingdomId": "balance-tuning-042",
@@ -9853,7 +9853,7 @@
         "stipend",
         "strike"
       ],
-      "ruleFingerprint": "adbcfa8acd0"
+      "ruleFingerprint": "3eb82169cd0"
     },
     {
       "kingdomId": "balance-tuning-043",
@@ -10090,7 +10090,7 @@
         "steadyShot",
         "step"
       ],
-      "ruleFingerprint": "8de9583bdf1"
+      "ruleFingerprint": "5f9c5bc4df1"
     },
     {
       "kingdomId": "balance-tuning-044",
@@ -10326,7 +10326,7 @@
         "step",
         "strike"
       ],
-      "ruleFingerprint": "cd94ab4adc2"
+      "ruleFingerprint": "f8c03c29dc2"
     },
     {
       "kingdomId": "balance-tuning-045",
@@ -10560,7 +10560,7 @@
         "step",
         "volley"
       ],
-      "ruleFingerprint": "959b13dddfb"
+      "ruleFingerprint": "ffd20d6edfb"
     },
     {
       "kingdomId": "balance-tuning-046",
@@ -10793,7 +10793,7 @@
         "starfire",
         "step"
       ],
-      "ruleFingerprint": "b1dc9752d47"
+      "ruleFingerprint": "b83c18d1d47"
     },
     {
       "kingdomId": "balance-tuning-047",
@@ -11026,7 +11026,7 @@
         "step",
         "volley"
       ],
-      "ruleFingerprint": "cb8d6426e32"
+      "ruleFingerprint": "8a81c035e32"
     },
     {
       "kingdomId": "balance-tuning-048",
@@ -11262,7 +11262,7 @@
         "starfire",
         "step"
       ],
-      "ruleFingerprint": "a41a8ff4e23"
+      "ruleFingerprint": "11f4f32be23"
     },
     {
       "kingdomId": "balance-tuning-049",
@@ -11495,7 +11495,7 @@
         "stipend",
         "strike"
       ],
-      "ruleFingerprint": "b2f8a6a4e5e"
+      "ruleFingerprint": "d655dd9be5e"
     },
     {
       "kingdomId": "balance-tuning-050",
@@ -11730,7 +11730,7 @@
         "step",
         "strike"
       ],
-      "ruleFingerprint": "bc96729ad63"
+      "ruleFingerprint": "d222dbb9d63"
     },
     {
       "kingdomId": "balance-tuning-051",
@@ -11968,7 +11968,7 @@
         "steadyShot",
         "step"
       ],
-      "ruleFingerprint": "4ec9cadce90"
+      "ruleFingerprint": "c55a9ad3e90"
     },
     {
       "kingdomId": "balance-tuning-052",
@@ -12202,7 +12202,7 @@
         "stipend",
         "strike"
       ],
-      "ruleFingerprint": "f46e3cebe40"
+      "ruleFingerprint": "1522ebb4e40"
     },
     {
       "kingdomId": "balance-tuning-053",
@@ -12435,7 +12435,7 @@
         "step",
         "volley"
       ],
-      "ruleFingerprint": "f14c02ccd78"
+      "ruleFingerprint": "5319a503d78"
     },
     {
       "kingdomId": "balance-tuning-054",
@@ -12671,7 +12671,7 @@
         "strike",
         "volley"
       ],
-      "ruleFingerprint": "4b7600c3d59"
+      "ruleFingerprint": "f9a0c98cd59"
     },
     {
       "kingdomId": "balance-tuning-055",
@@ -12910,7 +12910,7 @@
         "step",
         "volley"
       ],
-      "ruleFingerprint": "b2912c42e92"
+      "ruleFingerprint": "f2757bc1e92"
     },
     {
       "kingdomId": "balance-tuning-056",
@@ -13147,7 +13147,7 @@
         "stipend",
         "volley"
       ],
-      "ruleFingerprint": "a85c882ed87"
+      "ruleFingerprint": "e29ecb9dd87"
     },
     {
       "kingdomId": "balance-tuning-057",
@@ -13379,7 +13379,7 @@
         "steadyShot",
         "step"
       ],
-      "ruleFingerprint": "15ee611be01"
+      "ruleFingerprint": "f2912a24e01"
     },
     {
       "kingdomId": "balance-tuning-058",
@@ -13611,7 +13611,7 @@
         "steadyShot",
         "step"
       ],
-      "ruleFingerprint": "f901363fd36"
+      "ruleFingerprint": "359ddd38d36"
     },
     {
       "kingdomId": "balance-tuning-059",
@@ -13844,7 +13844,7 @@
         "silver",
         "step"
       ],
-      "ruleFingerprint": "df9b5021d90"
+      "ruleFingerprint": "c9cacb22d90"
     },
     {
       "kingdomId": "balance-tuning-060",
@@ -14082,7 +14082,7 @@
         "step",
         "strike"
       ],
-      "ruleFingerprint": "47fa97b4da7"
+      "ruleFingerprint": "2745e8ebda7"
     },
     {
       "kingdomId": "balance-tuning-061",
@@ -14317,7 +14317,7 @@
         "stipend",
         "volley"
       ],
-      "ruleFingerprint": "c465c876d00"
+      "ruleFingerprint": "ffd95685d00"
     },
     {
       "kingdomId": "balance-tuning-062",
@@ -14553,7 +14553,7 @@
         "starfire",
         "step"
       ],
-      "ruleFingerprint": "6fddd856e74"
+      "ruleFingerprint": "a33796e5e74"
     },
     {
       "kingdomId": "balance-tuning-063",
@@ -14791,7 +14791,7 @@
         "step",
         "strike"
       ],
-      "ruleFingerprint": "fd54bd46df3"
+      "ruleFingerprint": "365beb55df3"
     },
     {
       "kingdomId": "balance-tuning-064",
@@ -15024,7 +15024,7 @@
         "silver",
         "step"
       ],
-      "ruleFingerprint": "6d0a14ebcfc"
+      "ruleFingerprint": "8dbec3b4cfc"
     },
     {
       "kingdomId": "balance-tuning-065",
@@ -15261,7 +15261,7 @@
         "silver",
         "step"
       ],
-      "ruleFingerprint": "9951322fd52"
+      "ruleFingerprint": "527395e8d52"
     },
     {
       "kingdomId": "balance-tuning-066",
@@ -15498,7 +15498,7 @@
         "starfire",
         "step"
       ],
-      "ruleFingerprint": "ed6f7113d3b"
+      "ruleFingerprint": "6aa3911cd3b"
     },
     {
       "kingdomId": "balance-tuning-067",
@@ -15733,7 +15733,7 @@
         "step",
         "stipend"
       ],
-      "ruleFingerprint": "e2a0791fdee"
+      "ruleFingerprint": "68d57a98dee"
     },
     {
       "kingdomId": "balance-tuning-068",
@@ -15970,7 +15970,7 @@
         "step",
         "volley"
       ],
-      "ruleFingerprint": "388ac460e34"
+      "ruleFingerprint": "2e1206e7e34"
     },
     {
       "kingdomId": "balance-tuning-069",
@@ -16205,7 +16205,7 @@
         "step",
         "strike"
       ],
-      "ruleFingerprint": "18544aefdb5"
+      "ruleFingerprint": "a941b6a8db5"
     },
     {
       "kingdomId": "balance-tuning-070",
@@ -16440,7 +16440,7 @@
         "steadyShot",
         "step"
       ],
-      "ruleFingerprint": "8a86187ae15"
+      "ruleFingerprint": "ed2d9f99e15"
     },
     {
       "kingdomId": "balance-tuning-071",
@@ -16676,7 +16676,7 @@
         "step",
         "strike"
       ],
-      "ruleFingerprint": "4d3358e8df8"
+      "ruleFingerprint": "9410f52fdf8"
     },
     {
       "kingdomId": "balance-tuning-072",
@@ -16911,7 +16911,7 @@
         "strike",
         "volley"
       ],
-      "ruleFingerprint": "7dc57645d91"
+      "ruleFingerprint": "2bebf336d91"
     },
     {
       "kingdomId": "balance-tuning-073",
@@ -17144,7 +17144,7 @@
         "step",
         "strike"
       ],
-      "ruleFingerprint": "a4c722c5d43"
+      "ruleFingerprint": "52ed9fb6d43"
     },
     {
       "kingdomId": "balance-tuning-074",
@@ -17377,7 +17377,7 @@
         "silver",
         "step"
       ],
-      "ruleFingerprint": "17c6ec30d4c"
+      "ruleFingerprint": "cdbe4bb7d4c"
     },
     {
       "kingdomId": "balance-tuning-075",
@@ -17612,7 +17612,7 @@
         "step",
         "volley"
       ],
-      "ruleFingerprint": "ff8b5c43d41"
+      "ruleFingerprint": "adb6250cd41"
     },
     {
       "kingdomId": "balance-tuning-076",
@@ -17843,7 +17843,7 @@
         "step",
         "strike"
       ],
-      "ruleFingerprint": "90a1324ed72"
+      "ruleFingerprint": "25fc683dd72"
     },
     {
       "kingdomId": "balance-tuning-077",
@@ -18080,7 +18080,7 @@
         "steadyShot",
         "step"
       ],
-      "ruleFingerprint": "de766728d63"
+      "ruleFingerprint": "4d88fb6fd63"
     },
     {
       "kingdomId": "balance-tuning-078",
@@ -18313,7 +18313,7 @@
         "step",
         "stipend"
       ],
-      "ruleFingerprint": "d2c0b2e6d88"
+      "ruleFingerprint": "1ef076f5d88"
     },
     {
       "kingdomId": "balance-tuning-079",
@@ -18546,7 +18546,7 @@
         "strike",
         "volley"
       ],
-      "ruleFingerprint": "f0d054a3d98"
+      "ruleFingerprint": "d3f276ecd98"
     },
     {
       "kingdomId": "balance-tuning-080",
@@ -18779,7 +18779,7 @@
         "step",
         "strike"
       ],
-      "ruleFingerprint": "b392d982d3c"
+      "ruleFingerprint": "1dc79601d3c"
     },
     {
       "kingdomId": "balance-tuning-081",
@@ -19010,7 +19010,7 @@
         "silver",
         "step"
       ],
-      "ruleFingerprint": "476c5c9de5d"
+      "ruleFingerprint": "0d2a192ee5d"
     },
     {
       "kingdomId": "balance-tuning-082",
@@ -19246,7 +19246,7 @@
         "step",
         "volley"
       ],
-      "ruleFingerprint": "7d2c954dec4"
+      "ruleFingerprint": "70a36f1eec4"
     },
     {
       "kingdomId": "balance-tuning-083",
@@ -19479,7 +19479,7 @@
         "step",
         "volley"
       ],
-      "ruleFingerprint": "85e60163d17"
+      "ruleFingerprint": "f3450dacd17"
     },
     {
       "kingdomId": "balance-tuning-084",
@@ -19714,7 +19714,7 @@
         "silver",
         "step"
       ],
-      "ruleFingerprint": "50e8de88dfc"
+      "ruleFingerprint": "0e7802cfdfc"
     },
     {
       "kingdomId": "balance-tuning-085",
@@ -19951,7 +19951,7 @@
         "stipend",
         "strike"
       ],
-      "ruleFingerprint": "090edc36e02"
+      "ruleFingerprint": "5ae85f45e02"
     },
     {
       "kingdomId": "balance-tuning-086",
@@ -20187,7 +20187,7 @@
         "silver",
         "step"
       ],
-      "ruleFingerprint": "450666d2ce6"
+      "ruleFingerprint": "4b65e851ce6"
     },
     {
       "kingdomId": "balance-tuning-087",
@@ -20421,7 +20421,7 @@
         "step",
         "strike"
       ],
-      "ruleFingerprint": "628aa314d0f"
+      "ruleFingerprint": "6359e24bd0f"
     },
     {
       "kingdomId": "balance-tuning-088",
@@ -20655,7 +20655,7 @@
         "silver",
         "step"
       ],
-      "ruleFingerprint": "020343bbdc3"
+      "ruleFingerprint": "d3b64744dc3"
     },
     {
       "kingdomId": "balance-tuning-089",
@@ -20891,7 +20891,7 @@
         "step",
         "stipend"
       ],
-      "ruleFingerprint": "4ae817c7dc7"
+      "ruleFingerprint": "16294940dc7"
     },
     {
       "kingdomId": "balance-tuning-090",
@@ -21124,7 +21124,7 @@
         "step",
         "strike"
       ],
-      "ruleFingerprint": "7191ed13cfb"
+      "ruleFingerprint": "eec60d1ccfb"
     },
     {
       "kingdomId": "balance-tuning-091",
@@ -21359,7 +21359,7 @@
         "step",
         "stipend"
       ],
-      "ruleFingerprint": "a820868cd5f"
+      "ruleFingerprint": "f9f5bdc3d5f"
     },
     {
       "kingdomId": "balance-tuning-092",
@@ -21595,7 +21595,7 @@
         "silver",
         "step"
       ],
-      "ruleFingerprint": "434066b6e08"
+      "ruleFingerprint": "9519e9c5e08"
     },
     {
       "kingdomId": "balance-tuning-093",
@@ -21831,7 +21831,7 @@
         "step",
         "stipend"
       ],
-      "ruleFingerprint": "1bc0f9a9da5"
+      "ruleFingerprint": "f09568cada5"
     },
     {
       "kingdomId": "balance-tuning-094",
@@ -22063,7 +22063,7 @@
         "step",
         "volley"
       ],
-      "ruleFingerprint": "f4956a45d6b"
+      "ruleFingerprint": "a2bbe736d6b"
     },
     {
       "kingdomId": "balance-tuning-095",
@@ -22302,7 +22302,7 @@
         "step",
         "volley"
       ],
-      "ruleFingerprint": "1dd72019e8f"
+      "ruleFingerprint": "bb2f98fae8f"
     },
     {
       "kingdomId": "balance-tuning-096",
@@ -22533,7 +22533,7 @@
         "silver",
         "step"
       ],
-      "ruleFingerprint": "07fbb2f3d37"
+      "ruleFingerprint": "08fecbfcd37"
     },
     {
       "kingdomId": "balance-tuning-097",
@@ -22773,7 +22773,7 @@
         "steadyShot",
         "step"
       ],
-      "ruleFingerprint": "ca007028de3"
+      "ruleFingerprint": "3913046fde3"
     },
     {
       "kingdomId": "balance-tuning-098",
@@ -23009,7 +23009,7 @@
         "step",
         "strike"
       ],
-      "ruleFingerprint": "1e94c887d67"
+      "ruleFingerprint": "f9e17400d67"
     },
     {
       "kingdomId": "balance-tuning-099",
@@ -23242,7 +23242,7 @@
         "step",
         "stipend"
       ],
-      "ruleFingerprint": "2a52c07ddc0"
+      "ruleFingerprint": "41a0808edc0"
     },
     {
       "kingdomId": "balance-tuning-100",
@@ -23477,7 +23477,7 @@
         "step",
         "stipend"
       ],
-      "ruleFingerprint": "464871b9d96"
+      "ruleFingerprint": "30bc089ad96"
     },
     {
       "kingdomId": "balance-tuning-101",
@@ -23708,7 +23708,7 @@
         "silver",
         "step"
       ],
-      "ruleFingerprint": "f94df040e22"
+      "ruleFingerprint": "2e0cbec7e22"
     },
     {
       "kingdomId": "balance-tuning-102",
@@ -23943,7 +23943,7 @@
         "steadyShot",
         "step"
       ],
-      "ruleFingerprint": "da9886dad28"
+      "ruleFingerprint": "b267e5f9d28"
     },
     {
       "kingdomId": "balance-tuning-103",
@@ -24178,7 +24178,7 @@
         "starfire",
         "step"
       ],
-      "ruleFingerprint": "a6da7e7ce05"
+      "ruleFingerprint": "a5d76573e05"
     },
     {
       "kingdomId": "balance-tuning-104",
@@ -24410,7 +24410,7 @@
         "silver",
         "step"
       ],
-      "ruleFingerprint": "5b8c6962dfd"
+      "ruleFingerprint": "0b352b61dfd"
     },
     {
       "kingdomId": "balance-tuning-105",
@@ -24646,7 +24646,7 @@
         "step",
         "volley"
       ],
-      "ruleFingerprint": "983b7f7ddee"
+      "ruleFingerprint": "af893f8edee"
     },
     {
       "kingdomId": "balance-tuning-106",
@@ -24880,7 +24880,7 @@
         "strike",
         "volley"
       ],
-      "ruleFingerprint": "1809d9d5d2e"
+      "ruleFingerprint": "df02abc6d2e"
     },
     {
       "kingdomId": "balance-tuning-107",
@@ -25116,7 +25116,7 @@
         "strike",
         "volley"
       ],
-      "ruleFingerprint": "4a2d0f85dff"
+      "ruleFingerprint": "0eb98176dff"
     },
     {
       "kingdomId": "balance-tuning-108",
@@ -25351,7 +25351,7 @@
         "step",
         "strike"
       ],
-      "ruleFingerprint": "12adfddedae"
+      "ruleFingerprint": "8ab7530ddae"
     },
     {
       "kingdomId": "balance-tuning-109",
@@ -25585,7 +25585,7 @@
         "step",
         "stipend"
       ],
-      "ruleFingerprint": "ecec90acd7a"
+      "ruleFingerprint": "7f8d8463d7a"
     },
     {
       "kingdomId": "balance-tuning-110",
@@ -25816,7 +25816,7 @@
         "starfire",
         "step"
       ],
-      "ruleFingerprint": "9cecb9b7cd7"
+      "ruleFingerprint": "e6f55a30cd7"
     },
     {
       "kingdomId": "balance-tuning-111",
@@ -26053,7 +26053,7 @@
         "steadyShot",
         "step"
       ],
-      "ruleFingerprint": "772834bde21"
+      "ruleFingerprint": "e1ccfecee21"
     },
     {
       "kingdomId": "balance-tuning-112",
@@ -26286,7 +26286,7 @@
         "steadyShot",
         "step"
       ],
-      "ruleFingerprint": "4fb8edecd69"
+      "ruleFingerprint": "6c96cba3d69"
     },
     {
       "kingdomId": "balance-tuning-113",
@@ -26520,7 +26520,7 @@
         "step",
         "stipend"
       ],
-      "ruleFingerprint": "cc89d239d76"
+      "ruleFingerprint": "b6fd691ad76"
     },
     {
       "kingdomId": "balance-tuning-114",
@@ -26760,7 +26760,7 @@
         "step",
         "stipend"
       ],
-      "ruleFingerprint": "fe0aa0bcd7e"
+      "ruleFingerprint": "73b2cbb3d7e"
     },
     {
       "kingdomId": "balance-tuning-115",
@@ -26997,7 +26997,7 @@
         "step",
         "strike"
       ],
-      "ruleFingerprint": "b0d6a817d41"
+      "ruleFingerprint": "c54a5990d41"
     },
     {
       "kingdomId": "balance-tuning-116",
@@ -27235,7 +27235,7 @@
         "stipend",
         "strike"
       ],
-      "ruleFingerprint": "55fab125d81"
+      "ruleFingerprint": "c471db96d81"
     },
     {
       "kingdomId": "balance-tuning-117",
@@ -27466,7 +27466,7 @@
         "silver",
         "step"
       ],
-      "ruleFingerprint": "9a5e7b67cca"
+      "ruleFingerprint": "a4d738e0cca"
     },
     {
       "kingdomId": "balance-tuning-118",
@@ -27701,7 +27701,7 @@
         "step",
         "stipend"
       ],
-      "ruleFingerprint": "dc5a501ee33"
+      "ruleFingerprint": "e8e3764de33"
     },
     {
       "kingdomId": "balance-tuning-119",
@@ -27935,7 +27935,7 @@
         "stipend",
         "volley"
       ],
-      "ruleFingerprint": "10a4df4edce"
+      "ruleFingerprint": "a600153ddce"
     },
     {
       "kingdomId": "balance-tuning-120",
@@ -28173,7 +28173,7 @@
         "step",
         "volley"
       ],
-      "ruleFingerprint": "704ea0a1dab"
+      "ruleFingerprint": "5a7e1ba2dab"
     },
     {
       "kingdomId": "balance-tuning-121",
@@ -28407,7 +28407,7 @@
         "step",
         "strike"
       ],
-      "ruleFingerprint": "15f9c307d30"
+      "ruleFingerprint": "f1466e80d30"
     },
     {
       "kingdomId": "balance-tuning-122",
@@ -28640,7 +28640,7 @@
         "step",
         "stipend"
       ],
-      "ruleFingerprint": "c1a3379ad54"
+      "ruleFingerprint": "d72fa0b9d54"
     },
     {
       "kingdomId": "balance-tuning-123",
@@ -28876,7 +28876,7 @@
         "strike",
         "volley"
       ],
-      "ruleFingerprint": "405e965bd3e"
+      "ruleFingerprint": "b0f67164d3e"
     },
     {
       "kingdomId": "balance-tuning-124",
@@ -29112,7 +29112,7 @@
         "steadyShot",
         "step"
       ],
-      "ruleFingerprint": "709121fcd59"
+      "ruleFingerprint": "6f8e08f3d59"
     },
     {
       "kingdomId": "balance-tuning-125",
@@ -29348,7 +29348,7 @@
         "steadyShot",
         "step"
       ],
-      "ruleFingerprint": "46c6114cd2a"
+      "ruleFingerprint": "a893b383d2a"
     },
     {
       "kingdomId": "balance-tuning-126",
@@ -29578,7 +29578,7 @@
         "silver",
         "step"
       ],
-      "ruleFingerprint": "46b81840e86"
+      "ruleFingerprint": "7b76e6c7e86"
     },
     {
       "kingdomId": "balance-tuning-127",
@@ -29809,7 +29809,7 @@
         "steadyShot",
         "step"
       ],
-      "ruleFingerprint": "06fb1617d56"
+      "ruleFingerprint": "1b6ec790d56"
     },
     {
       "kingdomId": "balance-tuning-128",
@@ -30046,7 +30046,7 @@
         "step",
         "volley"
       ],
-      "ruleFingerprint": "74fdce21dc0"
+      "ruleFingerprint": "5f2d4922dc0"
     },
     {
       "kingdomId": "balance-validation-001",
@@ -30280,7 +30280,7 @@
         "step",
         "volley"
       ],
-      "ruleFingerprint": "e5368230e2a"
+      "ruleFingerprint": "9b2de1b7e2a"
     },
     {
       "kingdomId": "balance-validation-002",
@@ -30515,7 +30515,7 @@
         "silver",
         "step"
       ],
-      "ruleFingerprint": "7a712da1db8"
+      "ruleFingerprint": "64a0a8a2db8"
     },
     {
       "kingdomId": "balance-validation-003",
@@ -30746,7 +30746,7 @@
         "silver",
         "step"
       ],
-      "ruleFingerprint": "cdda93d3de7"
+      "ruleFingerprint": "5749c3dcde7"
     },
     {
       "kingdomId": "balance-validation-004",
@@ -30980,7 +30980,7 @@
         "strike",
         "volley"
       ],
-      "ruleFingerprint": "dae3feafdac"
+      "ruleFingerprint": "94066268dac"
     },
     {
       "kingdomId": "balance-validation-005",
@@ -31214,7 +31214,7 @@
         "step",
         "strike"
       ],
-      "ruleFingerprint": "49039159d9d"
+      "ruleFingerprint": "7d86213ad9d"
     },
     {
       "kingdomId": "balance-validation-006",
@@ -31445,7 +31445,7 @@
         "silver",
         "step"
       ],
-      "ruleFingerprint": "d2c467d5e73"
+      "ruleFingerprint": "99bd39c6e73"
     },
     {
       "kingdomId": "balance-validation-007",
@@ -31679,7 +31679,7 @@
         "silver",
         "step"
       ],
-      "ruleFingerprint": "6add9f1fec0"
+      "ruleFingerprint": "f112a098ec0"
     },
     {
       "kingdomId": "balance-validation-008",
@@ -31914,7 +31914,7 @@
         "step",
         "stipend"
       ],
-      "ruleFingerprint": "68da0ae7d4b"
+      "ruleFingerprint": "7352c860d4b"
     },
     {
       "kingdomId": "balance-validation-009",
@@ -32149,7 +32149,7 @@
         "step",
         "strike"
       ],
-      "ruleFingerprint": "551c4720dab"
+      "ruleFingerprint": "df4da7a7dab"
     },
     {
       "kingdomId": "balance-validation-010",
@@ -32385,7 +32385,7 @@
         "step",
         "stipend"
       ],
-      "ruleFingerprint": "5af48005e00"
+      "ruleFingerprint": "1f80f1f6e00"
     },
     {
       "kingdomId": "balance-validation-011",
@@ -32621,7 +32621,7 @@
         "steadyShot",
         "step"
       ],
-      "ruleFingerprint": "1025ec0de71"
+      "ruleFingerprint": "981c96dee71"
     },
     {
       "kingdomId": "balance-validation-012",
@@ -32857,7 +32857,7 @@
         "stipend",
         "volley"
       ],
-      "ruleFingerprint": "78da35c8d23"
+      "ruleFingerprint": "79f9050fd23"
     },
     {
       "kingdomId": "balance-validation-013",
@@ -33093,7 +33093,7 @@
         "silver",
         "step"
       ],
-      "ruleFingerprint": "6432f507dbe"
+      "ruleFingerprint": "3f7fa080dbe"
     },
     {
       "kingdomId": "balance-validation-014",
@@ -33328,7 +33328,7 @@
         "step",
         "volley"
       ],
-      "ruleFingerprint": "0cf0bbd5d8e"
+      "ruleFingerprint": "d3e98dc6d8e"
     },
     {
       "kingdomId": "balance-validation-015",
@@ -33560,7 +33560,7 @@
         "step",
         "strike"
       ],
-      "ruleFingerprint": "79754b5bdb4"
+      "ruleFingerprint": "ea0d2664db4"
     },
     {
       "kingdomId": "balance-validation-016",
@@ -33798,7 +33798,7 @@
         "starfire",
         "step"
       ],
-      "ruleFingerprint": "b3a30aeccff"
+      "ruleFingerprint": "d080e8a3cff"
     },
     {
       "kingdomId": "balance-validation-017",
@@ -34038,7 +34038,7 @@
         "step",
         "strike"
       ],
-      "ruleFingerprint": "cf3fc644e50"
+      "ruleFingerprint": "fd8cc2bbe50"
     },
     {
       "kingdomId": "balance-validation-018",
@@ -34271,7 +34271,7 @@
         "stipend",
         "strike"
       ],
-      "ruleFingerprint": "74f934acd48"
+      "ruleFingerprint": "079a2863d48"
     },
     {
       "kingdomId": "balance-validation-019",
@@ -34508,7 +34508,7 @@
         "silver",
         "step"
       ],
-      "ruleFingerprint": "875c47f3df7"
+      "ruleFingerprint": "885f60fcdf7"
     },
     {
       "kingdomId": "balance-validation-020",
@@ -34744,7 +34744,7 @@
         "step",
         "stipend"
       ],
-      "ruleFingerprint": "f8af9b69c97"
+      "ruleFingerprint": "67b4748ac97"
     },
     {
       "kingdomId": "balance-validation-021",
@@ -34977,7 +34977,7 @@
         "steadyShot",
         "step"
       ],
-      "ruleFingerprint": "1f414494de8"
+      "ruleFingerprint": "201083cbde8"
     },
     {
       "kingdomId": "balance-validation-022",
@@ -35213,7 +35213,7 @@
         "step",
         "strike"
       ],
-      "ruleFingerprint": "6851694bddf"
+      "ruleFingerprint": "67822a14ddf"
     },
     {
       "kingdomId": "balance-validation-023",
@@ -35442,7 +35442,7 @@
         "steadyShot",
         "step"
       ],
-      "ruleFingerprint": "303cf042cfd"
+      "ruleFingerprint": "70213fc1cfd"
     },
     {
       "kingdomId": "balance-validation-024",
@@ -35680,7 +35680,7 @@
         "stipend",
         "strike"
       ],
-      "ruleFingerprint": "82483c1ad88"
+      "ruleFingerprint": "97d4a539d88"
     },
     {
       "kingdomId": "balance-validation-025",
@@ -35914,7 +35914,7 @@
         "step",
         "volley"
       ],
-      "ruleFingerprint": "8fa8abb7e31"
+      "ruleFingerprint": "d9b14c30e31"
     },
     {
       "kingdomId": "balance-validation-026",
@@ -36150,7 +36150,7 @@
         "step",
         "stipend"
       ],
-      "ruleFingerprint": "52d32c8ddc3"
+      "ruleFingerprint": "dac9d75edc3"
     },
     {
       "kingdomId": "balance-validation-027",
@@ -36387,7 +36387,7 @@
         "steadyShot",
         "step"
       ],
-      "ruleFingerprint": "25d31000e25"
+      "ruleFingerprint": "4a866487e25"
     },
     {
       "kingdomId": "balance-validation-028",
@@ -36622,7 +36622,7 @@
         "step",
         "volley"
       ],
-      "ruleFingerprint": "f05223e1db3"
+      "ruleFingerprint": "40a961e2db3"
     },
     {
       "kingdomId": "balance-validation-029",
@@ -36856,7 +36856,7 @@
         "step",
         "volley"
       ],
-      "ruleFingerprint": "f354d886d64"
+      "ruleFingerprint": "a2ecab95d64"
     },
     {
       "kingdomId": "balance-validation-030",
@@ -37092,7 +37092,7 @@
         "step",
         "volley"
       ],
-      "ruleFingerprint": "66a4558cdc0"
+      "ruleFingerprint": "b8798cc3dc0"
     },
     {
       "kingdomId": "balance-validation-031",
@@ -37321,7 +37321,7 @@
         "step",
         "stipend"
       ],
-      "ruleFingerprint": "ee437b93cf9"
+      "ruleFingerprint": "6b779b9ccf9"
     },
     {
       "kingdomId": "balance-validation-032",
@@ -37558,7 +37558,7 @@
         "starfire",
         "step"
       ],
-      "ruleFingerprint": "fdc8ba4fdcf"
+      "ruleFingerprint": "40399608dcf"
     }
   ]
 }
