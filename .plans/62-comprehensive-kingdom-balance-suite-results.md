@@ -4,7 +4,7 @@
 
 `balance-suite-v4` selects 160 kingdoms: 128 tuning and 32 validation. It is the smallest integer count that can meet the recorded thresholds. Counts below 160 cannot give every variable card 32 tuning and 8 validation appearances.
 
-The manifest digest is `7560021e21e2b3e87d5ea10f656c0cd31ca2557e5491708f858aea3ec79b1056`.
+The manifest digest is `15ce9f8187605fe347198f772b0be8069cf155629339a889990b8b85da631d4d`.
 
 This suite is an opportunity design. It gives a later strategy search repeated chances to use cards and interactions. It does not prove that any card is balanced. It does not prove that search closes the game or finds every competitive strategy.
 
@@ -171,7 +171,7 @@ The 60 required triples are representative. They cover Mana sequencing, Feint, B
 
 The selected 30 uses only tuning kingdoms. No validation row is needed to meet the smoke requirements. The smoke objective prefers interaction breadth after every card and named interaction is present.
 
-This is a pinned result from an offline YALPS 0.6.4 binary feasibility search with a kingdom-index objective, followed by deterministic one-row exchange ascent. Manifest regeneration remeasures the selected IDs; it does not rerun that optimizer. The result is not a proof of the global subset optimum. Regenerate its measured manifest with `npm run balance:smoke:manifest`; the committed source is `src/sim/balance-smoke-suite-manifest.json`.
+This is a pinned result from a YALPS 0.6.4 binary feasibility search with a kingdom-index objective, followed by deterministic one-row exchange ascent. `npm run balance:smoke:search-check` reruns the selector. `npm run balance:smoke:manifest -- --check` validates the pinned search source and remeasures its final IDs without rerunning the selector. The result is not a proof of the global subset optimum. The search source is `src/sim/balance-smoke-suite-design-v1.json`; the measured manifest is `src/sim/balance-smoke-suite-manifest.json`.
 
 ## Families, mechanics, costs, and routes
 
@@ -302,6 +302,7 @@ The full test run used the existing ignored Kingdom 001 deep-beam artifact requi
 ```sh
 npm run balance:suite:manifest -- --check
 npm run balance:suite:search-check
+npm run balance:smoke:search-check
 npm run balance:smoke:manifest -- --check
 npm run balance:suite:validate
 npm run balance:suite:design-report -- --check
@@ -310,6 +311,8 @@ npm run balance:suite:design-report -- --check
 - Active manifest: `src/sim/balance-suite-manifest.json`.
 - Covering-design source: `src/sim/balance-suite-covering-design-v2.json`.
 - Executable covering search: `scripts/generate_balance_suite_covering_design.ts` and `scripts/balance_suite_covering_search.cpp`.
+- Smoke-selector source: `src/sim/balance-smoke-suite-design-v1.json`.
+- Executable smoke search: `src/sim/balanceSmokeSuiteSearch.ts` and `scripts/generate_balance_smoke_suite_design.ts`.
 - Frozen strategy-search source: `src/sim/deep-beam-balance-suite-v3.json`.
 - Design report: `.html/kingdom-suite-design.html`.
 

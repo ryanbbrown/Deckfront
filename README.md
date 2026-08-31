@@ -71,13 +71,15 @@ The deterministic `balance-suite-v4` design has 128 tuning kingdoms and 32 held-
 npm run balance:suite:manifest
 npm run balance:suite:manifest -- --check
 npm run balance:suite:search-check
+npm run balance:smoke:search
+npm run balance:smoke:search-check
 npm run balance:smoke:manifest -- --check
 npm run balance:suite:validate
 npm run balance:suite:design-report
 npm run balance:suite:design-report -- --check
 ```
 
-`balance:suite:search-check` compiles and reruns the fixed-seed covering search. It takes about five minutes on an Apple M4 Pro. Normal manifest checks remeasure the pinned result and are faster. The design report is `.html/kingdom-suite-design.html`.
+`balance:suite:search-check` compiles and reruns the fixed-seed covering search. It takes about five minutes on an Apple M4 Pro. `balance:smoke:search-check` reruns the YALPS and one-row-exchange selector for the 25-to-30 smoke curve. Normal manifest checks only validate and remeasure the pinned search sources, so they are faster. The design report is `.html/kingdom-suite-design.html`.
 
 ## Native strategy search
 
