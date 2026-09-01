@@ -24,8 +24,8 @@ describe('card balance smoke report', () => {
     const kingdom = html.slice(start, end);
 
     expect(kingdom).toContain('<h3>Available cards by type</h3>');
-    expect(kingdom.indexOf('<h4>Treasure</h4>')).toBeLessThan(kingdom.indexOf('<h4>Mana</h4>'));
-    expect(kingdom.indexOf('<h4>Mana</h4>')).toBeLessThan(kingdom.indexOf('<h4>Melee</h4>'));
+    expect(kingdom.indexOf('<h4>Treasure</h4>')).toBeLessThan(kingdom.indexOf('<h4>Mage</h4>'));
+    expect(kingdom.indexOf('<h4>Mage</h4>')).toBeLessThan(kingdom.indexOf('<h4>Melee</h4>'));
     expect(kingdom.indexOf('<h4>Melee</h4>')).toBeLessThan(kingdom.indexOf('<h4>Ranged</h4>'));
     expect(kingdom).toContain('<strong>Repelling Shot</strong><span>4</span>');
     expect(kingdom).toContain('<strong>Focus</strong><span>1</span><small>always available</small>');

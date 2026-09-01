@@ -227,7 +227,7 @@ function diffCells(row: Difference, format: (value: number) => string): string[]
 }
 
 const FAMILY_ORDER = ['treasure', 'mana', 'melee', 'ranged', 'engine'] as const;
-function familyName(family: string): string { return family[0]!.toUpperCase() + family.slice(1); }
+function familyName(family: string): string { return family === 'mana' ? 'Mage' : family[0]!.toUpperCase() + family.slice(1); }
 function availabilityLabel(cardId: string): string {
   if (cardId === 'focus' || cardId === 'step') return 'always available';
   if (cardId === 'scrap') return 'starter';

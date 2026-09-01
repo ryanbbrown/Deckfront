@@ -13,7 +13,7 @@ export function groupCardCatalog(cards: Iterable<CardDefinition>): CardCatalogGr
   for (const card of cards) byFamily.get(card.family)!.push(card);
   return CARD_FAMILY_ORDER.map((family) => ({
     family,
-    heading: family[0]!.toUpperCase() + family.slice(1),
+    heading: family === 'mana' ? 'Mage' : family[0]!.toUpperCase() + family.slice(1),
     cards: byFamily.get(family)!.sort((left, right) => left.cost - right.cost || left.name.localeCompare(right.name))
   }));
 }
