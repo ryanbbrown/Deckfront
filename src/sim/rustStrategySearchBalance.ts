@@ -422,10 +422,10 @@ function crossKingdom(kingdoms: readonly RustKingdomBalanceAnalysis[]): RustCros
     supportSize: distribution(kingdoms, (kingdom) => kingdom.equilibrium.supportSize),
     effectiveSize: distribution(kingdoms, (kingdom) => kingdom.equilibrium.effectiveSize), cards, familyDamage,
     pairedScoreEvidence: { byteCounts: counts, byteTwoShare: counts[2] / sum(counts),
-      maximumAbsoluteSkew75: Math.max(...kingdoms.flatMap((kingdom) => kingdom.pairedScoreEvidence.pairs
-        .map((pair) => Math.abs(pair.percent75 - 50)))),
-      maximumAbsoluteSkew125: Math.max(...kingdoms.flatMap((kingdom) => kingdom.pairedScoreEvidence.pairs
-        .map((pair) => Math.abs(pair.percent125 - 50)))) } };
+      maximumAbsoluteSkew75: kingdoms.reduce((maximum, kingdom) => kingdom.pairedScoreEvidence.pairs
+        .reduce((held, pair) => Math.max(held, Math.abs(pair.percent75 - 50)), maximum), 0),
+      maximumAbsoluteSkew125: kingdoms.reduce((maximum, kingdom) => kingdom.pairedScoreEvidence.pairs
+        .reduce((held, pair) => Math.max(held, Math.abs(pair.percent125 - 50)), maximum), 0) } };
 }
 
 function outliers(kingdoms: readonly RustKingdomBalanceAnalysis[]): RustBalanceOutliers {

@@ -2,6 +2,7 @@ import fs from 'node:fs';
 import path from 'node:path';
 import { createHash } from 'node:crypto';
 import { pathToFileURL } from 'node:url';
+import rawBalanceManifest from '../src/sim/balance-suite-manifest.json' with { type: 'json' };
 import rawSmokeManifest from '../src/sim/balance-smoke-suite-manifest.json' with { type: 'json' };
 import {
   buildRustBalanceAnalysis, stringifyRustBalanceAnalysis
@@ -103,7 +104,7 @@ function validateCoverage(executions: readonly RustStrategySearchExecutionProven
   for (const stage of ['goldfish', 'matrix', 'psro', 'self-play-telemetry'] as const) {
     const covered = executions.filter((execution) => execution.stage === stage).flatMap((execution) => execution.coveredKingdomIds);
     if (covered.length !== kingdomIds.length || new Set(covered).size !== covered.length
-      || covered.some((kingdomId) => !expected.has(kingdomId))) throw new Error(`${stage} execution coverage must assign every smoke kingdom exactly once.`);
+      || covered.some((kingdomId) => !expected.has(kingdomId))) throw new Error(`${stage} execution coverage must assign every report kingdom exactly once.`);
   }
 }
 
@@ -134,8 +135,11 @@ export function loadSourceProvenance(file: string, binary: string, root: string)
     throw new Error('Source provenance version or protocol is invalid.');
   }
   const smokeIds = (rawSmokeManifest as { selectedKingdomIds: string[] }).selectedKingdomIds;
+  const fullIds = (rawBalanceManifest as { kingdoms: Array<{ id: string }> }).kingdoms.map((kingdom) => kingdom.id);
   const kingdomIds = stringArray(raw.kingdomIds, 'kingdomIds');
-  if (!sameStrings(kingdomIds, smokeIds)) throw new Error('Source provenance kingdom IDs differ from balance-smoke-v1.');
+  if (!sameStrings(kingdomIds, smokeIds) && !sameStrings(kingdomIds, fullIds)) {
+    throw new Error('Source provenance kingdom IDs differ from the balance smoke and full suites.');
+  }
   const commits = object(raw.scientificImplementationCommits, 'scientificImplementationCommits');
   const scientificImplementationCommits = { goldfish: commit(commits.goldfish, 'goldfish implementation commit'),
     matrix: commit(commits.matrix, 'matrix implementation commit'), psro: commit(commits.psro, 'psro implementation commit'),
@@ -257,6 +261,8 @@ export function renderRustBalanceReport(analysis: RustBalanceAnalysisV2): string
     escape(familyName(row.family)), percent(row.meanKingdomShare), number(row.meanExpectedDamagePerPlayerSide)]));
   const selectedStrategyCount = analysis.kingdoms.reduce((total, kingdom) => total + kingdom.equilibrium.supportSize, 0);
   const singleStrategyKingdoms = analysis.kingdoms.filter((kingdom) => kingdom.equilibrium.supportSize === 1).length;
+  const kingdomCount = analysis.scope.kingdomCount;
+  const kingdomLabel = `${kingdomCount} ${kingdomCount === 1 ? 'kingdom' : 'kingdoms'}`;
   const kingdomLinks = analysis.kingdoms.map((kingdom) => `<a href="#${escape(kingdom.kingdom.id)}">${escape(kingdom.kingdom.id.replace('balance-tuning-', ''))}</a>`).join('');
   const kingdomSections = analysis.kingdoms.map((kingdom) => {
     const selectedStrategies = kingdom.strategies.filter((strategy) => strategy.supportMember)
@@ -290,17 +296,17 @@ export function renderRustBalanceReport(analysis: RustBalanceAnalysisV2): string
       <details><summary>Show source hashes</summary>${source}</details></section>`;
   }).join('\n');
   return `<!doctype html>
-<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>30-kingdom metagame balance report</title><style>
+<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>${kingdomCount}-kingdom metagame balance report</title><style>
 :root{color-scheme:light;--surface:#f7f7f4;--panel:#fff;--panel-alt:#f0f1ed;--text:#171815;--muted:#60645d;--border:#d7d9d2;--accent:#285f96;--series-1:#2774ae;--series-2:#d7662f;--series-3:#278c6d;--series-4:#a66bb6;--series-5:#b58a16;font:16px/1.5 system-ui,-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif}
 @media(prefers-color-scheme:dark){:root{color-scheme:dark;--surface:#121512;--panel:#1a1e1a;--panel-alt:#222722;--text:#f4f5f1;--muted:#b7bdb4;--border:#3a413a;--accent:#78b7f1;--series-1:#4f9bd3;--series-2:#e47b4b;--series-3:#49b38f;--series-4:#bd89ca;--series-5:#d2aa3e}}
 *{box-sizing:border-box}html{scroll-behavior:smooth}body{margin:0;background:var(--surface);color:var(--text)}main{max-width:1220px;margin:auto;padding:36px 22px 80px}h1,h2,h3{line-height:1.15;text-wrap:balance}h1{font-size:clamp(2rem,5vw,3.6rem);margin:.15em 0}h2{font-size:clamp(1.5rem,3vw,2.15rem);margin:0}h3{font-size:1.05rem;margin:26px 0 10px}p{max-width:78ch;text-wrap:pretty}.lede{font-size:1.12rem;color:var(--muted)}.eyebrow{margin:0;color:var(--accent);font-size:.78rem;font-weight:750;letter-spacing:.08em;text-transform:uppercase}.metrics{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:12px;margin:28px 0}.metric{background:var(--panel);border:1px solid var(--border);border-radius:12px;padding:16px}.metric strong{display:block;font-size:1.8rem;font-variant-numeric:tabular-nums}.metric span{color:var(--muted);font-size:.83rem}.overview,.kingdom,.method{margin:28px 0;padding:22px;background:var(--panel);border:1px solid var(--border);border-radius:14px}.two-up{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:22px}.two-up>div{min-width:0}.bar-list{display:grid;gap:9px;margin:14px 0 20px}.bar-row{display:grid;grid-template-columns:minmax(105px,1fr) minmax(130px,2.5fr) 68px;gap:10px;align-items:center;font-size:.9rem}.bar-track{height:11px;background:var(--panel-alt);border-radius:999px;overflow:hidden}.bar-fill{display:block;height:100%;border-radius:inherit}.bar-row strong{text-align:end;font-variant-numeric:tabular-nums}.table-wrap{overflow:auto;border:1px solid var(--border);border-radius:10px}table{width:100%;border-collapse:collapse;font-size:.87rem}th,td{text-align:start;padding:9px 11px;border-bottom:1px solid var(--border);font-variant-numeric:tabular-nums;white-space:nowrap}thead th{background:var(--panel-alt);color:var(--muted);font-size:.78rem}tbody tr:last-child th,tbody tr:last-child td{border-bottom:0}.wrap{display:inline-block;max-width:46ch;white-space:normal;overflow-wrap:break-word}.section-heading{display:flex;align-items:start;justify-content:space-between;gap:20px}.section-heading a,.kingdom-nav a{color:var(--accent);text-underline-position:from-font;text-decoration-thickness:from-font}.summary,.note{color:var(--muted)}.kingdom-nav{display:flex;flex-wrap:wrap;gap:8px;margin:22px 0}.kingdom-nav a{display:inline-grid;place-items:center;min-width:40px;min-height:40px;border:1px solid var(--border);border-radius:8px;text-decoration:none;background:var(--panel)}details{margin-top:18px}summary{cursor:pointer;font-weight:700;min-height:40px;padding-block:8px}code{font-size:.78rem;overflow-wrap:break-word}.method{border-inline-start:5px solid var(--series-5)}.method li{margin:.45em 0}.sr-only{position:absolute;width:1px;height:1px;padding:0;margin:-1px;overflow:hidden;clip:rect(0,0,0,0);white-space:nowrap;border:0}
 @media(max-width:820px){.metrics,.two-up{grid-template-columns:1fr 1fr}.bar-row{grid-template-columns:100px 1fr 62px}}@media(max-width:580px){main{padding:24px 14px 60px}.metrics,.two-up{grid-template-columns:1fr}.bar-row{grid-template-columns:90px 1fr 58px}.overview,.kingdom,.method{padding:16px}.section-heading{display:block}.section-heading>a{display:inline-block;margin-top:10px}}
 @media(prefers-reduced-motion:reduce){html{scroll-behavior:auto}}@media print{:root{color-scheme:light}body{background:#fff}.overview,.kingdom,.method,.metric{break-inside:avoid;background:#fff}}
-</style></head><body><main id="top"><p class="eyebrow">Final 30-kingdom search · source ${escape(analysis.provenance.scientificImplementationCommits.goldfish.slice(0, 7))}</p><h1>Metagame balance report</h1>
+</style></head><body><main id="top"><p class="eyebrow">Final ${kingdomCount}-kingdom search · source ${escape(analysis.provenance.scientificImplementationCommits.goldfish.slice(0, 7))}</p><h1>Metagame balance report</h1>
 <p class="lede">Each kingdom has equal weight. Within a kingdom, both players use the stored equilibrium lottery. Archetype classification uses the selected strategy’s observed acquisitions against that lottery.</p>
 <div class="metrics"><div class="metric"><span>Kingdoms</span><strong>${analysis.scope.kingdomCount}</strong></div><div class="metric"><span>Selected strategies</span><strong>${selectedStrategyCount}</strong></div><div class="metric"><span>Single-strategy kingdoms</span><strong>${singleStrategyKingdoms}</strong></div><div class="metric"><span>Mean effective strategy count</span><strong>${analysis.crossKingdom.effectiveSize.mean.toFixed(2)}</strong></div></div>
 <section class="overview"><h2>Archetype metagame</h2><p class="note">Pure and mixed classifier labels are shown separately. Shares use equilibrium weights, then give each kingdom equal weight.</p>${barList(archetypeRows.map((row) => ({ label: row.archetype, value: row.selectedShare })), 'Cross-kingdom archetype shares')}${archetypes}</section>
-<section class="overview"><h2>Damage by card family</h2><p class="note">Damage is weighted by both players’ equilibrium strategy weights. Family share is calculated inside each kingdom before the 30 kingdoms are averaged.</p>${barList(damageRows.map((row) => ({ label: familyName(row.family), value: row.meanKingdomShare })), 'Cross-kingdom damage family shares')}${families}</section>
+<section class="overview"><h2>Damage by card family</h2><p class="note">Damage is weighted by both players’ equilibrium strategy weights. Family share is calculated inside each kingdom before equal averaging across all ${kingdomLabel}.</p>${barList(damageRows.map((row) => ({ label: familyName(row.family), value: row.meanKingdomShare })), 'Cross-kingdom damage family shares')}${families}</section>
 <section class="overview"><h2>Card selection priority</h2><p class="note">“Selected when offered” is the equilibrium chance that a strategy starts with or acquires the card, averaged equally across kingdoms where that card is offered. It is not a per-shop click rate. “Acquired” excludes starting cards.</p>${cards}</section>
 <section class="overview"><h2>Strategy diversity</h2>${table(['Measure','Minimum','Median','Mean','Maximum'], [
     ['Selected strategy count', number(analysis.crossKingdom.supportSize.minimum), number(analysis.crossKingdom.supportSize.median), number(analysis.crossKingdom.supportSize.mean), number(analysis.crossKingdom.supportSize.maximum)],

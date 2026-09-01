@@ -3,6 +3,7 @@ import os from 'node:os';
 import path from 'node:path';
 import { createHash } from 'node:crypto';
 import { afterEach, describe, expect, it } from 'vitest';
+import rawFull from '../../src/sim/balance-suite-manifest.json' with { type: 'json' };
 import rawSmoke from '../../src/sim/balance-smoke-suite-manifest.json' with { type: 'json' };
 import { buildRustBalanceAnalysis, stringifyRustBalanceAnalysis } from '../../src/sim/rustStrategySearchBalance';
 import type { RustStrategySearchSourceProvenanceV2 } from '../../src/sim/rustStrategySearchBalance';
@@ -120,6 +121,8 @@ describe('Rust strategy-search balance analysis', () => {
     expect(json).toBe(stringifyRustBalanceAnalysis(analysis));
     expect(JSON.parse(json)).toEqual(analysis);
     expect(analysis).toMatchObject({ schemaVersion: 2, protocol: 'rust-strategy-search-balance-v2' });
+    expect(html).toContain('<title>1-kingdom metagame balance report</title>');
+    expect(html).toContain('Final 1-kingdom search');
     expect(html).toContain('both players use the stored equilibrium lottery');
     expect(html).toContain('Same-strategy purchases and family damage use');
     expect(html).toContain('Selected when offered');
@@ -154,6 +157,20 @@ describe('Rust strategy-search balance analysis', () => {
     expect(parsed.currentVerifierAndBackfillBinarySha256).toBe(binaryHash);
     value.executions[3]!.binarySha256 = '7'.repeat(64); fs.writeFileSync(file, JSON.stringify(value));
     expect(() => loadSourceProvenance(file, binary, root)).toThrow(/telemetry execution binary hash/u);
+  });
+
+  it('accepts the complete 160-kingdom suite as a report scope', () => {
+    const root = repositoryTemporary(), binary = path.join(root, 'hexdeck-goldfish'); fs.writeFileSync(binary, 'release');
+    const binaryHash = hash('release');
+    const ids = (rawFull as { kingdoms: Array<{ id: string }> }).kingdoms.map((kingdom) => kingdom.id);
+    const value = provenance(ids); value.currentVerifierAndBackfillBinarySha256 = binaryHash;
+    for (const execution of value.executions) {
+      const reportFile = path.join(root, `${execution.stage}.json`); fs.writeFileSync(reportFile, JSON.stringify({ stage: execution.stage }));
+      execution.report = { path: path.relative(process.cwd(), reportFile), sha256: hash(fs.readFileSync(reportFile)) };
+      if (execution.stage === 'self-play-telemetry') execution.binarySha256 = binaryHash;
+    }
+    const file = path.join(root, 'source-provenance-v2.json'); fs.writeFileSync(file, JSON.stringify(value));
+    expect(loadSourceProvenance(file, binary, root).kingdomIds).toEqual(ids);
   });
 
   it('pins exact v2 default output paths', () => {
