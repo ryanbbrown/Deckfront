@@ -40,7 +40,7 @@ describe('card catalog assets and presentation', () => {
 
   it('explains tactical actions with the public Mage family name', () => {
     const markup = renderToStaticMarkup(<CardFace card={CARDS.flurry!} />);
-    expect(markup).toContain('Tactical actions are Melee, Ranged, and Mage cards');
+    expect(markup).toContain('Tactical actions are Melee, Ranged, and Mage cards, plus non-Scrap Engine cards');
     expect(markup).not.toContain('Mana cards');
   });
 });
