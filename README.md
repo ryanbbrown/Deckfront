@@ -12,7 +12,7 @@
 <div align="center">
 
 [![Play Deckfront](https://img.shields.io/badge/PLAY_DECKFRONT-C79B38?style=for-the-badge&labelColor=102D26)](https://deckfront.onrender.com)
-[![Join the Discord](https://img.shields.io/badge/JOIN_THE_DISCORD-5865F2?style=for-the-badge&logo=discord&logoColor=white)](https://discord.gg/REPLACE_ME)
+[![Join the Discord](https://img.shields.io/badge/JOIN_THE_DISCORD-5865F2?style=for-the-badge&logo=discord&logoColor=white)](https://discord.gg/B4dYUH7vj)
 ![Status](https://img.shields.io/badge/STATUS-INITIAL_PUBLIC_PLAYTEST-102D26?style=for-the-badge)
 
 </div>
@@ -52,9 +52,9 @@ A standard deck starts with 7 Copper and 3 Scrap. Scrap costs 1 and has a 10-car
 
 AI matches offer four difficulty levels and let either the player or the AI move first.
 
+<!--
 ## Origins and design goals
-
-<!-- Ryan will write this section. -->
+-->
 
 ## AI opponents and balance work
 
