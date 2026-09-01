@@ -19,6 +19,10 @@ const aiTrainer: AiTrainer = { train: async () => ({
 }) };
 interface Fixtures { baseUrl: string; dataDirectory: string; repository: FileGameRepository; openGame: (page: Page, mutate?: (record: GameRecord) => void) => Promise<GameRecord> }
 export const test = base.extend<Fixtures>({
+  page: async ({ page }, use) => {
+    await page.addInitScript(() => { if (!location.search.includes('showInstructions')) localStorage.setItem('deckfront.instructionsDismissed', 'true'); });
+    await use(page);
+  },
   // eslint-disable-next-line no-empty-pattern
   dataDirectory: async ({}, use) => { const data = await mkdtemp(path.join(tmpdir(), 'hexdeck-e2e-')); await use(data); await rm(data, { recursive: true, force: true, maxRetries: 10, retryDelay: 100 }); },
   baseUrl: async ({ dataDirectory }, use) => {
@@ -33,7 +37,9 @@ export const test = base.extend<Fixtures>({
       if (!response.ok) throw new Error(await response.text()); const created = await response.json() as { id: string }; const record = await repository.load(created.id);
       expect(record.schemaVersion).toBe(15); expect(record.startingDraftEnabled).toBe(true);
       completeSetup(record); mutate?.(record); resetRecord(record); await repository.save(record);
-      await page.goto(baseUrl); await page.evaluate((id) => { localStorage.setItem('hexdeck.activeGameId', id); localStorage.setItem('deckfront.animateAiTurns', 'false'); }, created.id); await page.reload(); await expect(page.getByText(/Player [12] (?:action|buy)/)).toBeVisible(); return record;
+      await page.goto(baseUrl); await page.evaluate((id) => { localStorage.setItem('hexdeck.activeGameId', id); localStorage.setItem('deckfront.animateAiTurns', 'false'); }, created.id); await page.reload();
+      const actorName = record.mode === 'ai' ? record.state.activePlayerId === record.humanPlayerId ? 'P1' : 'AI' : record.state.activePlayerId === 'ochre' ? 'Player 1' : 'Player 2';
+      await expect(page.locator('.turn-banner')).toHaveText(`Turn ${record.state.turn} · ${actorName} ${record.state.phase}`); return record;
     });
   }
 });

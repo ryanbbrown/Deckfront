@@ -1,18 +1,18 @@
 import { ARENA_MAX, ARENA_MIN } from '../game';
 import type { PlayerId } from '../game';
 import type { CardActionChoice, GameView } from '../shared/api';
+import { playerLabel, playerShortLabel } from './playerLabel';
 
-export function FighterCounter({ playerId, health, aimBonus = 0, exposedAttacksRemaining = 0, position, damageFeedback }: {
+export function FighterCounter({ playerId, health, aimBonus = 0, exposedAttacksRemaining = 0, position, damageFeedback, label, shortLabel }: {
   playerId: PlayerId; health: number; aimBonus?: number; exposedAttacksRemaining?: number; position?: number;
-  damageFeedback?: { id: string; targetId: PlayerId; amount: number } | null | undefined;
+  damageFeedback?: { id: string; targetId: PlayerId; amount: number } | null | undefined; label: string; shortLabel: string;
 }) {
-  const name = playerId === 'ochre' ? 'Player 1' : 'Player 2';
   const statuses = [aimBonus ? `Aimed +${aimBonus}` : '', exposedAttacksRemaining ? `Exposed ×${exposedAttacksRemaining}` : ''].filter(Boolean);
   const accessibleStatus = [aimBonus ? `Aimed, next Ranged attack: +${aimBonus} damage` : '', exposedAttacksRemaining ? `Exposed, next ${exposedAttacksRemaining} Close attacks: +2 damage each` : ''].filter(Boolean).join(', ');
   const damage = damageFeedback?.targetId === playerId ? damageFeedback : null;
-  return <div role="img" className={`fighter fighter--${playerId}${damage ? ' fighter--damaged' : ''}`} data-player-id={playerId} data-position={position} data-player-score={playerId} title={name} aria-label={`${name}, ${health} health${accessibleStatus ? `, ${accessibleStatus}` : ''}`}>
-    <span className="fighter__figure" aria-hidden="true"><svg viewBox="0 0 36 42"><path d="M7 40v-7c0-7 4-11 11-11s11 4 11 11v7z" fill="#26332e" stroke="#fff" strokeWidth="2"/><circle cx="18" cy="14" r="7" fill="#e7c49d" stroke="#fff" strokeWidth="2"/><path d="M10 14c0-7 3-10 8-10s8 3 8 10h-4c0-3-1-5-4-5s-4 2-4 5z" fill="#43524b" stroke="#fff" strokeWidth="1.5"/><path d="M4 31 30 5M26 5h5v5" fill="none" stroke="#f4e5b9" strokeWidth="2"/></svg></span>
-    <span className="fighter__details"><strong>{playerId === 'ochre' ? 'P1' : 'P2'}</strong><small style={{ '--health': `${String(Math.max(0, Math.min(100, health / 50 * 100)))}%` } as React.CSSProperties}><span>{health} HP</span></small></span>
+  return <div role="img" className={`fighter fighter--${playerId}${damage ? ' fighter--damaged' : ''}`} data-player-id={playerId} data-position={position} data-player-score={playerId} title={label} aria-label={`${label}, ${health} health${accessibleStatus ? `, ${accessibleStatus}` : ''}`}>
+    <span className="fighter__figure" aria-hidden="true"><svg viewBox="0 0 48 48"><path d="M24 4 39 9v12c0 11-6 18-15 23C15 39 9 32 9 21V9z" fill="#f4e5b9" stroke="#fff" strokeWidth="2.5" strokeLinejoin="round"/><path d="M24 10v27M14 18h20" fill="none" stroke="#26332e" strokeWidth="3"/><circle cx="24" cy="18" r="4" fill="#f4e5b9" stroke="#26332e" strokeWidth="2"/></svg></span>
+    <span className="fighter__details"><strong>{shortLabel}</strong><small style={{ '--health': `${String(Math.max(0, Math.min(100, health / 50 * 100)))}%` } as React.CSSProperties}><span>{health} HP</span></small></span>
     {statuses.length ? <em>{statuses.join(' · ')}</em> : null}{damage ? <span key={damage.id} className="damage-burst" data-damage-target={playerId} data-damage-amount={damage.amount}>−{damage.amount}</span> : null}
   </div>;
 }
@@ -34,7 +34,7 @@ export function Board({ game, movementChoices = [], busy = false, damageFeedback
           <span className="arena-space__number">{space}</span>
           {movement ? <button type="button" className="arena-space__choice-button" aria-label={movement.label} disabled={busy} onClick={() => onMovement?.(movement)} /> : null}
           <div className="arena-space__fighters">
-            {fighters.map((fighter) => <FighterCounter key={fighter.playerId} playerId={fighter.playerId} health={fighter.health} aimBonus={fighter.aimBonus} exposedAttacksRemaining={fighter.exposedAttacksRemaining} position={space} damageFeedback={damageFeedback} />)}
+            {fighters.map((fighter) => <FighterCounter key={fighter.playerId} playerId={fighter.playerId} health={fighter.health} aimBonus={fighter.aimBonus} exposedAttacksRemaining={fighter.exposedAttacksRemaining} position={space} damageFeedback={damageFeedback} label={playerLabel(game, fighter.playerId)} shortLabel={playerShortLabel(game, fighter.playerId)} />)}
           </div>
         </div>;
       })}

@@ -30,6 +30,19 @@ describe('pretrained AI difficulty selection', () => {
     expect(kingdoms.flatMap((kingdom) => kingdom.plans)).toHaveLength(8_671);
   });
 
+  it('selects a catalog strategy for every kingdom and difficulty', async () => {
+    const trainer = new PretrainedAiTrainer();
+    for (const trained of loadedKingdoms()) {
+      const kingdom = randomKingdom(`selection-${trained.id}`, trained.variableCardIds);
+      for (const difficulty of ['easy', 'normal', 'hard', 'expert'] as const) {
+        const selected = await trainer.train(kingdom, 91, difficulty);
+        const plan = trained.plans.find((candidate) => candidate.strategy.id === selected.strategy.id);
+        expect(plan).toBeDefined();
+        if (difficulty === 'expert') expect(plan!.equilibriumWeight).toBeGreaterThan(0);
+      }
+    }
+  });
+
   it('loads five active and five inactive legal slots for every strategy', () => {
     for (const kingdom of loadedKingdoms()) {
       const legalBuyIds = new Set(['copper', 'silver', 'gold', 'step', 'focus', ...kingdom.variableCardIds]);
