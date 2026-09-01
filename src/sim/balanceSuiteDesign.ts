@@ -452,7 +452,7 @@ function ordinaryRowValid(cards: readonly string[]): boolean {
     && (countIn(cards, ROLE_SETS.drawSupport) + countIn(cards, ROLE_SETS.economyOrGain)
       + countIn(cards, ROLE_SETS.trash) + countIn(cards, ROLE_SETS.recovery)) >= 1
     && cards.some((card) => CARDS[card]!.cost <= 3)
-    && cards.some((card) => CARDS[card]!.cost >= 5);
+    && cards.some((card) => CARDS[card]!.cost >= 4);
 }
 
 function splitSizes(count: number): { tuning: number; validation: number } {
@@ -1037,7 +1037,7 @@ export function generateBalanceSuiteManifest(): BalanceSuiteManifest {
     variable: [...VARIABLE_ACTION_IDS].map((id) => canonicalCard(CARDS[id]!)),
     fixedAction: [...ALWAYS_AVAILABLE_ACTION_IDS].map((id) => canonicalCard(CARDS[id]!)),
     treasure: [...TREASURE_IDS].map((id) => canonicalCard(CARDS[id]!)),
-    nonMarket: [canonicalCard(CARDS.scrap!)]
+    nonMarket: []
   };
   const roles = Object.fromEntries(Object.entries(ROLE_IDS).map(([name, ids]) => [name, sorted(ids)]));
   const costBands = { low: ELIGIBLE.filter((id) => CARDS[id]!.cost <= 3),
@@ -1073,7 +1073,7 @@ export function generateBalanceSuiteManifest(): BalanceSuiteManifest {
       tieBreak: 'Direct UTF-16 code-unit order', percentileMethod: 'Nearest rank: ceil(p * count)',
       serialization: 'Canonical compact UTF-8 JSON for SHA-256; pretty JSON uses two spaces and one final newline' },
     cardPool: { orderedVariableCardIds: [...VARIABLE_ACTION_IDS], fixedActionCardIds: [...ALWAYS_AVAILABLE_ACTION_IDS],
-      treasureCardIds: [...TREASURE_IDS], nonMarketCardIds: ['scrap'], variableCount: ELIGIBLE.length,
+      treasureCardIds: [...TREASURE_IDS], nonMarketCardIds: [], variableCount: ELIGIBLE.length,
       kingdomCount: choose(40, 10), digest: sha256Canonical(semantics), semantics },
     taxonomy: { digest: sha256Canonical({ roles, costBands }), roles, costBands },
     thresholds: { card: { fullMinimum: 40, tuningMinimum: 32, validationMinimum: 8, maximumRange: 1 },
@@ -1153,7 +1153,7 @@ export function validateBalanceSuiteManifest(input: BalanceSuiteManifest): Balan
   const expectedSemantics = {
     variable: [...VARIABLE_ACTION_IDS].map((id) => canonicalCard(CARDS[id]!)),
     fixedAction: [...ALWAYS_AVAILABLE_ACTION_IDS].map((id) => canonicalCard(CARDS[id]!)),
-    treasure: [...TREASURE_IDS].map((id) => canonicalCard(CARDS[id]!)), nonMarket: [canonicalCard(CARDS.scrap!)]
+    treasure: [...TREASURE_IDS].map((id) => canonicalCard(CARDS[id]!)), nonMarket: []
   };
   assertEqual(input.cardPool.semantics, expectedSemantics, 'Card semantics are stale.');
   if (input.cardPool.digest !== sha256Canonical(expectedSemantics)) throw new Error('Card-pool digest is stale.');

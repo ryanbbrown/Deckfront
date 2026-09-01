@@ -1,214 +1,148 @@
-# Deckfront
+<p align="center">
+  <picture>
+    <source media="(prefers-color-scheme: dark)" srcset="assets/Deckfront-dark.png">
+    <img src="assets/Deckfront-light.png" alt="Deckfront" width="420">
+  </picture>
+</p>
 
-Deckfront is a full-screen desktop deck-building game for two local players or one player against an AI opponent. Players build decks, move on a six-space arena, combine cards, buy improvements, and try to reduce the other fighter from 50 health to 0.
+<p align="center">
+  Build a deck. Control the distance. Take the other fighter to 0 health.
+</p>
 
-The table supports desktop screens from 1280×720 through 1920×1080. Mobile layouts are not supported.
+<div align="center">
 
-## Requirements
+[![Play Deckfront](https://img.shields.io/badge/PLAY_DECKFRONT-C79B38?style=for-the-badge&labelColor=102D26)](https://deckfront.onrender.com)
+[![Join the Discord](https://img.shields.io/badge/JOIN_THE_DISCORD-5865F2?style=for-the-badge&logo=discord&logoColor=white)](https://discord.gg/REPLACE_ME)
+![Status](https://img.shields.io/badge/STATUS-INITIAL_PUBLIC_PLAYTEST-102D26?style=for-the-badge)
 
-- Node.js 22 or later
-- npm
+</div>
 
-Install and start the browser and local server:
+## What is Deckfront?
+
+Deckfront is a two-player deck-building combat game. Play against an AI opponent or share one computer for a local match.
+
+Like other deck-building games, Deckfront starts each player with a weak deck. Bought cards go into the discard pile and enter the deck on a later shuffle. Deckfront adds a six-space battlefield: the cards in your hand determine what you can do, but the distance between the fighters determines which attacks can connect.
+
+The strongest Dominion influence is the market. Ten variable cards define each game. Copper, Silver, Gold, Step, Focus, and Scrap are always available. Cards can draw more cards, remove weak cards by trashing them, move the fighters, and attack at different ranges.
+
+Both players buy from the same 16 market piles: 6 fixed cards and 10 cards selected from a pool of 40. Deckfront has 46 unique cards.
+
+The initial public playtest chooses from [160 fixed markets selected for broad card and interaction coverage](docs/representative-markets.md). Each one has AI strategies computed in advance. It does not yet generate a new market from all 847,660,528 possible ten-card combinations.
+
+## How a match works
+
+The first player starts at 46 health and the second player starts at 50. Reduce the other fighter to 0 health to win.
+
+A turn has two phases:
+
+1. Play as many Action cards as you want and can legally use.
+2. End the Action phase to play Treasures, then buy as many cards as your money allows.
+
+Bought cards enter your discard pile. When your deck runs out, the discard pile becomes a new shuffled deck, so each purchase changes later hands rather than the current one.
+
+Position creates three ranges:
+
+- **Close:** both fighters are on the same space; Melee attacks work here.
+- **Near:** the fighters are one space apart.
+- **Far:** the fighters are two or more spaces apart.
+- **Ranged attacks:** work at Near or Far range unless a card says otherwise.
+- **Mana attacks:** work at any range, but require mana to build and spend.
+
+A standard deck starts with 7 Copper and 3 Scrap. Scrap costs 1 and has a 10-card fixed market pile, but card effects cannot gain it. Local matches can instead use a starting draft: before the first turn, each player spends up to 12 money on cards from the current market, then shuffles those cards with 7 Copper to form a stronger opening deck. Up to 3 unspent draft money carries into the first Buy phase. Starting with useful cards makes draft games faster.
+
+AI matches offer four difficulty levels and let either the player or the AI move first.
+
+## Origins and design goals
+
+<!-- Ryan will write this section. -->
+
+## AI opponents and balance work
+
+Deckfront's AI work was inspired by Matt Fisher's [Provincial AI for Dominion](https://graphics.stanford.edu/~mdfisher/DominionAI.html). Provincial searched for a separate purchase plan for each ten-card kingdom and represented that plan as a short, ordered list a person could inspect. That made the result useful for understanding a kingdom, not only for beating an opponent.
+
+Deckfront keeps that constraint. The goal was not to build the strongest possible black-box player. The goal was to build strategies that are:
+
+- **Interpretable:** a strategy is an ordered purchase plan rather than an opaque model.
+- **Repeatable:** rerunning the search on the same market should recover the same strategies, card choices, or behaviorally equivalent plans.
+- **Scalable:** the same search process can cover many markets quickly enough to support repeated card changes.
+
+The browser opponent combines a saved purchase plan with one shared tactical policy for playing cards and moving on the battlefield. Easy, Normal, Hard, and Expert select different saved plans. The current website chooses one of the 160 covered markets and loads its saved strategies; opening a game does not start a training job.
+
+For balance work, repeatability means more than finding an opponent with a similar win rate. A fresh run on the same market needs to recover the same cards and strategy families, or plans that behave the same in real games. If two runs reach similar strength through unrelated cards, their card-usage results are not stable enough to guide balance changes.
+
+The same simulation system was used to balance the cards across the [160 selected markets](docs/representative-markets.md). Repeated search and card changes made Melee, Ranged, and Mage strategies competitive and made each card worth buying in at least some strategies. Some cards are still stronger than others, but very few, if any, should go unbought across the full set of markets.
+
+A future version will generate markets outside the fixed 160 and train a matching opponent during setup.
+
+## Current version
+
+Deckfront is in its initial public playtest.
+
+Available now:
+
+- One player against an AI opponent.
+- Two local players sharing one computer.
+- Four AI difficulty levels.
+- 46 card types and 160 selected markets.
+- Optional starting drafts for local games.
+- Persistent game saves and multi-step undo.
+
+Coming soon:
+
+- Online multiplayer.
+- Player accounts, profiles, or public statistics.
+- On-demand AI training for arbitrary new markets.
+- Mobile layouts. The table supports desktop screens from 1280×720 through 1920×1080.
+
+## Development
+
+Deckfront uses TypeScript, React, Node.js, and Rust. The TypeScript game engine is deterministic and shared by the server, browser views, tests, and simulation adapters. Rust runs the high-volume strategy search used for AI and balance work.
+
+Requires Node.js 22 or later and npm:
 
 ```sh
 npm install
 npm run dev
 ```
 
-Open `http://127.0.0.1:4173`.
+Open `http://127.0.0.1:4173`. The local server stores games in `.data/games` by default.
 
-The server saves games in `.data/games` by default. You can set `PORT`, `HOST`, `HEXDECK_DATA_DIR`, or `HEXDECK_STATIC_DIR`. Saved game records, browser game views, and exports use schema version 15. The server rejects older saves and does not migrate them.
+The main code boundaries are:
 
-## Deploy to Render
+```text
+src/game-data/   Cards and market definitions
+src/game/        Deterministic rules, state, commands, and replay
+src/client/      React game table
+src/server/      HTTP routes, AI opponent, and file persistence
+src/sim/         Strategy search, balance analysis, and native adapters
+rust/            High-volume native simulation and search
+scripts/         Reports, operator commands, and verification tools
+test/            Vitest and Playwright behavior tests
+```
 
-The root [`render.yaml`](render.yaml) creates one paid `0.5c-512mb` Docker web service and a 1 GB persistent disk.
-
-1. Push the repository and the branch that you want Render to deploy to your Git provider.
-2. In the [Render Dashboard](https://dashboard.render.com/), select **New > Blueprint**.
-3. Connect the Git provider, select the Deckfront repository, and select `main`.
-4. Review the `deckfront` service and `deckfront-data` disk, then select **Deploy Blueprint**.
-5. Wait for the service to become live. Open `https://<your-service-host>/api/health`; a healthy service returns `{"ok":true}`.
-
-Render deploys new commits from the connected branch. To deploy the current branch tip by hand, open the service, select **Manual Deploy > Deploy latest commit**, and wait for the health check to pass. The image reads Render's `PORT`, binds to `0.0.0.0`, serves the Vite client and API from one process, and saves games in `/var/data/games`.
-
-Render's free web service cannot attach a persistent disk. It spins down after 15 inactive minutes and loses local files on spin-down, restart, or redeploy. The paid disk keeps saved games, but a service with a disk cannot use horizontal scaling or zero-downtime deploys.
-
-## Play
-
-1. Refresh until one of the 160 trained 10-card kingdoms looks interesting. Copper, Silver, Gold, Step, and Focus are the five fixed market piles. Scrap is a starter card, not a market pile. Cull is a normal kingdom pile.
-2. Choose two local players or the AI opponent. In an AI game, choose whether you or the AI goes first, select Easy, Normal, Hard, or Expert strength, and choose whether to animate AI turns.
-3. For a local game, choose whether to use the starting draft. AI games always start without the draft.
-4. With the local draft on, Player 1 spends up to 12 money on starting cards, then Player 2 builds. With the draft off, both players start immediately with 7 Copper and 3 Scrap.
-5. Play any number of Action cards, end the Action phase to play Treasure cards, buy affordable cards, and end the Buy phase.
-
-Draft-on decks start with 7 Copper. Up to 3 unspent starting money carries into the first Buy phase. Draft-off decks add 3 Scrap, have no carry, and skip the build. Only the first Scrap a player plays each turn deals its 1 damage. Scrap cannot be bought or gained. Starting-build cards do not reduce market piles. Mana remains available until spent. At most 2 mana carries past the end of a turn.
-
-AI games select from the server-only `src/server/pretrained-opponents.json` catalog. The catalog contains 8,671 final-Matrix ordered plans for all 160 balance-suite kingdoms, including 430 positive-weight equilibrium entries. The plans and equilibrium weights use the playable rules from scientific commit `9bcc8d28f1e59603680b3c8ae7ca28a82d767a70`. Selection does not start strategy search or worker processes. Expert uses the saved equilibrium lottery. Easy, Normal, and Hard use the saved score against that lottery. The saved purchase plan controls buys, and the shared tactical agent controls card play and movement.
-
-The arena has spaces 1 through 6. Fighters start on the symmetric middle spaces, Player 1 at 3 and Player 2 at 4. Fighters can share a space and move through each other. Distance 0 is Close, 1 is Near, and 2 or more is Far. Bought cards enter the discard pile and briefly appear above their market piles. Actions resolve at once. Played cards move from the hand to the played area, and the table replays visible AI actions when animation is on. The right rail keeps the public action record visible and shows both full deck compositions without zone counts. Undo can roll back every submitted action to the completed-setup boundary. Each undo of a turn-ending human action also removes the full AI response that it caused. Reload restores the active game and its undo history. New game clears the browser's active-game link.
-
-## Verify
+Run the normal checks with:
 
 ```sh
 npm test
-npm run verify:native
-npm run modal:test
-npm run test:e2e:manifest
-npm run test:e2e
 npm run typecheck
 npm run lint
 npm run build
 ```
 
-Vitest checks the game, AI, server, persistence, balance suites, native conformance, and local operator contracts. Playwright uses the built browser and real local server to check the playable table. The E2E manifest maps required behavior to exact test IDs.
-
-## Balance suites
-
-The deterministic `balance-suite-v4` design has 128 tuning kingdoms and 32 held-back validation kingdoms. The 30-kingdom process-smoke set uses only tuning kingdoms. Regenerate or check the manifests and reports with:
+Native simulation, Modal operators, and browser behavior have additional checks:
 
 ```sh
-npm run balance:suite:manifest
-npm run balance:suite:manifest -- --check
-npm run balance:suite:search-check
-npm run balance:smoke:search
-npm run balance:smoke:search-check
-npm run balance:smoke:manifest -- --check
-npm run balance:suite:validate
-npm run balance:suite:design-report
-npm run balance:suite:design-report -- --check
-```
-
-`balance:suite:search-check` compiles and reruns the fixed-seed covering search. It takes about five minutes on an Apple M4 Pro. `balance:smoke:search` prints the reproducible 30-kingdom selection, and `balance:smoke:search-check` checks it against the existing smoke manifest. Normal manifest checks remeasure the recorded IDs without running either search. The design report is `.html/kingdom-suite-design.html`.
-
-## Native strategy search
-
-The separate Goldfish-only Modal route runs two container tasks per kingdom: `goldfish-one-reduce` and `goldfish-two-reduce`. Intermediate score files stay on container-local disk, and only the two final files reach the Modal Volume. Its strict request sets 16 to 64 worker cores, maximum active CPUs, scientific wall time, and maximum cost. Plan makes no Modal call, and paid run needs the exact plan token:
-
-```sh
-npx tsx scripts/strategy_search_goldfish_modal.ts plan --request REQUEST.json
-npx tsx scripts/strategy_search_goldfish_modal.ts run --request REQUEST.json --authorize TOKEN
-```
-
-Use [the Goldfish-only operator guide](docs/strategy-search-goldfish-modal.md) for the `balance-tuning-005` request, 32×16, 16×32, and 8×64 comparison shapes at 512 active CPUs, current Modal rates, hard cost guard, exact outputs, and timing split. The route never creates Matrix or PSRO work.
-
-The separate PSRO batch route runs Matrix locally, then runs one complete Rust PSRO search per Modal machine. Every request field is required. `plan`, `status`, `download`, and `report` do not start paid PSRO work. `run` needs the exact token from `plan`:
-
-```sh
-npx tsx scripts/strategy_search_psro_modal.ts matrix --request REQUEST.json --root ROOT --goldfish-campaign CAMPAIGN_ID
-npx tsx scripts/strategy_search_psro_modal.ts plan --request REQUEST.json --root ROOT
-npx tsx scripts/strategy_search_psro_modal.ts run --request REQUEST.json --root ROOT --authorize TOKEN
-npx tsx scripts/strategy_search_psro_modal.ts status --request REQUEST.json --root ROOT
-npx tsx scripts/strategy_search_psro_modal.ts download --request REQUEST.json --root ROOT
-npx tsx scripts/strategy_search_psro_modal.ts report --root ROOT
-```
-
-Use [the Modal PSRO batch operator guide](docs/strategy-search-psro-modal.md) for the request limits, current cost formula, ten-minute Volume commit cadence, resume rules, output layout, deep verification, byte comparison, and local dynamic queue.
-
-Run the full Goldfish reservoir step locally with 10 threads:
-
-```sh
-npm run goldfish:reservoir -- balance-tuning-005 10 .data/goldfish/balance-tuning-005
-```
-
-The command writes:
-
-- `goldfish/top-500000.hgf`: the best 500,000 rows after shuffle 1;
-- `goldfish/reservoir.hgf`: the best 20,000 rows after shuffles 1 to 4;
-- `reports/*.json`: command timings, byte counts, and verification output.
-
-Verify the final files directly:
-
-```sh
-rust/target/release/hexdeck-goldfish verify --kingdom balance-tuning-005 \
-  --kind top --file .data/goldfish/balance-tuning-005/goldfish/top-500000.hgf
-rust/target/release/hexdeck-goldfish verify --kingdom balance-tuning-005 \
-  --kind reservoir --file .data/goldfish/balance-tuning-005/goldfish/reservoir.hgf \
-  --top .data/goldfish/balance-tuning-005/goldfish/top-500000.hgf
-```
-
-Run the complete PSRO response search after the initial matrix files exist:
-
-```sh
-npm run psro:search -- balance-tuning-005 10 \
-  .data/goldfish/balance-tuning-005/goldfish/top-500000.hgf \
-  .data/goldfish/balance-tuning-005/goldfish/reservoir.hgf \
-  .data/matrix/balance-tuning-005 \
-  .data/psro/balance-tuning-005
-```
-
-One Rust process screens the reservoir, confirms responses, admits one response at a time, solves each expanded matrix, and stops after two clean searches. It writes binary look and admission files, `checkpoint.hpc`, `decisions.hpd`, expanded matrix files after an admission, and `run-report.json`. Run the same command again to continue from the first unfinished look.
-
-Verify the complete result directly:
-
-```sh
-rust/target/release/hexdeck-goldfish psro-verify \
-  --kingdom balance-tuning-005 \
-  --top-file .data/goldfish/balance-tuning-005/goldfish/top-500000.hgf \
-  --reservoir .data/goldfish/balance-tuning-005/goldfish/reservoir.hgf \
-  --matrix-dir .data/matrix/balance-tuning-005 \
-  --out .data/psro/balance-tuning-005
-```
-
-Generate the equilibrium-weighted balance analysis with:
-
-```sh
-npm run strategy-search:rust-balance-report -- \
-  --root .data/strategy-search-30 \
-  --binary rust/target/release/hexdeck-goldfish \
-  --provenance .data/strategy-search-30/source-provenance-v2.json
-```
-
-The command structurally checks Goldfish and HGM formats and CRCs, source links, checkpoint completion, selected Matrix order, and HST evidence before it decodes a kingdom. Deep verification is a separate, deliberate `psro-verify` run; reporting does not replay Goldfish, Matrix, or PSRO. It writes deterministic JSON to `.data/strategy-search-30/rust-balance-analysis-v2.json` and standalone HTML to `.html/strategy-search-30-rust-balance-v2.html`. The native `verify`, `matrix-verify`, and `psro-verify` commands remain available for a deliberate deep audit.
-
-The report weights each telemetry cell by both the acting strategy's stored equilibrium weight and the opponent's stored equilibrium weight. Strategy classification uses acquisitions against the equilibrium opponent. Raw unweighted Matrix counts are audit evidence, not balance headlines. The Matrix payoff diagonal stays fixed at 50%. A paired score byte of 2 does not identify one success and one failure versus two ties, so the report does not claim exact W/D/L.
-
-Generate the Plan 84 eight-kingdom directional comparison after its new evidence is complete:
-
-```sh
-npm run strategy-search:card-balance-smoke-report -- \
-  --baseline .data/strategy-search-30/rust-balance-analysis-v2.json \
-  --root .data/card-balance-smoke-84 \
-  --binary rust/target/release/hexdeck-goldfish
-```
-
-The command reads the completed 30-kingdom report without changing it. It structurally checks the eight new evidence sets and writes deterministic before/after JSON to `.html/card-balance-smoke-84.json` and matching HTML to `.html/card-balance-smoke-84.html`. The output is a directional smoke, not final balance evidence.
-
-`rust/goldfish/kingdoms.json` contains every registered strategy-search kingdom. Generate it after kingdom or rule changes, then run the check:
-
-```sh
-npm run goldfish:native-kingdom-write
-npm run goldfish:native-kingdom-check
-npm run goldfish:native-verify
+npm run verify:native
 npm run modal:test
+npm run test:e2e
 ```
 
-With no subcommand, `hexdeck-goldfish` keeps the versioned JSON line protocol for Rust-versus-TypeScript conformance tests. It rejects a thread count above the CPU request.
+Production uses the root Dockerfile and `render.yaml`. The Render service stores saved games on a persistent disk.
 
-## Code boundaries
+## Technical documentation
 
-The arrows show import direction:
-
-```text
-src/server -------------> src/sim -------------> src/game -> src/game-data
-src/server -------------> src/shared, src/game
-src/shared -------------> src/game
-src/client -------------> src/shared, src/game
-```
-
-Game data defines cards and kingdoms. The game module contains deterministic rules. The simulator imports only simulator modules and the game module. The server uses simulator strategies to train and run the AI opponent. The client does not import simulator code. ESLint enforces the game and simulator limits.
-
-## Repository tree
-
-```text
-src/game-data/   Card and kingdom JSON
-src/game/        Deterministic rules, state, commands, and replay
-src/shared/      Browser-server API types
-src/client/      React local-game UI
-src/server/      HTTP routes, game service, and file persistence
-src/sim/         Game AI, balance suites, native adapters, and report models
-scripts/         Balance, native-search, and E2E utilities
-test/            Vitest and Playwright behavior tests
-.plans/          Current plans and archived decision history
-.html/           Kept HTML artifacts
-```
+- [Why the public playtest uses 160 representative markets](docs/representative-markets.md)
+- [How strategy search works](docs/strategy-search-process.md)
+- [How to interpret strategy-search and balance evidence](docs/strategy-search-evidence.md)
+- [Goldfish Modal operator guide](docs/strategy-search-goldfish-modal.md)
+- [PSRO Modal operator guide](docs/strategy-search-psro-modal.md)

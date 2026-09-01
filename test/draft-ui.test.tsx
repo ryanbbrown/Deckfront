@@ -19,7 +19,7 @@ describe('draft UI request boundary', () => {
     const scrap = renderToStaticMarkup(<article><CardFace card={CARDS.scrap!} /></article>);
     expect(scrap).toContain('<strong class="card__headline">1 damage at any range</strong>');
     expect(scrap).toContain('<small class="card__detail">Only the first Scrap you play each turn deals damage.</small>');
-    expect(scrap).toContain('Cost 0');
+    expect(scrap).toContain('Cost 1');
 
     const precision = renderToStaticMarkup(<article><CardFace card={CARDS.precisionShot!} /></article>);
     expect(precision).toContain('<strong class="card__headline">4 damage</strong>');

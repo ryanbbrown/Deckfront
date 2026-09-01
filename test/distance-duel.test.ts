@@ -33,13 +33,13 @@ describe('starting build', () => {
     expect(state.phase).toBe('action'); expect(state.activePlayerId).toBe('indigo'); expect(state.turn).toBe(1);
     expect(state.players.ochre.firstBuyMoney).toBe(3); expect(state.players.indigo.firstBuyMoney).toBe(3);
     expect(state.players.ochre.deck.hand).toHaveLength(5); expect(state.players.indigo.deck.hand).toHaveLength(5);
-    expect(state.nextCardSerial).toBe(19); expect(state.fighters.ochre).toMatchObject({ position: 3, health: 50 }); expect(state.fighters.indigo).toMatchObject({ position: 4, health: 47 });
+    expect(state.nextCardSerial).toBe(19); expect(state.fighters.ochre).toMatchObject({ position: 3, health: 50 }); expect(state.fighters.indigo).toMatchObject({ position: 4, health: 46 });
     assertInvariants(state);
   });
   it('creates instances, shuffles, and draws in the exact approved player order', () => {
     let state = createGame({ seed: 7, firstPlayerId: 'ochre' }); state = submitStartingBuild(state, 'ochre', ['aim', 'volley']); state = submitStartingBuild(state, 'indigo', ['feint', 'drive']);
     expect(state.nextCardSerial).toBe(19); expect(state.rngState).toBe(3338981911); expect(state.players.ochre.deck.hand.map((card) => [card.id, card.definitionId])).toEqual([['card-9', 'volley'], ['card-7', 'copper'], ['card-2', 'copper'], ['card-4', 'copper'], ['card-1', 'copper']]);
-    expect(state.players.indigo.deck.hand.map((card) => [card.id, card.definitionId])).toEqual([['card-18', 'drive'], ['card-15', 'copper'], ['card-11', 'copper'], ['card-14', 'copper'], ['card-12', 'copper']]); expect(state.fighters).toEqual({ ochre: { playerId: 'ochre', position: 3, health: 47, aimBonus: 0, exposedAttacksRemaining: 0 }, indigo: { playerId: 'indigo', position: 4, health: 50, aimBonus: 0, exposedAttacksRemaining: 0 } });
+    expect(state.players.indigo.deck.hand.map((card) => [card.id, card.definitionId])).toEqual([['card-18', 'drive'], ['card-15', 'copper'], ['card-11', 'copper'], ['card-14', 'copper'], ['card-12', 'copper']]); expect(state.fighters).toEqual({ ochre: { playerId: 'ochre', position: 3, health: 46, aimBonus: 0, exposedAttacksRemaining: 0 }, indigo: { playerId: 'indigo', position: 4, health: 50, aimBonus: 0, exposedAttacksRemaining: 0 } });
   });
   it('accepts no paid cards, repeats, and free Copper but rejects bad builds', () => {
     const initial = createGame({ seed: 2 }); expect(submitStartingBuild(initial, 'ochre', []).players.ochre.startingBuild).toEqual([]);

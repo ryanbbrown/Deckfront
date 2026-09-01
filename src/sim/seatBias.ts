@@ -1,4 +1,4 @@
-import { SeededRandom } from '../game';
+import { FIRST_PLAYER_HEALTH_PENALTY, SeededRandom, playerStartingHealth } from '../game';
 import type { CompetitiveBlock } from './nativeCompetitiveProtocol';
 import { stableHash } from './strategy';
 import type { NativeSeatBiasPenaltyScore } from './rustGoldfishScorer';
@@ -112,9 +112,9 @@ export interface SeatBiasReport {
     kingdomIds: string[];
   };
   currentRule: {
-    penalty: 3;
+    penalty: typeof FIRST_PLAYER_HEALTH_PENALTY;
     catalogStartingHealth: 50;
-    firstPlayerStartingHealth: 47;
+    firstPlayerStartingHealth: number;
   };
   aggregate: SeatBiasAggregateMetric[];
   kingdoms: SeatBiasKingdomDiagnostic[];
@@ -344,7 +344,8 @@ export function buildSeatBiasReport(
       threads: config.threads,
       kingdomIds: kingdoms.map((kingdom) => kingdom.kingdomId)
     },
-    currentRule: { penalty: 3, catalogStartingHealth: 50, firstPlayerStartingHealth: 47 },
+    currentRule: { penalty: FIRST_PLAYER_HEALTH_PENALTY, catalogStartingHealth: 50,
+      firstPlayerStartingHealth: playerStartingHealth(50, true) },
     aggregate: aggregateSeatBias(kingdoms, config.penalties),
     kingdoms: [...kingdoms]
   };

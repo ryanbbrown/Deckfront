@@ -44,8 +44,7 @@ function resolvedValue(kingdom: Kingdom, definitionId: string, key: string): num
 }
 
 export function nativeKingdomInput(kingdom: Kingdom): NativeScoreBatchRequest['payload']['kingdom'] {
-  const market = kingdomMarket(kingdom.id);
-  const definitions = [...market, cardDefinition('scrap')];
+  const definitions = kingdomMarket(kingdom.id);
   const pileCounts = new Map(kingdom.actionPiles.map((pile) => [pile.cardId, pile.count]));
   const always = new Set<string>(ALWAYS_AVAILABLE_ACTION_IDS);
   return { id: kingdom.id, health: kingdom.startingHealth,

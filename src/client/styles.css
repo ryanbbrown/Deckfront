@@ -198,8 +198,8 @@ h1,h2,h3,p { margin: 0; } h1,h2,h3 { font-family: Georgia, "Times New Roman", se
 .market-dialog__surface > header { display: flex; align-items: center; justify-content: space-between; height: 62px; }
 .market-dialog__surface > header span { color: #a8c6ba; font-size: 9px; text-transform: uppercase; }
 .market-dialog__surface > header button { width: 34px; height: 34px; border: 1px solid #ffffff45; border-radius: 5px; background: #fff; color: var(--ink); font-size: 22px; }
-.market-dialog__grid { display: grid; grid-template-columns: repeat(5,148px); grid-template-rows: repeat(3,220px); justify-content: center; gap: 10px; height: calc(100% - 62px); overflow: auto; }
-.reference-card { width: 148px; height: 220px; }
+.market-dialog__grid { display: grid; grid-template-columns: repeat(6,120px); grid-template-rows: repeat(3,220px); justify-content: center; gap: 10px; height: calc(100% - 62px); overflow: auto; }
+.reference-card { width: 120px; height: 220px; }
 .catalog-dialog { position: fixed; inset: 0; width: 100vw; max-width: none; height: 100dvh; max-height: none; margin: 0; padding: 10px; border: 0; background: #071d18e8; color: #fff; overflow: hidden; }
 .catalog-dialog::backdrop { background: #071d18cc; }
 .catalog-dialog__surface { display: grid; grid-template-rows: 58px minmax(0,1fr); width: 100%; height: 100%; overflow: hidden; border: 1px solid #ffffff52; border-radius: 10px; background: #173c32; box-shadow: 0 20px 60px #0009; }

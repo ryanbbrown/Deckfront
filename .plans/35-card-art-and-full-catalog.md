@@ -13,7 +13,7 @@ Use the selected illustration for every card, apply the approved card format eve
 3. Add a `View all cards` button next to `New game` in the game action rail.
 4. Open a full-viewport card catalog from that button. Group cards by family in the order Treasure, Engine, Melee, Ranged, Mana. Sort each family by cost, then name.
 5. Render catalog cards at 222×330px, which is 1.5 times the current 148×220px reference card size. Let the catalog body scroll while its header and close control stay visible.
-6. Keep the existing market reference for the current 15-card market.
+6. Keep the existing market reference for the current 16-card market.
 
 ## Verification
 

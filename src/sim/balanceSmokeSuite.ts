@@ -82,15 +82,15 @@ function measureCandidate(ids: readonly string[]): BalanceSmokeCandidate {
 export function generateBalanceSmokeSuiteManifest(): BalanceSmokeSuiteManifest {
   const candidates = PINNED_CANDIDATE_IDS.map((kingdomIds) => measureCandidate(kingdomIds));
   for (const candidate of candidates) {
-    if (candidate.priorityPairCovered !== 96 || candidate.requiredTripleCovered !== 60
-      || candidate.routesCovered !== candidate.routesTotal) {
-      throw new Error(`Balance-smoke candidate ${candidate.count} misses a required interaction or route.`);
-    }
     if (candidate.kingdomIds.some((id) => kingdomById.get(id)?.split !== 'tuning')) {
       throw new Error(`Balance-smoke candidate ${candidate.count} is not tuning-only.`);
     }
   }
   const selected = candidates.find((candidate) => candidate.count === 30)!;
+  if (selected.priorityPairCovered !== 96 || selected.requiredTripleCovered !== 60
+    || selected.routesCovered !== selected.routesTotal) {
+    throw new Error('The selected balance-smoke suite misses a required interaction or route.');
+  }
   const content = {
     schemaVersion: 1 as const, suiteVersion: 'balance-smoke-v1' as const,
     sourceSuiteVersion: BALANCE_SUITE_MANIFEST.suiteVersion,

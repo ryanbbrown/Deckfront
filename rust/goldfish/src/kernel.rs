@@ -13,7 +13,7 @@ const MAX_CARDS: usize = 128;
 const MAX_PLAN: usize = 10;
 const MAX_MANA: usize = 4096;
 const INFINITE_BUY_COUNT: i16 = 99;
-const FIRST_PLAYER_HEALTH_PENALTY: i16 = 3;
+const FIRST_PLAYER_HEALTH_PENALTY: i16 = 4;
 const STARTING_BUDGET: i16 = 12;
 const MAX_FIRST_BUY_CARRY: i16 = 3;
 const MAX_CARRIED_MANA: i16 = 2;
@@ -3100,10 +3100,10 @@ mod tests {
         let fixtures = [
             (false, &alpha, &beta, 91, false, "ochre", "victory", 46),
             (
-                false, &alpha, &beta, 4_200_001, true, "ochre", "victory", 49,
+                false, &alpha, &beta, 4_200_001, true, "ochre", "victory", 47,
             ),
             (
-                false, &beta, &alpha, 4_200_125, false, "indigo", "victory", 45,
+                false, &beta, &alpha, 4_200_125, false, "indigo", "victory", 43,
             ),
             (true, &alpha, &beta, 91, false, "ochre", "victory", 36),
             (true, &alpha, &beta, 4_200_001, true, "ochre", "victory", 29),
@@ -3135,7 +3135,7 @@ mod tests {
         }
         let production = competitive_game(&kingdom, &strategy, &strategy, 91, true, false, 30, 200);
         assert_eq!(production.seats[0].starting_health, 50);
-        assert_eq!(production.seats[1].starting_health, 47);
+        assert_eq!(production.seats[1].starting_health, 46);
     }
 
     #[test]

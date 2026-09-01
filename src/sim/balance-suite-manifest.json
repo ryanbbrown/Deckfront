@@ -45,9 +45,7 @@
           "required triple minimum",
           "validation required triple minimum",
           "broad triple coverage",
-          "deck-shaping route minimum",
-          "mana-ranged route minimum",
-          "ranged-focused route minimum"
+          "mana-melee validation route minimum"
         ],
         "cardMinimum": 12,
         "tuningCardMinimum": 10,
@@ -58,54 +56,54 @@
         "validationPriorityPairMinimum": 0,
         "requiredTripleMinimum": 0,
         "validationRequiredTripleMinimum": 0,
-        "tripleCovered": 4726,
-        "tripleCoverage": 0.478340080972,
+        "tripleCovered": 4714,
+        "tripleCoverage": 0.477125506073,
         "largestOverlap": 6,
         "overlapMean": 2.351020408163,
         "overlapP99": 5,
-        "jaccardMean": 0.138524482475,
-        "pairCountStandardDeviation": 1.329938973255,
+        "jaccardMean": 0.138472812684,
+        "pairCountStandardDeviation": 1.320263855047,
         "deficits": {
           "fullPairs": 3990,
-          "validationPairs": 401,
+          "validationPairs": 397,
           "priorityPairs": 704,
           "validationPriorityPairs": 85,
-          "requiredTriples": 135,
-          "validationRequiredTriples": 37,
-          "routes": 3,
-          "validationRoutes": 0
+          "requiredTriples": 138,
+          "validationRequiredTriples": 33,
+          "routes": 0,
+          "validationRoutes": 1
         },
         "routeCounts": {
-          "all-damage-families": 27,
-          "deck-shaping": 11,
+          "all-damage-families": 23,
+          "deck-shaping": 13,
           "draw-rich": 44,
-          "high-cost-economy": 16,
+          "high-cost-economy": 14,
           "improvise-mix": 11,
-          "mana-focused": 8,
-          "mana-melee": 10,
-          "mana-ranged": 7,
+          "mana-focused": 7,
+          "mana-melee": 8,
+          "mana-ranged": 9,
           "mana-route": 26,
-          "melee-focused": 7,
+          "melee-focused": 6,
           "melee-ranged": 12,
-          "melee-route": 22,
-          "ranged-focused": 3,
-          "ranged-route": 19
+          "melee-route": 19,
+          "ranged-focused": 4,
+          "ranged-route": 17
         },
         "validationRouteCounts": {
-          "all-damage-families": 4,
-          "deck-shaping": 3,
-          "draw-rich": 8,
+          "all-damage-families": 3,
+          "deck-shaping": 2,
+          "draw-rich": 9,
           "high-cost-economy": 3,
-          "improvise-mix": 2,
-          "mana-focused": 1,
-          "mana-melee": 1,
+          "improvise-mix": 1,
+          "mana-focused": 2,
+          "mana-melee": 0,
           "mana-ranged": 1,
           "mana-route": 5,
           "melee-focused": 2,
           "melee-ranged": 4,
-          "melee-route": 5,
+          "melee-route": 4,
           "ranged-focused": 1,
-          "ranged-route": 4
+          "ranged-route": 3
         }
       },
       {
@@ -130,58 +128,58 @@
         "validationCardMinimum": 5,
         "pairMinimum": 1,
         "validationPairMinimum": 0,
-        "priorityPairMinimum": 5,
+        "priorityPairMinimum": 6,
         "validationPriorityPairMinimum": 0,
         "requiredTripleMinimum": 0,
         "validationRequiredTripleMinimum": 0,
-        "tripleCovered": 7461,
-        "tripleCoverage": 0.75516194332,
+        "tripleCovered": 7464,
+        "tripleCoverage": 0.755465587045,
         "largestOverlap": 6,
         "overlapMean": 2.424242424242,
         "overlapP99": 5,
-        "jaccardMean": 0.142756512493,
-        "pairCountStandardDeviation": 1.570750897706,
+        "jaccardMean": 0.142739325041,
+        "pairCountStandardDeviation": 1.568300377782,
         "deficits": {
-          "fullPairs": 1811,
-          "validationPairs": 161,
-          "priorityPairs": 344,
-          "validationPriorityPairs": 24,
-          "requiredTriples": 61,
-          "validationRequiredTriples": 17,
+          "fullPairs": 1806,
+          "validationPairs": 178,
+          "priorityPairs": 346,
+          "validationPriorityPairs": 26,
+          "requiredTriples": 66,
+          "validationRequiredTriples": 18,
           "routes": 0,
           "validationRoutes": 0
         },
         "routeCounts": {
-          "all-damage-families": 65,
+          "all-damage-families": 62,
           "deck-shaping": 23,
           "draw-rich": 93,
-          "high-cost-economy": 37,
+          "high-cost-economy": 28,
           "improvise-mix": 24,
-          "mana-focused": 10,
-          "mana-melee": 27,
-          "mana-ranged": 20,
-          "mana-route": 58,
-          "melee-focused": 7,
-          "melee-ranged": 32,
-          "melee-route": 49,
-          "ranged-focused": 7,
-          "ranged-route": 38
+          "mana-focused": 12,
+          "mana-melee": 19,
+          "mana-ranged": 14,
+          "mana-route": 62,
+          "melee-focused": 8,
+          "melee-ranged": 21,
+          "melee-route": 43,
+          "ranged-focused": 5,
+          "ranged-route": 35
         },
         "validationRouteCounts": {
-          "all-damage-families": 10,
-          "deck-shaping": 5,
-          "draw-rich": 18,
-          "high-cost-economy": 6,
+          "all-damage-families": 8,
+          "deck-shaping": 4,
+          "draw-rich": 19,
+          "high-cost-economy": 4,
           "improvise-mix": 5,
-          "mana-focused": 1,
-          "mana-melee": 5,
+          "mana-focused": 2,
+          "mana-melee": 3,
           "mana-ranged": 3,
-          "mana-route": 13,
+          "mana-route": 11,
           "melee-focused": 2,
           "melee-ranged": 7,
           "melee-route": 9,
           "ranged-focused": 1,
-          "ranged-route": 7
+          "ranged-route": 6
         }
       },
       {
@@ -206,58 +204,58 @@
         "validationCardMinimum": 7,
         "pairMinimum": 4,
         "validationPairMinimum": 0,
-        "priorityPairMinimum": 9,
+        "priorityPairMinimum": 8,
         "validationPriorityPairMinimum": 1,
         "requiredTripleMinimum": 1,
         "validationRequiredTripleMinimum": 0,
-        "tripleCovered": 8783,
-        "tripleCoverage": 0.888967611336,
+        "tripleCovered": 8832,
+        "tripleCoverage": 0.893927125506,
         "largestOverlap": 6,
         "overlapMean": 2.450111856823,
         "overlapP99": 5,
-        "jaccardMean": 0.144433397834,
-        "pairCountStandardDeviation": 1.700127620224,
+        "jaccardMean": 0.144367055508,
+        "pairCountStandardDeviation": 1.632419339327,
         "deficits": {
-          "fullPairs": 247,
-          "validationPairs": 74,
-          "priorityPairs": 68,
-          "validationPriorityPairs": 1,
-          "requiredTriples": 26,
-          "validationRequiredTriples": 10,
+          "fullPairs": 235,
+          "validationPairs": 70,
+          "priorityPairs": 64,
+          "validationPriorityPairs": 5,
+          "requiredTriples": 32,
+          "validationRequiredTriples": 16,
           "routes": 0,
           "validationRoutes": 0
         },
         "routeCounts": {
-          "all-damage-families": 100,
-          "deck-shaping": 34,
-          "draw-rich": 134,
-          "high-cost-economy": 53,
-          "improvise-mix": 37,
-          "mana-focused": 16,
-          "mana-melee": 42,
-          "mana-ranged": 28,
-          "mana-route": 88,
-          "melee-focused": 9,
+          "all-damage-families": 91,
+          "deck-shaping": 43,
+          "draw-rich": 136,
+          "high-cost-economy": 40,
+          "improvise-mix": 38,
+          "mana-focused": 9,
+          "mana-melee": 31,
+          "mana-ranged": 38,
+          "mana-route": 93,
+          "melee-focused": 7,
           "melee-ranged": 44,
-          "melee-route": 70,
-          "ranged-focused": 8,
-          "ranged-route": 60
+          "melee-route": 65,
+          "ranged-focused": 5,
+          "ranged-route": 67
         },
         "validationRouteCounts": {
           "all-damage-families": 20,
-          "deck-shaping": 7,
+          "deck-shaping": 8,
           "draw-rich": 26,
           "high-cost-economy": 9,
           "improvise-mix": 8,
-          "mana-focused": 3,
-          "mana-melee": 7,
+          "mana-focused": 1,
+          "mana-melee": 4,
           "mana-ranged": 4,
-          "mana-route": 18,
-          "melee-focused": 3,
-          "melee-ranged": 10,
-          "melee-route": 12,
-          "ranged-focused": 3,
-          "ranged-route": 10
+          "mana-route": 19,
+          "melee-focused": 2,
+          "melee-ranged": 8,
+          "melee-route": 13,
+          "ranged-focused": 2,
+          "ranged-route": 11
         }
       },
       {
@@ -281,58 +279,58 @@
         "validationCardMinimum": 8,
         "pairMinimum": 5,
         "validationPairMinimum": 0,
-        "priorityPairMinimum": 9,
+        "priorityPairMinimum": 7,
         "validationPriorityPairMinimum": 1,
-        "requiredTripleMinimum": 2,
+        "requiredTripleMinimum": 1,
         "validationRequiredTripleMinimum": 0,
-        "tripleCovered": 8840,
-        "tripleCoverage": 0.894736842105,
+        "tripleCovered": 8843,
+        "tripleCoverage": 0.89504048583,
         "largestOverlap": 6,
         "overlapMean": 2.450331125828,
         "overlapP99": 5,
-        "jaccardMean": 0.144458489828,
-        "pairCountStandardDeviation": 1.706120783014,
+        "jaccardMean": 0.144386251348,
+        "pairCountStandardDeviation": 1.628457480949,
         "deficits": {
-          "fullPairs": 221,
-          "validationPairs": 48,
-          "priorityPairs": 44,
-          "validationPriorityPairs": 1,
-          "requiredTriples": 18,
-          "validationRequiredTriples": 10,
+          "fullPairs": 217,
+          "validationPairs": 42,
+          "priorityPairs": 61,
+          "validationPriorityPairs": 6,
+          "requiredTriples": 33,
+          "validationRequiredTriples": 18,
           "routes": 0,
           "validationRoutes": 0
         },
         "routeCounts": {
-          "all-damage-families": 99,
-          "deck-shaping": 37,
-          "draw-rich": 142,
-          "high-cost-economy": 49,
-          "improvise-mix": 34,
-          "mana-focused": 15,
-          "mana-melee": 37,
-          "mana-ranged": 36,
+          "all-damage-families": 93,
+          "deck-shaping": 41,
+          "draw-rich": 136,
+          "high-cost-economy": 39,
+          "improvise-mix": 38,
+          "mana-focused": 11,
+          "mana-melee": 35,
+          "mana-ranged": 31,
           "mana-route": 92,
-          "melee-focused": 8,
+          "melee-focused": 6,
           "melee-ranged": 54,
-          "melee-route": 75,
-          "ranged-focused": 7,
-          "ranged-route": 67
+          "melee-route": 70,
+          "ranged-focused": 6,
+          "ranged-route": 69
         },
         "validationRouteCounts": {
-          "all-damage-families": 17,
-          "deck-shaping": 8,
-          "draw-rich": 30,
-          "high-cost-economy": 9,
-          "improvise-mix": 6,
-          "mana-focused": 2,
-          "mana-melee": 6,
+          "all-damage-families": 18,
+          "deck-shaping": 9,
+          "draw-rich": 28,
+          "high-cost-economy": 7,
+          "improvise-mix": 8,
+          "mana-focused": 3,
+          "mana-melee": 7,
           "mana-ranged": 7,
-          "mana-route": 21,
+          "mana-route": 18,
           "melee-focused": 3,
-          "melee-ranged": 9,
-          "melee-route": 15,
+          "melee-ranged": 12,
+          "melee-route": 14,
           "ranged-focused": 2,
-          "ranged-route": 13
+          "ranged-route": 12
         }
       },
       {
@@ -354,60 +352,60 @@
         "cardMinimum": 39,
         "tuningCardMinimum": 31,
         "validationCardMinimum": 8,
-        "pairMinimum": 4,
+        "pairMinimum": 5,
         "validationPairMinimum": 0,
-        "priorityPairMinimum": 10,
+        "priorityPairMinimum": 8,
         "validationPriorityPairMinimum": 1,
-        "requiredTripleMinimum": 1,
+        "requiredTripleMinimum": 2,
         "validationRequiredTripleMinimum": 0,
-        "tripleCovered": 8904,
-        "tripleCoverage": 0.901214574899,
+        "tripleCovered": 8914,
+        "tripleCoverage": 0.902226720648,
         "largestOverlap": 6,
         "overlapMean": 2.451612903226,
         "overlapP99": 5,
-        "jaccardMean": 0.144545521835,
-        "pairCountStandardDeviation": 1.723889460434,
+        "jaccardMean": 0.144515640046,
+        "pairCountStandardDeviation": 1.689333050007,
         "deficits": {
-          "fullPairs": 165,
-          "validationPairs": 47,
-          "priorityPairs": 35,
+          "fullPairs": 160,
+          "validationPairs": 56,
+          "priorityPairs": 45,
           "validationPriorityPairs": 2,
-          "requiredTriples": 23,
-          "validationRequiredTriples": 9,
+          "requiredTriples": 18,
+          "validationRequiredTriples": 5,
           "routes": 0,
           "validationRoutes": 0
         },
         "routeCounts": {
-          "all-damage-families": 101,
-          "deck-shaping": 33,
-          "draw-rich": 143,
-          "high-cost-economy": 51,
-          "improvise-mix": 38,
-          "mana-focused": 9,
-          "mana-melee": 39,
-          "mana-ranged": 32,
-          "mana-route": 100,
-          "melee-focused": 10,
-          "melee-ranged": 47,
-          "melee-route": 72,
-          "ranged-focused": 7,
-          "ranged-route": 65
+          "all-damage-families": 93,
+          "deck-shaping": 37,
+          "draw-rich": 141,
+          "high-cost-economy": 34,
+          "improvise-mix": 36,
+          "mana-focused": 15,
+          "mana-melee": 35,
+          "mana-ranged": 30,
+          "mana-route": 99,
+          "melee-focused": 7,
+          "melee-ranged": 49,
+          "melee-route": 68,
+          "ranged-focused": 6,
+          "ranged-route": 66
         },
         "validationRouteCounts": {
-          "all-damage-families": 18,
-          "deck-shaping": 7,
-          "draw-rich": 30,
-          "high-cost-economy": 10,
+          "all-damage-families": 14,
+          "deck-shaping": 5,
+          "draw-rich": 31,
+          "high-cost-economy": 6,
           "improvise-mix": 8,
-          "mana-focused": 1,
-          "mana-melee": 9,
-          "mana-ranged": 3,
-          "mana-route": 21,
+          "mana-focused": 4,
+          "mana-melee": 6,
+          "mana-ranged": 6,
+          "mana-route": 17,
           "melee-focused": 2,
-          "melee-ranged": 9,
-          "melee-route": 15,
-          "ranged-focused": 4,
-          "ranged-route": 12
+          "melee-ranged": 10,
+          "melee-route": 14,
+          "ranged-focused": 1,
+          "ranged-route": 11
         }
       },
       {
@@ -443,18 +441,18 @@
           "validationRoutes": 0
         },
         "routeCounts": {
-          "all-damage-families": 96,
+          "all-damage-families": 93,
           "deck-shaping": 35,
           "draw-rich": 148,
-          "high-cost-economy": 52,
-          "improvise-mix": 39,
+          "high-cost-economy": 36,
+          "improvise-mix": 38,
           "mana-focused": 15,
-          "mana-melee": 40,
+          "mana-melee": 35,
           "mana-ranged": 33,
           "mana-route": 98,
-          "melee-focused": 7,
-          "melee-ranged": 57,
-          "melee-route": 80,
+          "melee-focused": 4,
+          "melee-ranged": 49,
+          "melee-route": 70,
           "ranged-focused": 8,
           "ranged-route": 74
         },
@@ -462,15 +460,15 @@
           "all-damage-families": 15,
           "deck-shaping": 7,
           "draw-rich": 28,
-          "high-cost-economy": 9,
+          "high-cost-economy": 7,
           "improvise-mix": 8,
           "mana-focused": 4,
-          "mana-melee": 7,
+          "mana-melee": 6,
           "mana-ranged": 6,
           "mana-route": 18,
           "melee-focused": 1,
-          "melee-ranged": 13,
-          "melee-route": 14,
+          "melee-ranged": 12,
+          "melee-route": 12,
           "ranged-focused": 2,
           "ranged-route": 14
         }
@@ -508,18 +506,18 @@
           "validationRoutes": 0
         },
         "routeCounts": {
-          "all-damage-families": 124,
+          "all-damage-families": 120,
           "deck-shaping": 44,
           "draw-rich": 183,
-          "high-cost-economy": 66,
-          "improvise-mix": 48,
+          "high-cost-economy": 49,
+          "improvise-mix": 47,
           "mana-focused": 17,
-          "mana-melee": 56,
+          "mana-melee": 48,
           "mana-ranged": 44,
           "mana-route": 122,
-          "melee-focused": 8,
-          "melee-ranged": 73,
-          "melee-route": 102,
+          "melee-focused": 5,
+          "melee-ranged": 60,
+          "melee-route": 89,
           "ranged-focused": 8,
           "ranged-route": 96
         },
@@ -527,15 +525,15 @@
           "all-damage-families": 20,
           "deck-shaping": 9,
           "draw-rich": 34,
-          "high-cost-economy": 12,
+          "high-cost-economy": 10,
           "improvise-mix": 10,
           "mana-focused": 5,
-          "mana-melee": 11,
+          "mana-melee": 9,
           "mana-ranged": 9,
           "mana-route": 21,
           "melee-focused": 1,
-          "melee-ranged": 18,
-          "melee-route": 18,
+          "melee-ranged": 15,
+          "melee-route": 15,
           "ranged-focused": 2,
           "ranged-route": 17
         }
@@ -547,14 +545,14 @@
     "seedDerivation": "baseSeed xor imul(count, 0x9e3779b1) xor splitSeed xor imul(restart + 1, 0x85ebca6b)",
     "greedyCandidatesPerRow": 200,
     "constructionRestarts": 16,
-    "selectedDesignSourceDigest": "ff93f2551972cd4b66def27066afb90653329a0c2161f469cae8e6dcbb3a86b4",
+    "selectedDesignSourceDigest": "98e235cedd34663ece5bceb63d427f13b29986ab5263b5c82454dba7b0eac10a",
     "selectedDesignSearch": {
       "method": "deterministic greedy quota construction followed by split-isolated two-row swaps",
       "initialConstruction": {
         "baseSeed": 2108903718,
         "restart": 0,
         "greedyCandidatesPerRow": 200,
-        "inputDigest": "d85cf0c14fd5ffed2e5836678003abd9deee6926665d905c063765c60be8b10e"
+        "inputDigest": "ff61fbf4634a96e87c00722b8ef7fa49b10660da3613fc564965a72cee7cdc66"
       },
       "implementation": "scripts/balance_suite_covering_search.cpp",
       "implementationDigest": "7b7ef9a63586c6305515bb38e00dddd25e45e95ba50760c1c3a36ace1c7b442e",
@@ -640,19 +638,18 @@
     ],
     "fixedActionCardIds": [
       "step",
-      "focus"
+      "focus",
+      "scrap"
     ],
     "treasureCardIds": [
       "copper",
       "silver",
       "gold"
     ],
-    "nonMarketCardIds": [
-      "scrap"
-    ],
+    "nonMarketCardIds": [],
     "variableCount": 40,
     "kingdomCount": 847660528,
-    "digest": "c50531a9be867a7002ee32af857efa960c80cc14b9abc62b27e292f3f7c5aba9",
+    "digest": "ab4e6a096e55b886aacc8af2a889a6fef1b46ae8655e1781966f213fc8651505",
     "semantics": {
       "variable": [
         {
@@ -779,7 +776,7 @@
           "name": "Overload",
           "type": "action",
           "family": "mana",
-          "cost": 5,
+          "cost": 4,
           "text": "Deal 3 damage at any range for each mana you spent this turn.",
           "mechanic": "overload",
           "values": {
@@ -791,12 +788,13 @@
           "name": "Feint",
           "type": "action",
           "family": "melee",
-          "cost": 5,
-          "text": "At Close range, draw 1 card. Each Close-range attack you make this turn deals 1 additional damage.",
+          "cost": 4,
+          "text": "At Close range, draw 1 card. Your next two Close attacks this turn each deal 2 additional damage.",
           "mechanic": "feint",
           "values": {
             "draw": 1,
-            "bonus": 1
+            "bonus": 2,
+            "attacks": 2
           }
         },
         {
@@ -893,9 +891,9 @@
           "id": "flurry",
           "name": "Flurry",
           "type": "action",
-          "family": "melee",
+          "family": "engine",
           "cost": 5,
-          "text": "At Close range, deal 1 damage for each other Tactical Action played this turn.",
+          "text": "Deal 1 damage for each other Tactical Action you played this turn. Tactical Actions are Melee, Ranged, or Mana Actions, plus non-Scrap Attacks and Movement Actions.",
           "mechanic": "flurry",
           "values": {
             "perAction": 1
@@ -906,8 +904,8 @@
           "name": "Aim",
           "type": "action",
           "family": "ranged",
-          "cost": 5,
-          "text": "At Near or Far range, draw 1 card. Add 2 damage to the next ranged attack you make this turn.",
+          "cost": 4,
+          "text": "At Near or Far range, draw 1 card. Add 2 damage to the next ranged attack you make this turn. Aim bonuses stack.",
           "mechanic": "aim",
           "values": {
             "draw": 1,
@@ -1182,6 +1180,18 @@
             "mana": 1,
             "draw": 0
           }
+        },
+        {
+          "id": "scrap",
+          "name": "Scrap",
+          "type": "action",
+          "family": "engine",
+          "cost": 1,
+          "text": "Deal 1 damage at any range.",
+          "mechanic": "scrap",
+          "values": {
+            "damage": 1
+          }
         }
       ],
       "treasure": [
@@ -1216,24 +1226,11 @@
           "money": 3
         }
       ],
-      "nonMarket": [
-        {
-          "id": "scrap",
-          "name": "Scrap",
-          "type": "action",
-          "family": "engine",
-          "cost": 0,
-          "text": "Deal 1 damage at any range.",
-          "mechanic": "scrap",
-          "values": {
-            "damage": 1
-          }
-        }
-      ]
+      "nonMarket": []
     }
   },
   "taxonomy": {
-    "digest": "19bc41bb2b5df207f513a7581e9e598c3fdbc5f57748e0549df74adce382397f",
+    "digest": "5b302343b9448b14ed53c8f4f6322af4e0262925b51d907aa3bdaaa3442c2e32",
     "roles": {
       "manaSource": [
         "attune",
@@ -1373,24 +1370,24 @@
       ],
       "middle": [
         "adapt",
+        "aim",
         "arcBolt",
         "attune",
         "discharge",
         "drive",
+        "feint",
+        "overload",
         "reforge",
         "repellingShot",
         "salvageShot"
       ],
       "high": [
-        "aim",
         "cascade",
-        "feint",
         "fireball",
         "flurry",
         "heavyBlow",
         "improvise",
         "muster",
-        "overload",
         "precisionShot",
         "prism",
         "regiment",
@@ -14109,18 +14106,18 @@
           "maximum": 0.428571428571
         },
         "routeCounts": {
-          "all-damage-families": 81,
+          "all-damage-families": 78,
           "deck-shaping": 28,
           "draw-rich": 120,
-          "high-cost-economy": 43,
-          "improvise-mix": 31,
+          "high-cost-economy": 29,
+          "improvise-mix": 30,
           "mana-focused": 11,
-          "mana-melee": 33,
+          "mana-melee": 29,
           "mana-ranged": 27,
           "mana-route": 80,
-          "melee-focused": 6,
-          "melee-ranged": 44,
-          "melee-route": 66,
+          "melee-focused": 3,
+          "melee-ranged": 37,
+          "melee-route": 58,
           "ranged-focused": 6,
           "ranged-route": 60
         },
@@ -24888,15 +24885,15 @@
           "all-damage-families": 15,
           "deck-shaping": 7,
           "draw-rich": 28,
-          "high-cost-economy": 9,
+          "high-cost-economy": 7,
           "improvise-mix": 8,
           "mana-focused": 4,
-          "mana-melee": 7,
+          "mana-melee": 6,
           "mana-ranged": 6,
           "mana-route": 18,
           "melee-focused": 1,
-          "melee-ranged": 13,
-          "melee-route": 14,
+          "melee-ranged": 12,
+          "melee-route": 12,
           "ranged-focused": 2,
           "ranged-route": 14
         },
@@ -35660,18 +35657,18 @@
       "maximum": 0.428571428571
     },
     "routeCounts": {
-      "all-damage-families": 96,
+      "all-damage-families": 93,
       "deck-shaping": 35,
       "draw-rich": 148,
-      "high-cost-economy": 52,
-      "improvise-mix": 39,
+      "high-cost-economy": 36,
+      "improvise-mix": 38,
       "mana-focused": 15,
-      "mana-melee": 40,
+      "mana-melee": 35,
       "mana-ranged": 33,
       "mana-route": 98,
-      "melee-focused": 7,
-      "melee-ranged": 57,
-      "melee-route": 80,
+      "melee-focused": 4,
+      "melee-ranged": 49,
+      "melee-route": 70,
       "ranged-focused": 8,
       "ranged-route": 74
     },
@@ -35863,24 +35860,24 @@
   "residualBlindSpots": {
     "uncoveredTripleCount": 740,
     "uncoveredByFamilyPattern": {
-      "engine+engine+engine": 17,
-      "engine+engine+mana": 64,
-      "engine+engine+melee": 46,
-      "engine+engine+ranged": 43,
-      "engine+mana+mana": 32,
-      "engine+mana+melee": 89,
-      "engine+mana+ranged": 112,
-      "engine+melee+melee": 26,
-      "engine+melee+ranged": 68,
-      "engine+ranged+ranged": 20,
-      "mana+mana+melee": 26,
+      "engine+engine+engine": 20,
+      "engine+engine+mana": 77,
+      "engine+engine+melee": 48,
+      "engine+engine+ranged": 53,
+      "engine+mana+mana": 33,
+      "engine+mana+melee": 83,
+      "engine+mana+ranged": 121,
+      "engine+melee+melee": 21,
+      "engine+melee+ranged": 61,
+      "engine+ranged+ranged": 22,
+      "mana+mana+melee": 25,
       "mana+mana+ranged": 26,
-      "mana+melee+melee": 27,
-      "mana+melee+ranged": 76,
+      "mana+melee+melee": 20,
+      "mana+melee+ranged": 67,
       "mana+ranged+ranged": 22,
       "melee+melee+melee": 2,
-      "melee+melee+ranged": 18,
-      "melee+ranged+ranged": 25,
+      "melee+melee+ranged": 15,
+      "melee+ranged+ranged": 23,
       "ranged+ranged+ranged": 1
     },
     "completeTripleCoverageClaimed": false,
@@ -36241,7 +36238,6 @@
       "routeLabels": [
         "all-damage-families",
         "draw-rich",
-        "high-cost-economy",
         "mana-route",
         "ranged-focused",
         "ranged-route"
@@ -36251,7 +36247,7 @@
         "rationaleId": "balanced-covering",
         "reason": "Deterministic balanced covering row"
       },
-      "rowDigest": "d72125646f55494c77fdb8b231ffa9e518fe75b9e302eb42503046c9044c1970"
+      "rowDigest": "885d64c43c2d249e73ffeb2024ee21a9962d50df5d2b9351300ade9d09acfafe"
     },
     {
       "id": "balance-tuning-007",
@@ -36306,7 +36302,6 @@
         "improvise-mix",
         "mana-melee",
         "mana-route",
-        "melee-focused",
         "melee-route"
       ],
       "provenance": {
@@ -36314,7 +36309,7 @@
         "rationaleId": "balanced-covering",
         "reason": "Deterministic balanced covering row"
       },
-      "rowDigest": "9152b8eceade2a8e6e5649545235baa3936c5c37d3f4feb0884fdd779b181573"
+      "rowDigest": "6b816b15886cb21f6897dcd58d31964a1d90ceaae256ea0141b9c622c1d07143"
     },
     {
       "id": "balance-tuning-008",
@@ -36793,7 +36788,6 @@
         "all-damage-families",
         "deck-shaping",
         "draw-rich",
-        "high-cost-economy",
         "mana-route",
         "ranged-route"
       ],
@@ -36802,7 +36796,7 @@
         "rationaleId": "balanced-covering",
         "reason": "Deterministic balanced covering row"
       },
-      "rowDigest": "70bf46ee292f22950bfa3783ddcd9fc89094bd20784c773f8833f3fea84a95d3"
+      "rowDigest": "15cc9f12d9f6e2c0932290c553df6fdcfc1dec6a60e8cfa7d04655b37900eb9c"
     },
     {
       "id": "balance-tuning-016",
@@ -36853,7 +36847,6 @@
       ],
       "routeLabels": [
         "draw-rich",
-        "high-cost-economy",
         "mana-ranged",
         "mana-route",
         "ranged-route"
@@ -36863,7 +36856,7 @@
         "rationaleId": "balanced-covering",
         "reason": "Deterministic balanced covering row"
       },
-      "rowDigest": "cf36a18187f3c3bfedff20d4d7ac1546e7e965a6b15c6e71aefb863be1d90d53"
+      "rowDigest": "89fbdf0c5dfd48ccd5ca1c0297fa59bb08fc5b5af88bc995366b84d25af1e824"
     },
     {
       "id": "balance-tuning-017",
@@ -36913,7 +36906,6 @@
         }
       ],
       "routeLabels": [
-        "all-damage-families",
         "draw-rich",
         "mana-route",
         "ranged-route"
@@ -36923,7 +36915,7 @@
         "rationaleId": "balanced-covering",
         "reason": "Deterministic balanced covering row"
       },
-      "rowDigest": "59d43365fc4e28343a3b2e571138037961c00808bc2d1f1b7082e3ac8530ba76"
+      "rowDigest": "956fd3fe58e75bc51abfb9be17122d41f2921d7b8a76063f10aa3309256e0a40"
     },
     {
       "id": "balance-tuning-018",
@@ -37099,7 +37091,6 @@
         "all-damage-families",
         "deck-shaping",
         "draw-rich",
-        "high-cost-economy",
         "mana-route"
       ],
       "provenance": {
@@ -37107,7 +37098,7 @@
         "rationaleId": "balanced-covering",
         "reason": "Deterministic balanced covering row"
       },
-      "rowDigest": "936458fb8fa3cebb15ff34702221c12fba53f11710a4568f2cd8f9a803179bb4"
+      "rowDigest": "1cd3980f646ed56cd82798cef949b00f5210b5989fc6e0734c6261b2d47b4ff1"
     },
     {
       "id": "balance-tuning-021",
@@ -37222,7 +37213,6 @@
         "draw-rich",
         "high-cost-economy",
         "improvise-mix",
-        "melee-focused",
         "melee-ranged",
         "melee-route"
       ],
@@ -37231,7 +37221,7 @@
         "rationaleId": "balanced-covering",
         "reason": "Deterministic balanced covering row"
       },
-      "rowDigest": "5877eb82ce2abd74bb98195c26d9cb7407c22aaf5acf22fc9095036100fc9d8a"
+      "rowDigest": "6ecdc6e956eb6a447627ef4000df583c798f69dd71290d64392b02d326345d61"
     },
     {
       "id": "balance-tuning-023",
@@ -37708,11 +37698,8 @@
       "routeLabels": [
         "all-damage-families",
         "improvise-mix",
-        "mana-melee",
         "mana-ranged",
         "mana-route",
-        "melee-ranged",
-        "melee-route",
         "ranged-route"
       ],
       "provenance": {
@@ -37720,7 +37707,7 @@
         "rationaleId": "balanced-covering",
         "reason": "Deterministic balanced covering row"
       },
-      "rowDigest": "e872d66c190603cbe42397e728a2f2c617a6c7982318807124d4789e10dd6f5b"
+      "rowDigest": "646b318fd88bd645850ad3a60dc31d133dcb7eac48d4964d162e033fcd5c141a"
     },
     {
       "id": "balance-tuning-031",
@@ -37890,7 +37877,6 @@
       ],
       "routeLabels": [
         "draw-rich",
-        "improvise-mix",
         "mana-focused",
         "mana-route"
       ],
@@ -37899,7 +37885,7 @@
         "rationaleId": "balanced-covering",
         "reason": "Deterministic balanced covering row"
       },
-      "rowDigest": "3326173e1870b7426a765b8c367fe394c87c2e3db20e62e9a06a1fa90e4f0404"
+      "rowDigest": "9b8efacff6579533706d790ab5a81da0a6301eada9bb5d22cf7fa012939705d1"
     },
     {
       "id": "balance-tuning-034",
@@ -38132,7 +38118,6 @@
       "routeLabels": [
         "all-damage-families",
         "draw-rich",
-        "high-cost-economy",
         "melee-focused",
         "melee-ranged",
         "melee-route"
@@ -38142,7 +38127,7 @@
         "rationaleId": "balanced-covering",
         "reason": "Deterministic balanced covering row"
       },
-      "rowDigest": "4eef3f5763edb1e9e01fbe8e2c9882d12a3bf0dc41f92650cf8db14af4f6d195"
+      "rowDigest": "501089236c0c74cfaeb761ba49889109d7b8bc3cb9821724b833cc22be295f70"
     },
     {
       "id": "balance-tuning-038",
@@ -38194,15 +38179,14 @@
       "routeLabels": [
         "all-damage-families",
         "draw-rich",
-        "high-cost-economy",
-        "melee-route"
+        "high-cost-economy"
       ],
       "provenance": {
         "kind": "generated",
         "rationaleId": "balanced-covering",
         "reason": "Deterministic balanced covering row"
       },
-      "rowDigest": "0a11e9448e7bbe6c0ddebd8746398796bd63e25539338ee4888301ce46386808"
+      "rowDigest": "3f5838149cbcc5f97ad1fcfedb6150bdeb4bde52812628a876f3a961684c0d56"
     },
     {
       "id": "balance-tuning-039",
@@ -38928,7 +38912,6 @@
       ],
       "routeLabels": [
         "draw-rich",
-        "high-cost-economy",
         "mana-focused",
         "mana-melee",
         "mana-route"
@@ -38938,7 +38921,7 @@
         "rationaleId": "balanced-covering",
         "reason": "Deterministic balanced covering row"
       },
-      "rowDigest": "9513a7dec4cb5b14da865ca84ea2bd9ee8ad2c9e67a1b57d1eef80925a619b54"
+      "rowDigest": "7dfb4c82de29ed3c0c56957900cae26e6f16f1b8080522c7225a529c90cc1a38"
     },
     {
       "id": "balance-tuning-051",
@@ -38991,8 +38974,6 @@
         "all-damage-families",
         "draw-rich",
         "mana-route",
-        "melee-ranged",
-        "melee-route",
         "ranged-route"
       ],
       "provenance": {
@@ -39000,7 +38981,7 @@
         "rationaleId": "balanced-covering",
         "reason": "Deterministic balanced covering row"
       },
-      "rowDigest": "8767fd0db4ef96d450dd1090ba765c3009ecd61c8032af922944190c966a18b6"
+      "rowDigest": "12e96a65c1db8811f432ce8e30143556ddbed8692f73ef3d1c2dc8f91a800a17"
     },
     {
       "id": "balance-tuning-052",
@@ -39052,7 +39033,6 @@
       "routeLabels": [
         "all-damage-families",
         "draw-rich",
-        "high-cost-economy",
         "ranged-focused",
         "ranged-route"
       ],
@@ -39061,7 +39041,7 @@
         "rationaleId": "balanced-covering",
         "reason": "Deterministic balanced covering row"
       },
-      "rowDigest": "061f35a861b98ef04a2b8eaf3cedd40b0dc86bdfae43e16bd7e9427d95f48306"
+      "rowDigest": "ab3d4b7e8c609492ea7d28f6acac70032aca8030a63805c287ae8cb0491ad4c1"
     },
     {
       "id": "balance-tuning-053",
@@ -39174,8 +39154,6 @@
         "all-damage-families",
         "draw-rich",
         "mana-route",
-        "melee-ranged",
-        "melee-route",
         "ranged-route"
       ],
       "provenance": {
@@ -39183,7 +39161,7 @@
         "rationaleId": "balanced-covering",
         "reason": "Deterministic balanced covering row"
       },
-      "rowDigest": "3c6f325f1e2dd28c28370f1e07f9f546d4e812b17a5b93407140a2b81b6bdd23"
+      "rowDigest": "38e6fe718580ee929ce4b989866ec59be6b1bd87e949f0a243bbc7ee6359fa32"
     },
     {
       "id": "balance-tuning-055",
@@ -39421,7 +39399,6 @@
       "routeLabels": [
         "all-damage-families",
         "deck-shaping",
-        "mana-melee",
         "mana-route"
       ],
       "provenance": {
@@ -39429,7 +39406,7 @@
         "rationaleId": "balanced-covering",
         "reason": "Deterministic balanced covering row"
       },
-      "rowDigest": "e2f11b01304b58ae40289eeafe8a26256cf31661c8e0270389b503d7d7bdcbf0"
+      "rowDigest": "624f78dbfea13c5203a228539249cd948d42393d16152c805c888e8098b9b910"
     },
     {
       "id": "balance-tuning-059",
@@ -39480,7 +39457,6 @@
       ],
       "routeLabels": [
         "draw-rich",
-        "melee-focused",
         "melee-route"
       ],
       "provenance": {
@@ -39488,7 +39464,7 @@
         "rationaleId": "balanced-covering",
         "reason": "Deterministic balanced covering row"
       },
-      "rowDigest": "c4e806a7fd79eb154d618a2a6fd1d221df18916e600d7b111914bb2ed7451500"
+      "rowDigest": "6cf2a7d29e2e0ea881098c1718030696ce0e3f940b2c6c8471e1f0153f8d5105"
     },
     {
       "id": "balance-tuning-060",
@@ -39784,15 +39760,14 @@
       "routeLabels": [
         "deck-shaping",
         "draw-rich",
-        "improvise-mix",
-        "mana-melee"
+        "improvise-mix"
       ],
       "provenance": {
         "kind": "generated",
         "rationaleId": "balanced-covering",
         "reason": "Deterministic balanced covering row"
       },
-      "rowDigest": "52d5bbfa8962f826c30e5ecd1b13cc92b45ca96187bd7088dabc2e37871bf563"
+      "rowDigest": "0e8f13fdfebb3062a03160fa3671540ba54baafe2439d3328f9ea52ba1ee4a8a"
     },
     {
       "id": "balance-tuning-065",
@@ -39844,7 +39819,6 @@
       "routeLabels": [
         "all-damage-families",
         "draw-rich",
-        "high-cost-economy",
         "mana-route"
       ],
       "provenance": {
@@ -39852,7 +39826,7 @@
         "rationaleId": "balanced-covering",
         "reason": "Deterministic balanced covering row"
       },
-      "rowDigest": "a1fed47323162fe7e095d2f416c28c45c01dc31a08816f413b5346a980787851"
+      "rowDigest": "46649db7e92206cc9d3bd4d19b4ce6bf53c6c4ffd7a0c1e355409ad8413ab6af"
     },
     {
       "id": "balance-tuning-066",
@@ -39967,8 +39941,6 @@
         "deck-shaping",
         "draw-rich",
         "mana-route",
-        "melee-ranged",
-        "melee-route",
         "ranged-route"
       ],
       "provenance": {
@@ -39976,7 +39948,7 @@
         "rationaleId": "balanced-covering",
         "reason": "Deterministic balanced covering row"
       },
-      "rowDigest": "41d04c834d542dbe4e844c86f21ba3ee777224b1cfab69808800e5247451ebc5"
+      "rowDigest": "769dd9d30c20a847b39e99a6b4b6f350f9426ec65a1918527292596a2c422941"
     },
     {
       "id": "balance-tuning-068",
@@ -40333,10 +40305,7 @@
       "routeLabels": [
         "all-damage-families",
         "draw-rich",
-        "mana-melee",
         "mana-ranged",
-        "melee-ranged",
-        "melee-route",
         "ranged-route"
       ],
       "provenance": {
@@ -40344,7 +40313,7 @@
         "rationaleId": "balanced-covering",
         "reason": "Deterministic balanced covering row"
       },
-      "rowDigest": "255765d29f2fd2b92448a78209870acc722bf8fc394e783c27275abdd4341a02"
+      "rowDigest": "1700061b1cb4e11ac185f9878a4e602f8d16f816cd620a134324daec35b7a6ba"
     },
     {
       "id": "balance-tuning-074",
@@ -41312,7 +41281,6 @@
       "routeLabels": [
         "all-damage-families",
         "draw-rich",
-        "high-cost-economy",
         "mana-route"
       ],
       "provenance": {
@@ -41320,7 +41288,7 @@
         "rationaleId": "balanced-covering",
         "reason": "Deterministic balanced covering row"
       },
-      "rowDigest": "a75a86257f8aaa2e6cc0224fc443f7b1c980c601e20bf75542a6185a4c382ed2"
+      "rowDigest": "3d568305ca674721401f3d47426ce9142010d4786192ee69babfbf003ae8b6f8"
     },
     {
       "id": "balance-tuning-090",
@@ -41429,10 +41397,8 @@
         }
       ],
       "routeLabels": [
-        "all-damage-families",
         "deck-shaping",
         "draw-rich",
-        "high-cost-economy",
         "mana-route"
       ],
       "provenance": {
@@ -41440,7 +41406,7 @@
         "rationaleId": "balanced-covering",
         "reason": "Deterministic balanced covering row"
       },
-      "rowDigest": "c9b0a0ce8a193f061df1f40f8762cdf5597ba7ef797a896a7191bbf63a789177"
+      "rowDigest": "03d83d978a5b06b5bb3c275d9342580af1e322589e96fe22703d13a889df1870"
     },
     {
       "id": "balance-tuning-092",
@@ -41552,7 +41518,6 @@
       "routeLabels": [
         "all-damage-families",
         "draw-rich",
-        "high-cost-economy",
         "mana-route",
         "melee-route"
       ],
@@ -41561,7 +41526,7 @@
         "rationaleId": "balanced-covering",
         "reason": "Deterministic balanced covering row"
       },
-      "rowDigest": "875e540883738ffc7aafbe986d6274079499c47c929054709fbb9aa1a8cadf14"
+      "rowDigest": "686dd9e8feb1600923333c3d08c0defde173df201619a1a0d08bb5601055bcee"
     },
     {
       "id": "balance-tuning-094",
@@ -42279,7 +42244,6 @@
         }
       ],
       "routeLabels": [
-        "all-damage-families",
         "draw-rich",
         "improvise-mix",
         "mana-ranged",
@@ -42291,7 +42255,7 @@
         "rationaleId": "balanced-covering",
         "reason": "Deterministic balanced covering row"
       },
-      "rowDigest": "fce954a9170e46ae865d3f84c48993c53251d4dda476777189e77d20c4ac2eea"
+      "rowDigest": "eb2c913aaffbcc466dc5fc5d741ab73b10be0dbd41506a46298ffd24dce81a3e"
     },
     {
       "id": "balance-tuning-106",
@@ -42527,7 +42491,6 @@
       "routeLabels": [
         "deck-shaping",
         "draw-rich",
-        "high-cost-economy",
         "mana-route"
       ],
       "provenance": {
@@ -42535,7 +42498,7 @@
         "rationaleId": "balanced-covering",
         "reason": "Deterministic balanced covering row"
       },
-      "rowDigest": "90bdac7a56b644bb73c7b7077a4ede6a56c36af3b2c15bfc86ba26069d087a5f"
+      "rowDigest": "f66511825383ba33cab2e964ada5b699bb10a69775bb178955e4bc79d5ab2de8"
     },
     {
       "id": "balance-tuning-110",
@@ -42772,7 +42735,6 @@
       "routeLabels": [
         "all-damage-families",
         "draw-rich",
-        "high-cost-economy",
         "improvise-mix"
       ],
       "provenance": {
@@ -42780,7 +42742,7 @@
         "rationaleId": "balanced-covering",
         "reason": "Deterministic balanced covering row"
       },
-      "rowDigest": "825daac8a769645aeb45b7a6e5b94c0f4e55cf29ea8e5be0e1a3160eaf17efdf"
+      "rowDigest": "17fadfeb84cb300ad54d5a73e87ab91ef07f598a2b742945feabefb1d5de61d8"
     },
     {
       "id": "balance-tuning-114",
@@ -43316,7 +43278,6 @@
       "routeLabels": [
         "all-damage-families",
         "draw-rich",
-        "high-cost-economy",
         "mana-route",
         "melee-route"
       ],
@@ -43325,7 +43286,7 @@
         "rationaleId": "balanced-covering",
         "reason": "Deterministic balanced covering row"
       },
-      "rowDigest": "6c64fbc12272005efb9557fbcdeb573c6e1e9f3a292b353394bac251d464e406"
+      "rowDigest": "f3b8f91f38c148cb27b6f44bf8992765ed68948f09b2e284b23260d9ff5218f6"
     },
     {
       "id": "balance-tuning-123",
@@ -43378,8 +43339,6 @@
         "all-damage-families",
         "draw-rich",
         "high-cost-economy",
-        "melee-ranged",
-        "melee-route",
         "ranged-route"
       ],
       "provenance": {
@@ -43387,7 +43346,7 @@
         "rationaleId": "balanced-covering",
         "reason": "Deterministic balanced covering row"
       },
-      "rowDigest": "a6f5b8103c24be2af208f244205c72c7b8b5389d40cee9c459fe909515edb45c"
+      "rowDigest": "81156abf2c9f2f2b4805302aa0120a5f8a50ba685a11886f4a392676ef229fe8"
     },
     {
       "id": "balance-tuning-124",
@@ -43561,8 +43520,6 @@
         "deck-shaping",
         "draw-rich",
         "improvise-mix",
-        "melee-ranged",
-        "melee-route",
         "ranged-route"
       ],
       "provenance": {
@@ -43570,7 +43527,7 @@
         "rationaleId": "balanced-covering",
         "reason": "Deterministic balanced covering row"
       },
-      "rowDigest": "b336c4e3f461cbadc513cae405fbd1883d3c5ab0ec9098842c786cc8e96a30eb"
+      "rowDigest": "d72e31ec2c66f3cf25c842f9847d0d0b86a74be5776681d0c2888b8864050c71"
     },
     {
       "id": "balance-tuning-127",
@@ -45138,7 +45095,6 @@
       "routeLabels": [
         "all-damage-families",
         "draw-rich",
-        "high-cost-economy",
         "mana-melee",
         "mana-route",
         "melee-route"
@@ -45148,7 +45104,7 @@
         "rationaleId": "balanced-covering",
         "reason": "Deterministic balanced covering row"
       },
-      "rowDigest": "b5c2be1e748eba9597c5885606e4d1114305d5debe5ae1ca8becc076ac7ef870"
+      "rowDigest": "7c948f7175702caa7303637d72dc1ae7373f7bd544fba39bf540352cb26c41d5"
     },
     {
       "id": "balance-validation-025",
@@ -45260,18 +45216,15 @@
         }
       ],
       "routeLabels": [
-        "high-cost-economy",
         "mana-focused",
-        "mana-melee",
-        "mana-route",
-        "melee-route"
+        "mana-route"
       ],
       "provenance": {
         "kind": "generated",
         "rationaleId": "balanced-covering",
         "reason": "Deterministic balanced covering row"
       },
-      "rowDigest": "31ec0f55ba6e9b25c453a3eec4ee70e12d431b27d3ca4137e0d2c1139b316e69"
+      "rowDigest": "d3b20d66132e5cf2867fdeacc968a6298871ae06eff7a7c92d1793c66be79958"
     },
     {
       "id": "balance-validation-027",
@@ -45504,8 +45457,6 @@
       ],
       "routeLabels": [
         "draw-rich",
-        "melee-ranged",
-        "melee-route",
         "ranged-route"
       ],
       "provenance": {
@@ -45513,7 +45464,7 @@
         "rationaleId": "balanced-covering",
         "reason": "Deterministic balanced covering row"
       },
-      "rowDigest": "333fe30f7fc6c6bad5d249917f8b5a192bfc3e90399fb27b882e422f8cf74f72"
+      "rowDigest": "e8dc2c97c8e507c5dcc045cd486110f182c3d09751609464a13a926e1cda4c9d"
     },
     {
       "id": "balance-validation-031",
@@ -45635,5 +45586,5 @@
       "rowDigest": "07b7f12ee531b724cee750cd33fc42cd061158ae23feb0a5c3783a5d84fc2e0a"
     }
   ],
-  "digest": "15ce9f8187605fe347198f772b0be8069cf155629339a889990b8b85da631d4d"
+  "digest": "f16dcebdbac618ebfd54fe2962583ced0aa2cfd7cd15158cd867ab9fe0e60400"
 }

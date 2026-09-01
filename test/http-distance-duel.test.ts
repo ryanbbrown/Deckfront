@@ -33,7 +33,7 @@ describe('local game HTTP interface', () => {
     const { base } = await server(); const response = await fetch(`${base}/api/setup`);
     const setup = await response.json() as { fixedCardIds: string[]; variableCardIds: string[]; trainedVariableCardSets: string[][]; cards: Record<string, unknown> };
     expect(response.status).toBe(200);
-    expect(setup.fixedCardIds).toEqual(['copper', 'silver', 'gold', 'step', 'focus']);
+    expect(setup.fixedCardIds).toEqual(['copper', 'silver', 'gold', 'step', 'focus', 'scrap']);
     expect(setup.variableCardIds).toContain('footwork'); expect(setup.variableCardIds).not.toContain('step');
     expect(Object.keys(setup.cards)).toContain('starfire');
     expect(setup.trainedVariableCardSets.map((cards) => [...cards].sort().join('|'))).toEqual(

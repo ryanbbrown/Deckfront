@@ -158,16 +158,16 @@ Every row must pass both the production registry and stricter suite validation:
 - exactly 10 distinct variable Action piles;
 - exactly 10 cards per pile;
 - no overrides;
-- no Step, Focus, Treasure, Scrap, or other non-market card in a variable pile.
+- no fixed-market card in a variable pile.
 
-`src/game/kingdom.ts` does not enforce exact pile count, exact pile size, or the Scrap exclusion. The suite validator must enforce those rules itself and then register every row through the production code.
+`src/game/kingdom.ts` does not enforce the suite's exact pile count or exact pile size. The suite validator must enforce those rules itself and then register every row through the production code.
 
-Copper, Silver, Gold, Step, and Focus provide baseline economy, movement, and mana in every row. Every generated and authored row must also have:
+Copper, Silver, Gold, Step, Focus, and Scrap are available in every row. Every generated and authored row must also have:
 
 - at least two cards in `directDamage`;
 - at least one card in `drawSupport`, `economyOrGain`, `trash`, or `recovery`;
 - at least one card costing 3 or less;
-- at least one card costing 5 or more.
+- at least one card costing 4 or more.
 
 The adversarial rows are not exempt. Their missing variable route is narrower than these ordinary validity rules.
 

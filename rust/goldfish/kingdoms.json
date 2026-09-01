@@ -210,10 +210,10 @@
             "cardType": "action",
             "mechanic": "scrap",
             "family": "engine",
-            "cost": 0,
+            "cost": 1,
             "money": 0,
             "tactical": false,
-            "supply": -1,
+            "supply": 10,
             "values": {
               "damage": 1
             }
@@ -236,7 +236,7 @@
         "silver",
         "step"
       ],
-      "ruleFingerprint": "917aff13e6e"
+      "ruleFingerprint": "dc51fab2f05"
     },
     {
       "kingdomId": "balance-tuning-002",
@@ -440,10 +440,10 @@
             "cardType": "action",
             "mechanic": "scrap",
             "family": "engine",
-            "cost": 0,
+            "cost": 1,
             "money": 0,
             "tactical": false,
-            "supply": -1,
+            "supply": 10,
             "values": {
               "damage": 1
             }
@@ -466,7 +466,7 @@
         "stipend",
         "volley"
       ],
-      "ruleFingerprint": "758dcb3cdb4"
+      "ruleFingerprint": "a8e59aa1e4b"
     },
     {
       "kingdomId": "balance-tuning-003",
@@ -670,10 +670,10 @@
             "cardType": "action",
             "mechanic": "scrap",
             "family": "engine",
-            "cost": 0,
+            "cost": 1,
             "money": 0,
             "tactical": false,
-            "supply": -1,
+            "supply": 10,
             "values": {
               "damage": 1
             }
@@ -696,7 +696,7 @@
         "step",
         "strike"
       ],
-      "ruleFingerprint": "716c2f4bde1"
+      "ruleFingerprint": "afa67e0ce78"
     },
     {
       "kingdomId": "balance-tuning-004",
@@ -907,10 +907,10 @@
             "cardType": "action",
             "mechanic": "scrap",
             "family": "engine",
-            "cost": 0,
+            "cost": 1,
             "money": 0,
             "tactical": false,
-            "supply": -1,
+            "supply": 10,
             "values": {
               "damage": 1
             }
@@ -933,7 +933,7 @@
         "step",
         "stipend"
       ],
-      "ruleFingerprint": "c77e6aafd77"
+      "ruleFingerprint": "04619ad0e0e"
     },
     {
       "kingdomId": "balance-tuning-005",
@@ -1145,10 +1145,10 @@
             "cardType": "action",
             "mechanic": "scrap",
             "family": "engine",
-            "cost": 0,
+            "cost": 1,
             "money": 0,
             "tactical": false,
-            "supply": -1,
+            "supply": 10,
             "values": {
               "damage": 1
             }
@@ -1171,7 +1171,7 @@
         "strike",
         "volley"
       ],
-      "ruleFingerprint": "da2b1f90d63"
+      "ruleFingerprint": "156df665dfa"
     },
     {
       "kingdomId": "balance-tuning-006",
@@ -1379,10 +1379,10 @@
             "cardType": "action",
             "mechanic": "scrap",
             "family": "engine",
-            "cost": 0,
+            "cost": 1,
             "money": 0,
             "tactical": false,
-            "supply": -1,
+            "supply": 10,
             "values": {
               "damage": 1
             }
@@ -1405,7 +1405,7 @@
         "steadyShot",
         "step"
       ],
-      "ruleFingerprint": "62b5088ee38"
+      "ruleFingerprint": "15b10021ecf"
     },
     {
       "kingdomId": "balance-tuning-007",
@@ -1617,10 +1617,10 @@
             "cardType": "action",
             "mechanic": "scrap",
             "family": "engine",
-            "cost": 0,
+            "cost": 1,
             "money": 0,
             "tactical": false,
-            "supply": -1,
+            "supply": 10,
             "values": {
               "damage": 1
             }
@@ -1643,7 +1643,7 @@
         "stipend",
         "strike"
       ],
-      "ruleFingerprint": "e53bf7b6e37"
+      "ruleFingerprint": "0ee45fefece"
     },
     {
       "kingdomId": "balance-tuning-008",
@@ -1854,10 +1854,10 @@
             "cardType": "action",
             "mechanic": "scrap",
             "family": "engine",
-            "cost": 0,
+            "cost": 1,
             "money": 0,
             "tactical": false,
-            "supply": -1,
+            "supply": 10,
             "values": {
               "damage": 1
             }
@@ -1880,7 +1880,7 @@
         "step",
         "volley"
       ],
-      "ruleFingerprint": "e267ac5be89"
+      "ruleFingerprint": "11b7f5baf20"
     },
     {
       "kingdomId": "balance-tuning-009",
@@ -2092,10 +2092,10 @@
             "cardType": "action",
             "mechanic": "scrap",
             "family": "engine",
-            "cost": 0,
+            "cost": 1,
             "money": 0,
             "tactical": false,
-            "supply": -1,
+            "supply": 10,
             "values": {
               "damage": 1
             }
@@ -2118,7 +2118,7 @@
         "starfire",
         "step"
       ],
-      "ruleFingerprint": "8f904958eb0"
+      "ruleFingerprint": "8c727b4df47"
     },
     {
       "kingdomId": "balance-tuning-010",
@@ -2325,10 +2325,10 @@
             "cardType": "action",
             "mechanic": "scrap",
             "family": "engine",
-            "cost": 0,
+            "cost": 1,
             "money": 0,
             "tactical": false,
-            "supply": -1,
+            "supply": 10,
             "values": {
               "damage": 1
             }
@@ -2351,7 +2351,7 @@
         "starfire",
         "step"
       ],
-      "ruleFingerprint": "51ddf55fe80"
+      "ruleFingerprint": "69fdc3cef17"
     },
     {
       "kingdomId": "balance-tuning-011",
@@ -2561,10 +2561,10 @@
             "cardType": "action",
             "mechanic": "scrap",
             "family": "engine",
-            "cost": 0,
+            "cost": 1,
             "money": 0,
             "tactical": false,
-            "supply": -1,
+            "supply": 10,
             "values": {
               "damage": 1
             }
@@ -2587,7 +2587,7 @@
         "silver",
         "step"
       ],
-      "ruleFingerprint": "e600ea65dbd"
+      "ruleFingerprint": "330cba00e54"
     },
     {
       "kingdomId": "balance-tuning-012",
@@ -2800,10 +2800,10 @@
             "cardType": "action",
             "mechanic": "scrap",
             "family": "engine",
-            "cost": 0,
+            "cost": 1,
             "money": 0,
             "tactical": false,
-            "supply": -1,
+            "supply": 10,
             "values": {
               "damage": 1
             }
@@ -2826,7 +2826,7 @@
         "step",
         "stipend"
       ],
-      "ruleFingerprint": "fbf371f0da9"
+      "ruleFingerprint": "d6455d45e40"
     },
     {
       "kingdomId": "balance-tuning-013",
@@ -3036,10 +3036,10 @@
             "cardType": "action",
             "mechanic": "scrap",
             "family": "engine",
-            "cost": 0,
+            "cost": 1,
             "money": 0,
             "tactical": false,
-            "supply": -1,
+            "supply": 10,
             "values": {
               "damage": 1
             }
@@ -3062,7 +3062,7 @@
         "silver",
         "step"
       ],
-      "ruleFingerprint": "8e501d87e85"
+      "ruleFingerprint": "5c746528f1c"
     },
     {
       "kingdomId": "balance-tuning-014",
@@ -3270,10 +3270,10 @@
             "cardType": "action",
             "mechanic": "scrap",
             "family": "engine",
-            "cost": 0,
+            "cost": 1,
             "money": 0,
             "tactical": false,
-            "supply": -1,
+            "supply": 10,
             "values": {
               "damage": 1
             }
@@ -3296,7 +3296,7 @@
         "silver",
         "step"
       ],
-      "ruleFingerprint": "cf45cd67d71"
+      "ruleFingerprint": "f6ff6d88e08"
     },
     {
       "kingdomId": "balance-tuning-015",
@@ -3505,10 +3505,10 @@
             "cardType": "action",
             "mechanic": "scrap",
             "family": "engine",
-            "cost": 0,
+            "cost": 1,
             "money": 0,
             "tactical": false,
-            "supply": -1,
+            "supply": 10,
             "values": {
               "damage": 1
             }
@@ -3531,7 +3531,7 @@
         "stipend",
         "volley"
       ],
-      "ruleFingerprint": "7beaddf3daa"
+      "ruleFingerprint": "4f46bd12e41"
     },
     {
       "kingdomId": "balance-tuning-016",
@@ -3739,10 +3739,10 @@
             "cardType": "action",
             "mechanic": "scrap",
             "family": "engine",
-            "cost": 0,
+            "cost": 1,
             "money": 0,
             "tactical": false,
-            "supply": -1,
+            "supply": 10,
             "values": {
               "damage": 1
             }
@@ -3765,7 +3765,7 @@
         "step",
         "stipend"
       ],
-      "ruleFingerprint": "3ddf3bcfdf5"
+      "ruleFingerprint": "b29c11bee8c"
     },
     {
       "kingdomId": "balance-tuning-017",
@@ -3975,10 +3975,10 @@
             "cardType": "action",
             "mechanic": "scrap",
             "family": "engine",
-            "cost": 0,
+            "cost": 1,
             "money": 0,
             "tactical": false,
-            "supply": -1,
+            "supply": 10,
             "values": {
               "damage": 1
             }
@@ -4001,7 +4001,7 @@
         "silver",
         "step"
       ],
-      "ruleFingerprint": "4c6f3bcbe0a"
+      "ruleFingerprint": "57301f8cea1"
     },
     {
       "kingdomId": "balance-tuning-018",
@@ -4213,10 +4213,10 @@
             "cardType": "action",
             "mechanic": "scrap",
             "family": "engine",
-            "cost": 0,
+            "cost": 1,
             "money": 0,
             "tactical": false,
-            "supply": -1,
+            "supply": 10,
             "values": {
               "damage": 1
             }
@@ -4239,7 +4239,7 @@
         "silver",
         "step"
       ],
-      "ruleFingerprint": "b1487875e41"
+      "ruleFingerprint": "23c82372ed8"
     },
     {
       "kingdomId": "balance-tuning-019",
@@ -4447,10 +4447,10 @@
             "cardType": "action",
             "mechanic": "scrap",
             "family": "engine",
-            "cost": 0,
+            "cost": 1,
             "money": 0,
             "tactical": false,
-            "supply": -1,
+            "supply": 10,
             "values": {
               "damage": 1
             }
@@ -4473,7 +4473,7 @@
         "step",
         "stipend"
       ],
-      "ruleFingerprint": "de488f60f0b"
+      "ruleFingerprint": "bc3b62b5fa2"
     },
     {
       "kingdomId": "balance-tuning-020",
@@ -4679,10 +4679,10 @@
             "cardType": "action",
             "mechanic": "scrap",
             "family": "engine",
-            "cost": 0,
+            "cost": 1,
             "money": 0,
             "tactical": false,
-            "supply": -1,
+            "supply": 10,
             "values": {
               "damage": 1
             }
@@ -4705,7 +4705,7 @@
         "silver",
         "step"
       ],
-      "ruleFingerprint": "5accf16fda7"
+      "ruleFingerprint": "984f7f90e3e"
     },
     {
       "kingdomId": "balance-tuning-021",
@@ -4913,10 +4913,10 @@
             "cardType": "action",
             "mechanic": "scrap",
             "family": "engine",
-            "cost": 0,
+            "cost": 1,
             "money": 0,
             "tactical": false,
-            "supply": -1,
+            "supply": 10,
             "values": {
               "damage": 1
             }
@@ -4939,7 +4939,7 @@
         "step",
         "strike"
       ],
-      "ruleFingerprint": "534958b1d44"
+      "ruleFingerprint": "7b57567eddb"
     },
     {
       "kingdomId": "balance-tuning-022",
@@ -5146,10 +5146,10 @@
             "cardType": "action",
             "mechanic": "scrap",
             "family": "engine",
-            "cost": 0,
+            "cost": 1,
             "money": 0,
             "tactical": false,
-            "supply": -1,
+            "supply": 10,
             "values": {
               "damage": 1
             }
@@ -5172,7 +5172,7 @@
         "silver",
         "step"
       ],
-      "ruleFingerprint": "3099a570e0c"
+      "ruleFingerprint": "0c1d7bc5ea3"
     },
     {
       "kingdomId": "balance-tuning-023",
@@ -5380,10 +5380,10 @@
             "cardType": "action",
             "mechanic": "scrap",
             "family": "engine",
-            "cost": 0,
+            "cost": 1,
             "money": 0,
             "tactical": false,
-            "supply": -1,
+            "supply": 10,
             "values": {
               "damage": 1
             }
@@ -5406,7 +5406,7 @@
         "stipend",
         "volley"
       ],
-      "ruleFingerprint": "00441520e2d"
+      "ruleFingerprint": "b6b83875ec4"
     },
     {
       "kingdomId": "balance-tuning-024",
@@ -5616,10 +5616,10 @@
             "cardType": "action",
             "mechanic": "scrap",
             "family": "engine",
-            "cost": 0,
+            "cost": 1,
             "money": 0,
             "tactical": false,
-            "supply": -1,
+            "supply": 10,
             "values": {
               "damage": 1
             }
@@ -5642,7 +5642,7 @@
         "silver",
         "step"
       ],
-      "ruleFingerprint": "8755c0dadff"
+      "ruleFingerprint": "79045c13e96"
     },
     {
       "kingdomId": "balance-tuning-025",
@@ -5848,10 +5848,10 @@
             "cardType": "action",
             "mechanic": "scrap",
             "family": "engine",
-            "cost": 0,
+            "cost": 1,
             "money": 0,
             "tactical": false,
-            "supply": -1,
+            "supply": 10,
             "values": {
               "damage": 1
             }
@@ -5874,7 +5874,7 @@
         "step",
         "volley"
       ],
-      "ruleFingerprint": "645fc3b6df2"
+      "ruleFingerprint": "afedb829e89"
     },
     {
       "kingdomId": "balance-tuning-026",
@@ -6082,10 +6082,10 @@
             "cardType": "action",
             "mechanic": "scrap",
             "family": "engine",
-            "cost": 0,
+            "cost": 1,
             "money": 0,
             "tactical": false,
-            "supply": -1,
+            "supply": 10,
             "values": {
               "damage": 1
             }
@@ -6108,7 +6108,7 @@
         "step",
         "stipend"
       ],
-      "ruleFingerprint": "7479de42d69"
+      "ruleFingerprint": "be375edbe00"
     },
     {
       "kingdomId": "balance-tuning-027",
@@ -6313,10 +6313,10 @@
             "cardType": "action",
             "mechanic": "scrap",
             "family": "engine",
-            "cost": 0,
+            "cost": 1,
             "money": 0,
             "tactical": false,
-            "supply": -1,
+            "supply": 10,
             "values": {
               "damage": 1
             }
@@ -6339,7 +6339,7 @@
         "step",
         "volley"
       ],
-      "ruleFingerprint": "d5d8108ed65"
+      "ruleFingerprint": "e7b50607dfc"
     },
     {
       "kingdomId": "balance-tuning-028",
@@ -6548,10 +6548,10 @@
             "cardType": "action",
             "mechanic": "scrap",
             "family": "engine",
-            "cost": 0,
+            "cost": 1,
             "money": 0,
             "tactical": false,
-            "supply": -1,
+            "supply": 10,
             "values": {
               "damage": 1
             }
@@ -6574,7 +6574,7 @@
         "silver",
         "step"
       ],
-      "ruleFingerprint": "d003f76be02"
+      "ruleFingerprint": "5acb720ae99"
     },
     {
       "kingdomId": "balance-tuning-029",
@@ -6781,10 +6781,10 @@
             "cardType": "action",
             "mechanic": "scrap",
             "family": "engine",
-            "cost": 0,
+            "cost": 1,
             "money": 0,
             "tactical": false,
-            "supply": -1,
+            "supply": 10,
             "values": {
               "damage": 1
             }
@@ -6807,7 +6807,7 @@
         "silver",
         "step"
       ],
-      "ruleFingerprint": "f68c5712ddd"
+      "ruleFingerprint": "8d098b6be74"
     },
     {
       "kingdomId": "balance-tuning-030",
@@ -7014,10 +7014,10 @@
             "cardType": "action",
             "mechanic": "scrap",
             "family": "engine",
-            "cost": 0,
+            "cost": 1,
             "money": 0,
             "tactical": false,
-            "supply": -1,
+            "supply": 10,
             "values": {
               "damage": 1
             }
@@ -7040,7 +7040,7 @@
         "steadyShot",
         "step"
       ],
-      "ruleFingerprint": "833c48c8e7d"
+      "ruleFingerprint": "3c2817bdf14"
     },
     {
       "kingdomId": "balance-tuning-031",
@@ -7242,10 +7242,10 @@
             "cardType": "action",
             "mechanic": "scrap",
             "family": "engine",
-            "cost": 0,
+            "cost": 1,
             "money": 0,
             "tactical": false,
-            "supply": -1,
+            "supply": 10,
             "values": {
               "damage": 1
             }
@@ -7268,7 +7268,7 @@
         "step",
         "strike"
       ],
-      "ruleFingerprint": "3abd8128d5b"
+      "ruleFingerprint": "83d1f81ddf2"
     },
     {
       "kingdomId": "balance-tuning-032",
@@ -7479,10 +7479,10 @@
             "cardType": "action",
             "mechanic": "scrap",
             "family": "engine",
-            "cost": 0,
+            "cost": 1,
             "money": 0,
             "tactical": false,
-            "supply": -1,
+            "supply": 10,
             "values": {
               "damage": 1
             }
@@ -7505,7 +7505,7 @@
         "step",
         "volley"
       ],
-      "ruleFingerprint": "dca7dfb3d5e"
+      "ruleFingerprint": "71fc73d4df5"
     },
     {
       "kingdomId": "balance-tuning-033",
@@ -7717,10 +7717,10 @@
             "cardType": "action",
             "mechanic": "scrap",
             "family": "engine",
-            "cost": 0,
+            "cost": 1,
             "money": 0,
             "tactical": false,
-            "supply": -1,
+            "supply": 10,
             "values": {
               "damage": 1
             }
@@ -7743,7 +7743,7 @@
         "starfire",
         "step"
       ],
-      "ruleFingerprint": "fad11440e1d"
+      "ruleFingerprint": "8d3dc915eb4"
     },
     {
       "kingdomId": "balance-tuning-034",
@@ -7950,10 +7950,10 @@
             "cardType": "action",
             "mechanic": "scrap",
             "family": "engine",
-            "cost": 0,
+            "cost": 1,
             "money": 0,
             "tactical": false,
-            "supply": -1,
+            "supply": 10,
             "values": {
               "damage": 1
             }
@@ -7976,7 +7976,7 @@
         "step",
         "volley"
       ],
-      "ruleFingerprint": "dca453f3db3"
+      "ruleFingerprint": "de99ef12e4a"
     },
     {
       "kingdomId": "balance-tuning-035",
@@ -8188,10 +8188,10 @@
             "cardType": "action",
             "mechanic": "scrap",
             "family": "engine",
-            "cost": 0,
+            "cost": 1,
             "money": 0,
             "tactical": false,
-            "supply": -1,
+            "supply": 10,
             "values": {
               "damage": 1
             }
@@ -8214,7 +8214,7 @@
         "starfire",
         "step"
       ],
-      "ruleFingerprint": "b577d0eddea"
+      "ruleFingerprint": "ad68948ae81"
     },
     {
       "kingdomId": "balance-tuning-036",
@@ -8423,10 +8423,10 @@
             "cardType": "action",
             "mechanic": "scrap",
             "family": "engine",
-            "cost": 0,
+            "cost": 1,
             "money": 0,
             "tactical": false,
-            "supply": -1,
+            "supply": 10,
             "values": {
               "damage": 1
             }
@@ -8449,7 +8449,7 @@
         "steadyShot",
         "step"
       ],
-      "ruleFingerprint": "fe98f026e0a"
+      "ruleFingerprint": "2808735fea1"
     },
     {
       "kingdomId": "balance-tuning-037",
@@ -8659,10 +8659,10 @@
             "cardType": "action",
             "mechanic": "scrap",
             "family": "engine",
-            "cost": 0,
+            "cost": 1,
             "money": 0,
             "tactical": false,
-            "supply": -1,
+            "supply": 10,
             "values": {
               "damage": 1
             }
@@ -8685,7 +8685,7 @@
         "silver",
         "step"
       ],
-      "ruleFingerprint": "8e76b95bdd2"
+      "ruleFingerprint": "8585755ce69"
     },
     {
       "kingdomId": "balance-tuning-038",
@@ -8891,10 +8891,10 @@
             "cardType": "action",
             "mechanic": "scrap",
             "family": "engine",
-            "cost": 0,
+            "cost": 1,
             "money": 0,
             "tactical": false,
-            "supply": -1,
+            "supply": 10,
             "values": {
               "damage": 1
             }
@@ -8917,7 +8917,7 @@
         "starfire",
         "step"
       ],
-      "ruleFingerprint": "2a155c50da7"
+      "ruleFingerprint": "e101ff8fe3e"
     },
     {
       "kingdomId": "balance-tuning-039",
@@ -9127,10 +9127,10 @@
             "cardType": "action",
             "mechanic": "scrap",
             "family": "engine",
-            "cost": 0,
+            "cost": 1,
             "money": 0,
             "tactical": false,
-            "supply": -1,
+            "supply": 10,
             "values": {
               "damage": 1
             }
@@ -9153,7 +9153,7 @@
         "step",
         "strike"
       ],
-      "ruleFingerprint": "e32d9be2db5"
+      "ruleFingerprint": "315265fbe4c"
     },
     {
       "kingdomId": "balance-tuning-040",
@@ -9366,10 +9366,10 @@
             "cardType": "action",
             "mechanic": "scrap",
             "family": "engine",
-            "cost": 0,
+            "cost": 1,
             "money": 0,
             "tactical": false,
-            "supply": -1,
+            "supply": 10,
             "values": {
               "damage": 1
             }
@@ -9392,7 +9392,7 @@
         "silver",
         "step"
       ],
-      "ruleFingerprint": "65547779e9a"
+      "ruleFingerprint": "e3301e66f31"
     },
     {
       "kingdomId": "balance-tuning-041",
@@ -9604,10 +9604,10 @@
             "cardType": "action",
             "mechanic": "scrap",
             "family": "engine",
-            "cost": 0,
+            "cost": 1,
             "money": 0,
             "tactical": false,
-            "supply": -1,
+            "supply": 10,
             "values": {
               "damage": 1
             }
@@ -9630,7 +9630,7 @@
         "step",
         "volley"
       ],
-      "ruleFingerprint": "d03a8c2ee48"
+      "ruleFingerprint": "31202641edf"
     },
     {
       "kingdomId": "balance-tuning-042",
@@ -9839,10 +9839,10 @@
             "cardType": "action",
             "mechanic": "scrap",
             "family": "engine",
-            "cost": 0,
+            "cost": 1,
             "money": 0,
             "tactical": false,
-            "supply": -1,
+            "supply": 10,
             "values": {
               "damage": 1
             }
@@ -9865,7 +9865,7 @@
         "stipend",
         "strike"
       ],
-      "ruleFingerprint": "bc3bd06fcd9"
+      "ruleFingerprint": "f2f56490d70"
     },
     {
       "kingdomId": "balance-tuning-043",
@@ -10076,10 +10076,10 @@
             "cardType": "action",
             "mechanic": "scrap",
             "family": "engine",
-            "cost": 0,
+            "cost": 1,
             "money": 0,
             "tactical": false,
-            "supply": -1,
+            "supply": 10,
             "values": {
               "damage": 1
             }
@@ -10102,7 +10102,7 @@
         "steadyShot",
         "step"
       ],
-      "ruleFingerprint": "3798d3bce13"
+      "ruleFingerprint": "3e43155beaa"
     },
     {
       "kingdomId": "balance-tuning-044",
@@ -10312,10 +10312,10 @@
             "cardType": "action",
             "mechanic": "scrap",
             "family": "engine",
-            "cost": 0,
+            "cost": 1,
             "money": 0,
             "tactical": false,
-            "supply": -1,
+            "supply": 10,
             "values": {
               "damage": 1
             }
@@ -10338,7 +10338,7 @@
         "step",
         "strike"
       ],
-      "ruleFingerprint": "7ae6d504dcb"
+      "ruleFingerprint": "3d8fa1c9e62"
     },
     {
       "kingdomId": "balance-tuning-045",
@@ -10546,10 +10546,10 @@
             "cardType": "action",
             "mechanic": "scrap",
             "family": "engine",
-            "cost": 0,
+            "cost": 1,
             "money": 0,
             "tactical": false,
-            "supply": -1,
+            "supply": 10,
             "values": {
               "damage": 1
             }
@@ -10572,7 +10572,7 @@
         "step",
         "volley"
       ],
-      "ruleFingerprint": "99d0f401e1d"
+      "ruleFingerprint": "d399a23ceb4"
     },
     {
       "kingdomId": "balance-tuning-046",
@@ -10779,10 +10779,10 @@
             "cardType": "action",
             "mechanic": "scrap",
             "family": "engine",
-            "cost": 0,
+            "cost": 1,
             "money": 0,
             "tactical": false,
-            "supply": -1,
+            "supply": 10,
             "values": {
               "damage": 1
             }
@@ -10805,7 +10805,7 @@
         "starfire",
         "step"
       ],
-      "ruleFingerprint": "0644d377d50"
+      "ruleFingerprint": "a79f70d8de7"
     },
     {
       "kingdomId": "balance-tuning-047",
@@ -11012,10 +11012,10 @@
             "cardType": "action",
             "mechanic": "scrap",
             "family": "engine",
-            "cost": 0,
+            "cost": 1,
             "money": 0,
             "tactical": false,
-            "supply": -1,
+            "supply": 10,
             "values": {
               "damage": 1
             }
@@ -11038,7 +11038,7 @@
         "step",
         "volley"
       ],
-      "ruleFingerprint": "313be255e54"
+      "ruleFingerprint": "2499d6b0eeb"
     },
     {
       "kingdomId": "balance-tuning-048",
@@ -11249,10 +11249,10 @@
             "cardType": "action",
             "mechanic": "scrap",
             "family": "engine",
-            "cost": 0,
+            "cost": 1,
             "money": 0,
             "tactical": false,
-            "supply": -1,
+            "supply": 10,
             "values": {
               "damage": 1
             }
@@ -11275,7 +11275,7 @@
         "starfire",
         "step"
       ],
-      "ruleFingerprint": "a84ac5c4e37"
+      "ruleFingerprint": "fa504689ece"
     },
     {
       "kingdomId": "balance-tuning-049",
@@ -11482,10 +11482,10 @@
             "cardType": "action",
             "mechanic": "scrap",
             "family": "engine",
-            "cost": 0,
+            "cost": 1,
             "money": 0,
             "tactical": false,
-            "supply": -1,
+            "supply": 10,
             "values": {
               "damage": 1
             }
@@ -11508,7 +11508,7 @@
         "stipend",
         "strike"
       ],
-      "ruleFingerprint": "30be3d69e67"
+      "ruleFingerprint": "146f6316efe"
     },
     {
       "kingdomId": "balance-tuning-050",
@@ -11717,10 +11717,10 @@
             "cardType": "action",
             "mechanic": "scrap",
             "family": "engine",
-            "cost": 0,
+            "cost": 1,
             "money": 0,
             "tactical": false,
-            "supply": -1,
+            "supply": 10,
             "values": {
               "damage": 1
             }
@@ -11743,7 +11743,7 @@
         "step",
         "strike"
       ],
-      "ruleFingerprint": "294a3307d85"
+      "ruleFingerprint": "53ecacd6e1c"
     },
     {
       "kingdomId": "balance-tuning-051",
@@ -11956,10 +11956,10 @@
             "cardType": "action",
             "mechanic": "scrap",
             "family": "engine",
-            "cost": 0,
+            "cost": 1,
             "money": 0,
             "tactical": false,
-            "supply": -1,
+            "supply": 10,
             "values": {
               "damage": 1
             }
@@ -11982,7 +11982,7 @@
         "steadyShot",
         "step"
       ],
-      "ruleFingerprint": "d4da5078f14"
+      "ruleFingerprint": "c4915357fab"
     },
     {
       "kingdomId": "balance-tuning-052",
@@ -12191,10 +12191,10 @@
             "cardType": "action",
             "mechanic": "scrap",
             "family": "engine",
-            "cost": 0,
+            "cost": 1,
             "money": 0,
             "tactical": false,
-            "supply": -1,
+            "supply": 10,
             "values": {
               "damage": 1
             }
@@ -12217,7 +12217,7 @@
         "stipend",
         "strike"
       ],
-      "ruleFingerprint": "4920cd2ee6d"
+      "ruleFingerprint": "4488a141f04"
     },
     {
       "kingdomId": "balance-tuning-053",
@@ -12425,10 +12425,10 @@
             "cardType": "action",
             "mechanic": "scrap",
             "family": "engine",
-            "cost": 0,
+            "cost": 1,
             "money": 0,
             "tactical": false,
-            "supply": -1,
+            "supply": 10,
             "values": {
               "damage": 1
             }
@@ -12451,7 +12451,7 @@
         "step",
         "volley"
       ],
-      "ruleFingerprint": "a7160608de3"
+      "ruleFingerprint": "02e9e8fde7a"
     },
     {
       "kingdomId": "balance-tuning-054",
@@ -12661,10 +12661,10 @@
             "cardType": "action",
             "mechanic": "scrap",
             "family": "engine",
-            "cost": 0,
+            "cost": 1,
             "money": 0,
             "tactical": false,
-            "supply": -1,
+            "supply": 10,
             "values": {
               "damage": 1
             }
@@ -12687,7 +12687,7 @@
         "strike",
         "volley"
       ],
-      "ruleFingerprint": "8b5fc15adb9"
+      "ruleFingerprint": "900e3993e50"
     },
     {
       "kingdomId": "balance-tuning-055",
@@ -12900,10 +12900,10 @@
             "cardType": "action",
             "mechanic": "scrap",
             "family": "engine",
-            "cost": 0,
+            "cost": 1,
             "money": 0,
             "tactical": false,
-            "supply": -1,
+            "supply": 10,
             "values": {
               "damage": 1
             }
@@ -12926,7 +12926,7 @@
         "step",
         "volley"
       ],
-      "ruleFingerprint": "f9b0cee7e9b"
+      "ruleFingerprint": "295c0608f32"
     },
     {
       "kingdomId": "balance-tuning-056",
@@ -13137,10 +13137,10 @@
             "cardType": "action",
             "mechanic": "scrap",
             "family": "engine",
-            "cost": 0,
+            "cost": 1,
             "money": 0,
             "tactical": false,
-            "supply": -1,
+            "supply": 10,
             "values": {
               "damage": 1
             }
@@ -13163,7 +13163,7 @@
         "stipend",
         "volley"
       ],
-      "ruleFingerprint": "65f99253d90"
+      "ruleFingerprint": "13e68ff4e27"
     },
     {
       "kingdomId": "balance-tuning-057",
@@ -13369,10 +13369,10 @@
             "cardType": "action",
             "mechanic": "scrap",
             "family": "engine",
-            "cost": 0,
+            "cost": 1,
             "money": 0,
             "tactical": false,
-            "supply": -1,
+            "supply": 10,
             "values": {
               "damage": 1
             }
@@ -13395,7 +13395,7 @@
         "steadyShot",
         "step"
       ],
-      "ruleFingerprint": "341e89cae23"
+      "ruleFingerprint": "09be00fdeba"
     },
     {
       "kingdomId": "balance-tuning-058",
@@ -13601,10 +13601,10 @@
             "cardType": "action",
             "mechanic": "scrap",
             "family": "engine",
-            "cost": 0,
+            "cost": 1,
             "money": 0,
             "tactical": false,
-            "supply": -1,
+            "supply": 10,
             "values": {
               "damage": 1
             }
@@ -13627,7 +13627,7 @@
         "steadyShot",
         "step"
       ],
-      "ruleFingerprint": "1fbffe14d96"
+      "ruleFingerprint": "fd304359e2d"
     },
     {
       "kingdomId": "balance-tuning-059",
@@ -13834,10 +13834,10 @@
             "cardType": "action",
             "mechanic": "scrap",
             "family": "engine",
-            "cost": 0,
+            "cost": 1,
             "money": 0,
             "tactical": false,
-            "supply": -1,
+            "supply": 10,
             "values": {
               "damage": 1
             }
@@ -13860,7 +13860,7 @@
         "silver",
         "step"
       ],
-      "ruleFingerprint": "20cd0a72df0"
+      "ruleFingerprint": "8af50b4be87"
     },
     {
       "kingdomId": "balance-tuning-060",
@@ -14073,10 +14073,10 @@
             "cardType": "action",
             "mechanic": "scrap",
             "family": "engine",
-            "cost": 0,
+            "cost": 1,
             "money": 0,
             "tactical": false,
-            "supply": -1,
+            "supply": 10,
             "values": {
               "damage": 1
             }
@@ -14099,7 +14099,7 @@
         "step",
         "strike"
       ],
-      "ruleFingerprint": "2fcdb4d8e12"
+      "ruleFingerprint": "8cc881cdea9"
     },
     {
       "kingdomId": "balance-tuning-061",
@@ -14308,10 +14308,10 @@
             "cardType": "action",
             "mechanic": "scrap",
             "family": "engine",
-            "cost": 0,
+            "cost": 1,
             "money": 0,
             "tactical": false,
-            "supply": -1,
+            "supply": 10,
             "values": {
               "damage": 1
             }
@@ -14334,7 +14334,7 @@
         "stipend",
         "volley"
       ],
-      "ruleFingerprint": "a2676b7bd09"
+      "ruleFingerprint": "065d88fcda0"
     },
     {
       "kingdomId": "balance-tuning-062",
@@ -14545,10 +14545,10 @@
             "cardType": "action",
             "mechanic": "scrap",
             "family": "engine",
-            "cost": 0,
+            "cost": 1,
             "money": 0,
             "tactical": false,
-            "supply": -1,
+            "supply": 10,
             "values": {
               "damage": 1
             }
@@ -14571,7 +14571,7 @@
         "starfire",
         "step"
       ],
-      "ruleFingerprint": "89926280e88"
+      "ruleFingerprint": "a077e955f1f"
     },
     {
       "kingdomId": "balance-tuning-063",
@@ -14784,10 +14784,10 @@
             "cardType": "action",
             "mechanic": "scrap",
             "family": "engine",
-            "cost": 0,
+            "cost": 1,
             "money": 0,
             "tactical": false,
-            "supply": -1,
+            "supply": 10,
             "values": {
               "damage": 1
             }
@@ -14810,7 +14810,7 @@
         "step",
         "strike"
       ],
-      "ruleFingerprint": "f5a1f3c6e07"
+      "ruleFingerprint": "602186ffe9e"
     },
     {
       "kingdomId": "balance-tuning-064",
@@ -15017,10 +15017,10 @@
             "cardType": "action",
             "mechanic": "scrap",
             "family": "engine",
-            "cost": 0,
+            "cost": 1,
             "money": 0,
             "tactical": false,
-            "supply": -1,
+            "supply": 10,
             "values": {
               "damage": 1
             }
@@ -15043,7 +15043,7 @@
         "silver",
         "step"
       ],
-      "ruleFingerprint": "1890feacd5c"
+      "ruleFingerprint": "ac39fc11df3"
     },
     {
       "kingdomId": "balance-tuning-065",
@@ -15255,10 +15255,10 @@
             "cardType": "action",
             "mechanic": "scrap",
             "family": "engine",
-            "cost": 0,
+            "cost": 1,
             "money": 0,
             "tactical": false,
-            "supply": -1,
+            "supply": 10,
             "values": {
               "damage": 1
             }
@@ -15281,7 +15281,7 @@
         "silver",
         "step"
       ],
-      "ruleFingerprint": "6f12aa35d66"
+      "ruleFingerprint": "ed796632dfd"
     },
     {
       "kingdomId": "balance-tuning-066",
@@ -15492,10 +15492,10 @@
             "cardType": "action",
             "mechanic": "scrap",
             "family": "engine",
-            "cost": 0,
+            "cost": 1,
             "money": 0,
             "tactical": false,
-            "supply": -1,
+            "supply": 10,
             "values": {
               "damage": 1
             }
@@ -15518,7 +15518,7 @@
         "starfire",
         "step"
       ],
-      "ruleFingerprint": "4e54268cd44"
+      "ruleFingerprint": "312362f1ddb"
     },
     {
       "kingdomId": "balance-tuning-067",
@@ -15727,10 +15727,10 @@
             "cardType": "action",
             "mechanic": "scrap",
             "family": "engine",
-            "cost": 0,
+            "cost": 1,
             "money": 0,
             "tactical": false,
-            "supply": -1,
+            "supply": 10,
             "values": {
               "damage": 1
             }
@@ -15753,7 +15753,7 @@
         "step",
         "stipend"
       ],
-      "ruleFingerprint": "0b4e94ece4e"
+      "ruleFingerprint": "29ce8b51ee5"
     },
     {
       "kingdomId": "balance-tuning-068",
@@ -15964,10 +15964,10 @@
             "cardType": "action",
             "mechanic": "scrap",
             "family": "engine",
-            "cost": 0,
+            "cost": 1,
             "money": 0,
             "tactical": false,
-            "supply": -1,
+            "supply": 10,
             "values": {
               "damage": 1
             }
@@ -15990,7 +15990,7 @@
         "step",
         "volley"
       ],
-      "ruleFingerprint": "e2a81765e3d"
+      "ruleFingerprint": "714a6262ed4"
     },
     {
       "kingdomId": "balance-tuning-069",
@@ -16199,10 +16199,10 @@
             "cardType": "action",
             "mechanic": "scrap",
             "family": "engine",
-            "cost": 0,
+            "cost": 1,
             "money": 0,
             "tactical": false,
-            "supply": -1,
+            "supply": 10,
             "values": {
               "damage": 1
             }
@@ -16225,7 +16225,7 @@
         "step",
         "strike"
       ],
-      "ruleFingerprint": "18e44766dd7"
+      "ruleFingerprint": "bc164019e6e"
     },
     {
       "kingdomId": "balance-tuning-070",
@@ -16435,10 +16435,10 @@
             "cardType": "action",
             "mechanic": "scrap",
             "family": "engine",
-            "cost": 0,
+            "cost": 1,
             "money": 0,
             "tactical": false,
-            "supply": -1,
+            "supply": 10,
             "values": {
               "damage": 1
             }
@@ -16461,7 +16461,7 @@
         "steadyShot",
         "step"
       ],
-      "ruleFingerprint": "95fabee8e29"
+      "ruleFingerprint": "064154ddec0"
     },
     {
       "kingdomId": "balance-tuning-071",
@@ -16671,10 +16671,10 @@
             "cardType": "action",
             "mechanic": "scrap",
             "family": "engine",
-            "cost": 0,
+            "cost": 1,
             "money": 0,
             "tactical": false,
-            "supply": -1,
+            "supply": 10,
             "values": {
               "damage": 1
             }
@@ -16697,7 +16697,7 @@
         "step",
         "strike"
       ],
-      "ruleFingerprint": "4afa51f4e01"
+      "ruleFingerprint": "a83764b9e98"
     },
     {
       "kingdomId": "balance-tuning-072",
@@ -16906,10 +16906,10 @@
             "cardType": "action",
             "mechanic": "scrap",
             "family": "engine",
-            "cost": 0,
+            "cost": 1,
             "money": 0,
             "tactical": false,
-            "supply": -1,
+            "supply": 10,
             "values": {
               "damage": 1
             }
@@ -16932,7 +16932,7 @@
         "strike",
         "volley"
       ],
-      "ruleFingerprint": "e171883ed9a"
+      "ruleFingerprint": "661f92b7e31"
     },
     {
       "kingdomId": "balance-tuning-073",
@@ -17139,10 +17139,10 @@
             "cardType": "action",
             "mechanic": "scrap",
             "family": "engine",
-            "cost": 0,
+            "cost": 1,
             "money": 0,
             "tactical": false,
-            "supply": -1,
+            "supply": 10,
             "values": {
               "damage": 1
             }
@@ -17165,7 +17165,7 @@
         "step",
         "strike"
       ],
-      "ruleFingerprint": "1f9066acda3"
+      "ruleFingerprint": "7a22f411e3a"
     },
     {
       "kingdomId": "balance-tuning-074",
@@ -17373,10 +17373,10 @@
             "cardType": "action",
             "mechanic": "scrap",
             "family": "engine",
-            "cost": 0,
+            "cost": 1,
             "money": 0,
             "tactical": false,
-            "supply": -1,
+            "supply": 10,
             "values": {
               "damage": 1
             }
@@ -17399,7 +17399,7 @@
         "silver",
         "step"
       ],
-      "ruleFingerprint": "f2a12280d79"
+      "ruleFingerprint": "e7f2a3bfe10"
     },
     {
       "kingdomId": "balance-tuning-075",
@@ -17608,10 +17608,10 @@
             "cardType": "action",
             "mechanic": "scrap",
             "family": "engine",
-            "cost": 0,
+            "cost": 1,
             "money": 0,
             "tactical": false,
-            "supply": -1,
+            "supply": 10,
             "values": {
               "damage": 1
             }
@@ -17634,7 +17634,7 @@
         "step",
         "volley"
       ],
-      "ruleFingerprint": "f4af3363d4a"
+      "ruleFingerprint": "9a6cef84de1"
     },
     {
       "kingdomId": "balance-tuning-076",
@@ -17839,10 +17839,10 @@
             "cardType": "action",
             "mechanic": "scrap",
             "family": "engine",
-            "cost": 0,
+            "cost": 1,
             "money": 0,
             "tactical": false,
-            "supply": -1,
+            "supply": 10,
             "values": {
               "damage": 1
             }
@@ -17865,7 +17865,7 @@
         "step",
         "strike"
       ],
-      "ruleFingerprint": "404980f3d7b"
+      "ruleFingerprint": "34bd9214e12"
     },
     {
       "kingdomId": "balance-tuning-077",
@@ -18076,10 +18076,10 @@
             "cardType": "action",
             "mechanic": "scrap",
             "family": "engine",
-            "cost": 0,
+            "cost": 1,
             "money": 0,
             "tactical": false,
-            "supply": -1,
+            "supply": 10,
             "values": {
               "damage": 1
             }
@@ -18102,7 +18102,7 @@
         "steadyShot",
         "step"
       ],
-      "ruleFingerprint": "65fccddbdc3"
+      "ruleFingerprint": "617deedce5a"
     },
     {
       "kingdomId": "balance-tuning-078",
@@ -18309,10 +18309,10 @@
             "cardType": "action",
             "mechanic": "scrap",
             "family": "engine",
-            "cost": 0,
+            "cost": 1,
             "money": 0,
             "tactical": false,
-            "supply": -1,
+            "supply": 10,
             "values": {
               "damage": 1
             }
@@ -18335,7 +18335,7 @@
         "step",
         "stipend"
       ],
-      "ruleFingerprint": "a9790c31de8"
+      "ruleFingerprint": "9b1ff4fee7f"
     },
     {
       "kingdomId": "balance-tuning-079",
@@ -18542,10 +18542,10 @@
             "cardType": "action",
             "mechanic": "scrap",
             "family": "engine",
-            "cost": 0,
+            "cost": 1,
             "money": 0,
             "tactical": false,
-            "supply": -1,
+            "supply": 10,
             "values": {
               "damage": 1
             }
@@ -18568,7 +18568,7 @@
         "strike",
         "volley"
       ],
-      "ruleFingerprint": "4653f99cda1"
+      "ruleFingerprint": "b392b581e38"
     },
     {
       "kingdomId": "balance-tuning-080",
@@ -18776,10 +18776,10 @@
             "cardType": "action",
             "mechanic": "scrap",
             "family": "engine",
-            "cost": 0,
+            "cost": 1,
             "money": 0,
             "tactical": false,
-            "supply": -1,
+            "supply": 10,
             "values": {
               "damage": 1
             }
@@ -18802,7 +18802,7 @@
         "step",
         "strike"
       ],
-      "ruleFingerprint": "2f24556ed50"
+      "ruleFingerprint": "e2756467de7"
     },
     {
       "kingdomId": "balance-tuning-081",
@@ -19007,10 +19007,10 @@
             "cardType": "action",
             "mechanic": "scrap",
             "family": "engine",
-            "cost": 0,
+            "cost": 1,
             "money": 0,
             "tactical": false,
-            "supply": -1,
+            "supply": 10,
             "values": {
               "damage": 1
             }
@@ -19033,7 +19033,7 @@
         "silver",
         "step"
       ],
-      "ruleFingerprint": "2990e396e66"
+      "ruleFingerprint": "5790264fefd"
     },
     {
       "kingdomId": "balance-tuning-082",
@@ -19243,10 +19243,10 @@
             "cardType": "action",
             "mechanic": "scrap",
             "family": "engine",
-            "cost": 0,
+            "cost": 1,
             "money": 0,
             "tactical": false,
-            "supply": -1,
+            "supply": 10,
             "values": {
               "damage": 1
             }
@@ -19269,7 +19269,7 @@
         "step",
         "volley"
       ],
-      "ruleFingerprint": "691a7138ee6"
+      "ruleFingerprint": "103e5517f7d"
     },
     {
       "kingdomId": "balance-tuning-083",
@@ -19476,10 +19476,10 @@
             "cardType": "action",
             "mechanic": "scrap",
             "family": "engine",
-            "cost": 0,
+            "cost": 1,
             "money": 0,
             "tactical": false,
-            "supply": -1,
+            "supply": 10,
             "values": {
               "damage": 1
             }
@@ -19502,7 +19502,7 @@
         "step",
         "volley"
       ],
-      "ruleFingerprint": "c2a4b560d39"
+      "ruleFingerprint": "191f521fdd0"
     },
     {
       "kingdomId": "balance-tuning-084",
@@ -19711,10 +19711,10 @@
             "cardType": "action",
             "mechanic": "scrap",
             "family": "engine",
-            "cost": 0,
+            "cost": 1,
             "money": 0,
             "tactical": false,
-            "supply": -1,
+            "supply": 10,
             "values": {
               "damage": 1
             }
@@ -19737,7 +19737,7 @@
         "silver",
         "step"
       ],
-      "ruleFingerprint": "e16ee7ade05"
+      "ruleFingerprint": "c817ee4ae9c"
     },
     {
       "kingdomId": "balance-tuning-085",
@@ -19949,10 +19949,10 @@
             "cardType": "action",
             "mechanic": "scrap",
             "family": "engine",
-            "cost": 0,
+            "cost": 1,
             "money": 0,
             "tactical": false,
-            "supply": -1,
+            "supply": 10,
             "values": {
               "damage": 1
             }
@@ -19975,7 +19975,7 @@
         "stipend",
         "strike"
       ],
-      "ruleFingerprint": "d72acd6ae16"
+      "ruleFingerprint": "c2c6ec63ead"
     },
     {
       "kingdomId": "balance-tuning-086",
@@ -20185,10 +20185,10 @@
             "cardType": "action",
             "mechanic": "scrap",
             "family": "engine",
-            "cost": 0,
+            "cost": 1,
             "money": 0,
             "tactical": false,
-            "supply": -1,
+            "supply": 10,
             "values": {
               "damage": 1
             }
@@ -20211,7 +20211,7 @@
         "silver",
         "step"
       ],
-      "ruleFingerprint": "ee94c9f7cef"
+      "ruleFingerprint": "351e0058d86"
     },
     {
       "kingdomId": "balance-tuning-087",
@@ -20419,10 +20419,10 @@
             "cardType": "action",
             "mechanic": "scrap",
             "family": "engine",
-            "cost": 0,
+            "cost": 1,
             "money": 0,
             "tactical": false,
-            "supply": -1,
+            "supply": 10,
             "values": {
               "damage": 1
             }
@@ -20445,7 +20445,7 @@
         "step",
         "strike"
       ],
-      "ruleFingerprint": "0129da19d18"
+      "ruleFingerprint": "65faa106daf"
     },
     {
       "kingdomId": "balance-tuning-088",
@@ -20653,10 +20653,10 @@
             "cardType": "action",
             "mechanic": "scrap",
             "family": "engine",
-            "cost": 0,
+            "cost": 1,
             "money": 0,
             "tactical": false,
-            "supply": -1,
+            "supply": 10,
             "values": {
               "damage": 1
             }
@@ -20679,7 +20679,7 @@
         "silver",
         "step"
       ],
-      "ruleFingerprint": "db23240ede5"
+      "ruleFingerprint": "336796a1e7c"
     },
     {
       "kingdomId": "balance-tuning-089",
@@ -20889,10 +20889,10 @@
             "cardType": "action",
             "mechanic": "scrap",
             "family": "engine",
-            "cost": 0,
+            "cost": 1,
             "money": 0,
             "tactical": false,
-            "supply": -1,
+            "supply": 10,
             "values": {
               "damage": 1
             }
@@ -20915,7 +20915,7 @@
         "step",
         "stipend"
       ],
-      "ruleFingerprint": "3702809ade9"
+      "ruleFingerprint": "be7cb90de80"
     },
     {
       "kingdomId": "balance-tuning-090",
@@ -21122,10 +21122,10 @@
             "cardType": "action",
             "mechanic": "scrap",
             "family": "engine",
-            "cost": 0,
+            "cost": 1,
             "money": 0,
             "tactical": false,
-            "supply": -1,
+            "supply": 10,
             "values": {
               "damage": 1
             }
@@ -21148,7 +21148,7 @@
         "step",
         "strike"
       ],
-      "ruleFingerprint": "780fda8cd04"
+      "ruleFingerprint": "69ebdef1d9b"
     },
     {
       "kingdomId": "balance-tuning-091",
@@ -21358,10 +21358,10 @@
             "cardType": "action",
             "mechanic": "scrap",
             "family": "engine",
-            "cost": 0,
+            "cost": 1,
             "money": 0,
             "tactical": false,
-            "supply": -1,
+            "supply": 10,
             "values": {
               "damage": 1
             }
@@ -21384,7 +21384,7 @@
         "step",
         "stipend"
       ],
-      "ruleFingerprint": "3f42e6b0dca"
+      "ruleFingerprint": "55ed1205e61"
     },
     {
       "kingdomId": "balance-tuning-092",
@@ -21594,10 +21594,10 @@
             "cardType": "action",
             "mechanic": "scrap",
             "family": "engine",
-            "cost": 0,
+            "cost": 1,
             "money": 0,
             "tactical": false,
-            "supply": -1,
+            "supply": 10,
             "values": {
               "damage": 1
             }
@@ -21620,7 +21620,7 @@
         "silver",
         "step"
       ],
-      "ruleFingerprint": "aa6004f3e68"
+      "ruleFingerprint": "968bfe14eff"
     },
     {
       "kingdomId": "balance-tuning-093",
@@ -21831,10 +21831,10 @@
             "cardType": "action",
             "mechanic": "scrap",
             "family": "engine",
-            "cost": 0,
+            "cost": 1,
             "money": 0,
             "tactical": false,
-            "supply": -1,
+            "supply": 10,
             "values": {
               "damage": 1
             }
@@ -21857,7 +21857,7 @@
         "step",
         "stipend"
       ],
-      "ruleFingerprint": "6f7990c9e10"
+      "ruleFingerprint": "283f36f6ea7"
     },
     {
       "kingdomId": "balance-tuning-094",
@@ -22063,10 +22063,10 @@
             "cardType": "action",
             "mechanic": "scrap",
             "family": "engine",
-            "cost": 0,
+            "cost": 1,
             "money": 0,
             "tactical": false,
-            "supply": -1,
+            "supply": 10,
             "values": {
               "damage": 1
             }
@@ -22089,7 +22089,7 @@
         "step",
         "volley"
       ],
-      "ruleFingerprint": "3fd6243ed74"
+      "ruleFingerprint": "122186b7e0b"
     },
     {
       "kingdomId": "balance-tuning-095",
@@ -22302,10 +22302,10 @@
             "cardType": "action",
             "mechanic": "scrap",
             "family": "engine",
-            "cost": 0,
+            "cost": 1,
             "money": 0,
             "tactical": false,
-            "supply": -1,
+            "supply": 10,
             "values": {
               "damage": 1
             }
@@ -22328,7 +22328,7 @@
         "step",
         "volley"
       ],
-      "ruleFingerprint": "18976539e98"
+      "ruleFingerprint": "1e80a026f2f"
     },
     {
       "kingdomId": "balance-tuning-096",
@@ -22533,10 +22533,10 @@
             "cardType": "action",
             "mechanic": "scrap",
             "family": "engine",
-            "cost": 0,
+            "cost": 1,
             "money": 0,
             "tactical": false,
-            "supply": -1,
+            "supply": 10,
             "values": {
               "damage": 1
             }
@@ -22559,7 +22559,7 @@
         "silver",
         "step"
       ],
-      "ruleFingerprint": "9bf8b82ddb0"
+      "ruleFingerprint": "3830b6e8e47"
     },
     {
       "kingdomId": "balance-tuning-097",
@@ -22773,10 +22773,10 @@
             "cardType": "action",
             "mechanic": "scrap",
             "family": "engine",
-            "cost": 0,
+            "cost": 1,
             "money": 0,
             "tactical": false,
-            "supply": -1,
+            "supply": 10,
             "values": {
               "damage": 1
             }
@@ -22799,7 +22799,7 @@
         "steadyShot",
         "step"
       ],
-      "ruleFingerprint": "a874689de05"
+      "ruleFingerprint": "d4d3a298e9c"
     },
     {
       "kingdomId": "balance-tuning-098",
@@ -23009,10 +23009,10 @@
             "cardType": "action",
             "mechanic": "scrap",
             "family": "engine",
-            "cost": 0,
+            "cost": 1,
             "money": 0,
             "tactical": false,
-            "supply": -1,
+            "supply": 10,
             "values": {
               "damage": 1
             }
@@ -23035,7 +23035,7 @@
         "step",
         "strike"
       ],
-      "ruleFingerprint": "15fbc39fd89"
+      "ruleFingerprint": "705a900ee20"
     },
     {
       "kingdomId": "balance-tuning-099",
@@ -23242,10 +23242,10 @@
             "cardType": "action",
             "mechanic": "scrap",
             "family": "engine",
-            "cost": 0,
+            "cost": 1,
             "money": 0,
             "tactical": false,
-            "supply": -1,
+            "supply": 10,
             "values": {
               "damage": 1
             }
@@ -23268,7 +23268,7 @@
         "step",
         "stipend"
       ],
-      "ruleFingerprint": "775e1a76dc9"
+      "ruleFingerprint": "56fc66afe60"
     },
     {
       "kingdomId": "balance-tuning-100",
@@ -23477,10 +23477,10 @@
             "cardType": "action",
             "mechanic": "scrap",
             "family": "engine",
-            "cost": 0,
+            "cost": 1,
             "money": 0,
             "tactical": false,
-            "supply": -1,
+            "supply": 10,
             "values": {
               "damage": 1
             }
@@ -23503,7 +23503,7 @@
         "step",
         "stipend"
       ],
-      "ruleFingerprint": "a549c3a2d9f"
+      "ruleFingerprint": "191452bbe36"
     },
     {
       "kingdomId": "balance-tuning-101",
@@ -23708,10 +23708,10 @@
             "cardType": "action",
             "mechanic": "scrap",
             "family": "engine",
-            "cost": 0,
+            "cost": 1,
             "money": 0,
             "tactical": false,
-            "supply": -1,
+            "supply": 10,
             "values": {
               "damage": 1
             }
@@ -23734,7 +23734,7 @@
         "silver",
         "step"
       ],
-      "ruleFingerprint": "890097c5e2b"
+      "ruleFingerprint": "c3764fc2ec2"
     },
     {
       "kingdomId": "balance-tuning-102",
@@ -23943,10 +23943,10 @@
             "cardType": "action",
             "mechanic": "scrap",
             "family": "engine",
-            "cost": 0,
+            "cost": 1,
             "money": 0,
             "tactical": false,
-            "supply": -1,
+            "supply": 10,
             "values": {
               "damage": 1
             }
@@ -23969,7 +23969,7 @@
         "steadyShot",
         "step"
       ],
-      "ruleFingerprint": "a125047fd31"
+      "ruleFingerprint": "5de95b60dc8"
     },
     {
       "kingdomId": "balance-tuning-103",
@@ -24178,10 +24178,10 @@
             "cardType": "action",
             "mechanic": "scrap",
             "family": "engine",
-            "cost": 0,
+            "cost": 1,
             "money": 0,
             "tactical": false,
-            "supply": -1,
+            "supply": 10,
             "values": {
               "damage": 1
             }
@@ -24204,7 +24204,7 @@
         "starfire",
         "step"
       ],
-      "ruleFingerprint": "686c4744e0e"
+      "ruleFingerprint": "de7c5f09ea5"
     },
     {
       "kingdomId": "balance-tuning-104",
@@ -24410,10 +24410,10 @@
             "cardType": "action",
             "mechanic": "scrap",
             "family": "engine",
-            "cost": 0,
+            "cost": 1,
             "money": 0,
             "tactical": false,
-            "supply": -1,
+            "supply": 10,
             "values": {
               "damage": 1
             }
@@ -24436,7 +24436,7 @@
         "silver",
         "step"
       ],
-      "ruleFingerprint": "0f0f3f4ce5d"
+      "ruleFingerprint": "74f77fb1ef4"
     },
     {
       "kingdomId": "balance-tuning-105",
@@ -24646,10 +24646,10 @@
             "cardType": "action",
             "mechanic": "scrap",
             "family": "engine",
-            "cost": 0,
+            "cost": 1,
             "money": 0,
             "tactical": false,
-            "supply": -1,
+            "supply": 10,
             "values": {
               "damage": 1
             }
@@ -24672,7 +24672,7 @@
         "step",
         "volley"
       ],
-      "ruleFingerprint": "e572d901e4e"
+      "ruleFingerprint": "782aa8ceee5"
     },
     {
       "kingdomId": "balance-tuning-106",
@@ -24881,10 +24881,10 @@
             "cardType": "action",
             "mechanic": "scrap",
             "family": "engine",
-            "cost": 0,
+            "cost": 1,
             "money": 0,
             "tactical": false,
-            "supply": -1,
+            "supply": 10,
             "values": {
               "damage": 1
             }
@@ -24907,7 +24907,7 @@
         "strike",
         "volley"
       ],
-      "ruleFingerprint": "8a8f04ddd42"
+      "ruleFingerprint": "0d28d9fadd9"
     },
     {
       "kingdomId": "balance-tuning-107",
@@ -25117,10 +25117,10 @@
             "cardType": "action",
             "mechanic": "scrap",
             "family": "engine",
-            "cost": 0,
+            "cost": 1,
             "money": 0,
             "tactical": false,
-            "supply": -1,
+            "supply": 10,
             "values": {
               "damage": 1
             }
@@ -25143,7 +25143,7 @@
         "strike",
         "volley"
       ],
-      "ruleFingerprint": "47afb67ee08"
+      "ruleFingerprint": "98c35cf7e9f"
     },
     {
       "kingdomId": "balance-tuning-108",
@@ -25352,10 +25352,10 @@
             "cardType": "action",
             "mechanic": "scrap",
             "family": "engine",
-            "cost": 0,
+            "cost": 1,
             "money": 0,
             "tactical": false,
-            "supply": -1,
+            "supply": 10,
             "values": {
               "damage": 1
             }
@@ -25378,7 +25378,7 @@
         "step",
         "strike"
       ],
-      "ruleFingerprint": "4c3b4100dd0"
+      "ruleFingerprint": "e7346b3fe67"
     },
     {
       "kingdomId": "balance-tuning-109",
@@ -25587,10 +25587,10 @@
             "cardType": "action",
             "mechanic": "scrap",
             "family": "engine",
-            "cost": 0,
+            "cost": 1,
             "money": 0,
             "tactical": false,
-            "supply": -1,
+            "supply": 10,
             "values": {
               "damage": 1
             }
@@ -25613,7 +25613,7 @@
         "step",
         "stipend"
       ],
-      "ruleFingerprint": "63b330f7d8e"
+      "ruleFingerprint": "e1343d58e25"
     },
     {
       "kingdomId": "balance-tuning-110",
@@ -25818,10 +25818,10 @@
             "cardType": "action",
             "mechanic": "scrap",
             "family": "engine",
-            "cost": 0,
+            "cost": 1,
             "money": 0,
             "tactical": false,
-            "supply": -1,
+            "supply": 10,
             "values": {
               "damage": 1
             }
@@ -25844,7 +25844,7 @@
         "starfire",
         "step"
       ],
-      "ruleFingerprint": "88d7137bce0"
+      "ruleFingerprint": "f90540fcd77"
     },
     {
       "kingdomId": "balance-tuning-111",
@@ -26056,10 +26056,10 @@
             "cardType": "action",
             "mechanic": "scrap",
             "family": "engine",
-            "cost": 0,
+            "cost": 1,
             "money": 0,
             "tactical": false,
-            "supply": -1,
+            "supply": 10,
             "values": {
               "damage": 1
             }
@@ -26082,7 +26082,7 @@
         "steadyShot",
         "step"
       ],
-      "ruleFingerprint": "d751ba01e35"
+      "ruleFingerprint": "5b9003ceecc"
     },
     {
       "kingdomId": "balance-tuning-112",
@@ -26290,10 +26290,10 @@
             "cardType": "action",
             "mechanic": "scrap",
             "family": "engine",
-            "cost": 0,
+            "cost": 1,
             "money": 0,
             "tactical": false,
-            "supply": -1,
+            "supply": 10,
             "values": {
               "damage": 1
             }
@@ -26316,7 +26316,7 @@
         "steadyShot",
         "step"
       ],
-      "ruleFingerprint": "f8ab8054d96"
+      "ruleFingerprint": "bdbe6313e2d"
     },
     {
       "kingdomId": "balance-tuning-113",
@@ -26525,10 +26525,10 @@
             "cardType": "action",
             "mechanic": "scrap",
             "family": "engine",
-            "cost": 0,
+            "cost": 1,
             "money": 0,
             "tactical": false,
-            "supply": -1,
+            "supply": 10,
             "values": {
               "damage": 1
             }
@@ -26551,7 +26551,7 @@
         "step",
         "stipend"
       ],
-      "ruleFingerprint": "32b2916cd8a"
+      "ruleFingerprint": "fbb77cd1e21"
     },
     {
       "kingdomId": "balance-tuning-114",
@@ -26765,10 +26765,10 @@
             "cardType": "action",
             "mechanic": "scrap",
             "family": "engine",
-            "cost": 0,
+            "cost": 1,
             "money": 0,
             "tactical": false,
-            "supply": -1,
+            "supply": 10,
             "values": {
               "damage": 1
             }
@@ -26791,7 +26791,7 @@
         "step",
         "stipend"
       ],
-      "ruleFingerprint": "c277c0a1d87"
+      "ruleFingerprint": "c631386ee1e"
     },
     {
       "kingdomId": "balance-tuning-115",
@@ -27002,10 +27002,10 @@
             "cardType": "action",
             "mechanic": "scrap",
             "family": "engine",
-            "cost": 0,
+            "cost": 1,
             "money": 0,
             "tactical": false,
-            "supply": -1,
+            "supply": 10,
             "values": {
               "damage": 1
             }
@@ -27028,7 +27028,7 @@
         "step",
         "strike"
       ],
-      "ruleFingerprint": "74ffe550d4a"
+      "ruleFingerprint": "9a07c725de1"
     },
     {
       "kingdomId": "balance-tuning-116",
@@ -27240,10 +27240,10 @@
             "cardType": "action",
             "mechanic": "scrap",
             "family": "engine",
-            "cost": 0,
+            "cost": 1,
             "money": 0,
             "tactical": false,
-            "supply": -1,
+            "supply": 10,
             "values": {
               "damage": 1
             }
@@ -27266,7 +27266,7 @@
         "stipend",
         "strike"
       ],
-      "ruleFingerprint": "6631771ed8a"
+      "ruleFingerprint": "aee85497e21"
     },
     {
       "kingdomId": "balance-tuning-117",
@@ -27471,10 +27471,10 @@
             "cardType": "action",
             "mechanic": "scrap",
             "family": "engine",
-            "cost": 0,
+            "cost": 1,
             "money": 0,
             "tactical": false,
-            "supply": -1,
+            "supply": 10,
             "values": {
               "damage": 1
             }
@@ -27497,7 +27497,7 @@
         "silver",
         "step"
       ],
-      "ruleFingerprint": "a0d3033dd2a"
+      "ruleFingerprint": "1b97a95adc1"
     },
     {
       "kingdomId": "balance-tuning-118",
@@ -27706,10 +27706,10 @@
             "cardType": "action",
             "mechanic": "scrap",
             "family": "engine",
-            "cost": 0,
+            "cost": 1,
             "money": 0,
             "tactical": false,
-            "supply": -1,
+            "supply": 10,
             "values": {
               "damage": 1
             }
@@ -27732,7 +27732,7 @@
         "step",
         "stipend"
       ],
-      "ruleFingerprint": "bc921443e3c"
+      "ruleFingerprint": "4eac03e4ed3"
     },
     {
       "kingdomId": "balance-tuning-119",
@@ -27940,10 +27940,10 @@
             "cardType": "action",
             "mechanic": "scrap",
             "family": "engine",
-            "cost": 0,
+            "cost": 1,
             "money": 0,
             "tactical": false,
-            "supply": -1,
+            "supply": 10,
             "values": {
               "damage": 1
             }
@@ -27966,7 +27966,7 @@
         "stipend",
         "volley"
       ],
-      "ruleFingerprint": "2d86b7f3dd7"
+      "ruleFingerprint": "e205bf14e6e"
     },
     {
       "kingdomId": "balance-tuning-120",
@@ -28178,10 +28178,10 @@
             "cardType": "action",
             "mechanic": "scrap",
             "family": "engine",
-            "cost": 0,
+            "cost": 1,
             "money": 0,
             "tactical": false,
-            "supply": -1,
+            "supply": 10,
             "values": {
               "damage": 1
             }
@@ -28204,7 +28204,7 @@
         "step",
         "volley"
       ],
-      "ruleFingerprint": "4c4bb402dcd"
+      "ruleFingerprint": "29367535e64"
     },
     {
       "kingdomId": "balance-tuning-121",
@@ -28413,10 +28413,10 @@
             "cardType": "action",
             "mechanic": "scrap",
             "family": "engine",
-            "cost": 0,
+            "cost": 1,
             "money": 0,
             "tactical": false,
-            "supply": -1,
+            "supply": 10,
             "values": {
               "damage": 1
             }
@@ -28439,7 +28439,7 @@
         "step",
         "strike"
       ],
-      "ruleFingerprint": "7b5a9b19d44"
+      "ruleFingerprint": "8c4e9c06ddb"
     },
     {
       "kingdomId": "balance-tuning-122",
@@ -28646,10 +28646,10 @@
             "cardType": "action",
             "mechanic": "scrap",
             "family": "engine",
-            "cost": 0,
+            "cost": 1,
             "money": 0,
             "tactical": false,
-            "supply": -1,
+            "supply": 10,
             "values": {
               "damage": 1
             }
@@ -28672,7 +28672,7 @@
         "step",
         "stipend"
       ],
-      "ruleFingerprint": "2e94f286d5d"
+      "ruleFingerprint": "73a6debfdf4"
     },
     {
       "kingdomId": "balance-tuning-123",
@@ -28882,10 +28882,10 @@
             "cardType": "action",
             "mechanic": "scrap",
             "family": "engine",
-            "cost": 0,
+            "cost": 1,
             "money": 0,
             "tactical": false,
-            "supply": -1,
+            "supply": 10,
             "values": {
               "damage": 1
             }
@@ -28908,7 +28908,7 @@
         "strike",
         "volley"
       ],
-      "ruleFingerprint": "34fa18eedb7"
+      "ruleFingerprint": "adf4ad01e4e"
     },
     {
       "kingdomId": "balance-tuning-124",
@@ -29118,10 +29118,10 @@
             "cardType": "action",
             "mechanic": "scrap",
             "family": "engine",
-            "cost": 0,
+            "cost": 1,
             "money": 0,
             "tactical": false,
-            "supply": -1,
+            "supply": 10,
             "values": {
               "damage": 1
             }
@@ -29144,7 +29144,7 @@
         "steadyShot",
         "step"
       ],
-      "ruleFingerprint": "c20525e1d62"
+      "ruleFingerprint": "c9a4b8aedf9"
     },
     {
       "kingdomId": "balance-tuning-125",
@@ -29354,10 +29354,10 @@
             "cardType": "action",
             "mechanic": "scrap",
             "family": "engine",
-            "cost": 0,
+            "cost": 1,
             "money": 0,
             "tactical": false,
-            "supply": -1,
+            "supply": 10,
             "values": {
               "damage": 1
             }
@@ -29380,7 +29380,7 @@
         "steadyShot",
         "step"
       ],
-      "ruleFingerprint": "d0c735f1d33"
+      "ruleFingerprint": "fe3e4abedca"
     },
     {
       "kingdomId": "balance-tuning-126",
@@ -29584,10 +29584,10 @@
             "cardType": "action",
             "mechanic": "scrap",
             "family": "engine",
-            "cost": 0,
+            "cost": 1,
             "money": 0,
             "tactical": false,
-            "supply": -1,
+            "supply": 10,
             "values": {
               "damage": 1
             }
@@ -29610,7 +29610,7 @@
         "silver",
         "step"
       ],
-      "ruleFingerprint": "392849ebee6"
+      "ruleFingerprint": "116e6f2cf7d"
     },
     {
       "kingdomId": "balance-tuning-127",
@@ -29815,10 +29815,10 @@
             "cardType": "action",
             "mechanic": "scrap",
             "family": "engine",
-            "cost": 0,
+            "cost": 1,
             "money": 0,
             "tactical": false,
-            "supply": -1,
+            "supply": 10,
             "values": {
               "damage": 1
             }
@@ -29841,7 +29841,7 @@
         "steadyShot",
         "step"
       ],
-      "ruleFingerprint": "fc9b4dc9d5f"
+      "ruleFingerprint": "3dbf45f6df6"
     },
     {
       "kingdomId": "balance-tuning-128",
@@ -30052,10 +30052,10 @@
             "cardType": "action",
             "mechanic": "scrap",
             "family": "engine",
-            "cost": 0,
+            "cost": 1,
             "money": 0,
             "tactical": false,
-            "supply": -1,
+            "supply": 10,
             "values": {
               "damage": 1
             }
@@ -30078,7 +30078,7 @@
         "step",
         "volley"
       ],
-      "ruleFingerprint": "a90a0d0adc9"
+      "ruleFingerprint": "88862803e60"
     },
     {
       "kingdomId": "balance-validation-001",
@@ -30287,10 +30287,10 @@
             "cardType": "action",
             "mechanic": "scrap",
             "family": "engine",
-            "cost": 0,
+            "cost": 1,
             "money": 0,
             "tactical": false,
-            "supply": -1,
+            "supply": 10,
             "values": {
               "damage": 1
             }
@@ -30313,7 +30313,7 @@
         "step",
         "volley"
       ],
-      "ruleFingerprint": "b9455078eae"
+      "ruleFingerprint": "5bba5357f45"
     },
     {
       "kingdomId": "balance-validation-002",
@@ -30522,10 +30522,10 @@
             "cardType": "action",
             "mechanic": "scrap",
             "family": "engine",
-            "cost": 0,
+            "cost": 1,
             "money": 0,
             "tactical": false,
-            "supply": -1,
+            "supply": 10,
             "values": {
               "damage": 1
             }
@@ -30548,7 +30548,7 @@
         "silver",
         "step"
       ],
-      "ruleFingerprint": "1caf7459dc1"
+      "ruleFingerprint": "51d34946e58"
     },
     {
       "kingdomId": "balance-validation-003",
@@ -30753,10 +30753,10 @@
             "cardType": "action",
             "mechanic": "scrap",
             "family": "engine",
-            "cost": 0,
+            "cost": 1,
             "money": 0,
             "tactical": false,
-            "supply": -1,
+            "supply": 10,
             "values": {
               "damage": 1
             }
@@ -30779,7 +30779,7 @@
         "silver",
         "step"
       ],
-      "ruleFingerprint": "d46666cee09"
+      "ruleFingerprint": "018f4b61ea0"
     },
     {
       "kingdomId": "balance-validation-004",
@@ -30988,10 +30988,10 @@
             "cardType": "action",
             "mechanic": "scrap",
             "family": "engine",
-            "cost": 0,
+            "cost": 1,
             "money": 0,
             "tactical": false,
-            "supply": -1,
+            "supply": 10,
             "values": {
               "damage": 1
             }
@@ -31014,7 +31014,7 @@
         "strike",
         "volley"
       ],
-      "ruleFingerprint": "7bcf42dbe17"
+      "ruleFingerprint": "dd9c65dceae"
     },
     {
       "kingdomId": "balance-validation-005",
@@ -31222,10 +31222,10 @@
             "cardType": "action",
             "mechanic": "scrap",
             "family": "engine",
-            "cost": 0,
+            "cost": 1,
             "money": 0,
             "tactical": false,
-            "supply": -1,
+            "supply": 10,
             "values": {
               "damage": 1
             }
@@ -31248,7 +31248,7 @@
         "step",
         "strike"
       ],
-      "ruleFingerprint": "2467b037da6"
+      "ruleFingerprint": "16ffc898e3d"
     },
     {
       "kingdomId": "balance-validation-006",
@@ -31453,10 +31453,10 @@
             "cardType": "action",
             "mechanic": "scrap",
             "family": "engine",
-            "cost": 0,
+            "cost": 1,
             "money": 0,
             "tactical": false,
-            "supply": -1,
+            "supply": 10,
             "values": {
               "damage": 1
             }
@@ -31479,7 +31479,7 @@
         "silver",
         "step"
       ],
-      "ruleFingerprint": "7f581e4ee7c"
+      "ruleFingerprint": "fddbafc7f13"
     },
     {
       "kingdomId": "balance-validation-007",
@@ -31687,10 +31687,10 @@
             "cardType": "action",
             "mechanic": "scrap",
             "family": "engine",
-            "cost": 0,
+            "cost": 1,
             "money": 0,
             "tactical": false,
-            "supply": -1,
+            "supply": 10,
             "values": {
               "damage": 1
             }
@@ -31713,7 +31713,7 @@
         "silver",
         "step"
       ],
-      "ruleFingerprint": "86a47a98ec9"
+      "ruleFingerprint": "2582518df60"
     },
     {
       "kingdomId": "balance-validation-008",
@@ -31922,10 +31922,10 @@
             "cardType": "action",
             "mechanic": "scrap",
             "family": "engine",
-            "cost": 0,
+            "cost": 1,
             "money": 0,
             "tactical": false,
-            "supply": -1,
+            "supply": 10,
             "values": {
               "damage": 1
             }
@@ -31948,7 +31948,7 @@
         "step",
         "stipend"
       ],
-      "ruleFingerprint": "cd27e8d4dc4"
+      "ruleFingerprint": "3eb23893e5b"
     },
     {
       "kingdomId": "balance-validation-009",
@@ -32157,10 +32157,10 @@
             "cardType": "action",
             "mechanic": "scrap",
             "family": "engine",
-            "cost": 0,
+            "cost": 1,
             "money": 0,
             "tactical": false,
-            "supply": -1,
+            "supply": 10,
             "values": {
               "damage": 1
             }
@@ -32183,7 +32183,7 @@
         "step",
         "strike"
       ],
-      "ruleFingerprint": "5075644fdcd"
+      "ruleFingerprint": "c89f273ee64"
     },
     {
       "kingdomId": "balance-validation-010",
@@ -32393,10 +32393,10 @@
             "cardType": "action",
             "mechanic": "scrap",
             "family": "engine",
-            "cost": 0,
+            "cost": 1,
             "money": 0,
             "tactical": false,
-            "supply": -1,
+            "supply": 10,
             "values": {
               "damage": 1
             }
@@ -32419,7 +32419,7 @@
         "step",
         "stipend"
       ],
-      "ruleFingerprint": "e0ac5194e22"
+      "ruleFingerprint": "9ed34e53eb9"
     },
     {
       "kingdomId": "balance-validation-011",
@@ -32630,10 +32630,10 @@
             "cardType": "action",
             "mechanic": "scrap",
             "family": "engine",
-            "cost": 0,
+            "cost": 1,
             "money": 0,
             "tactical": false,
-            "supply": -1,
+            "supply": 10,
             "values": {
               "damage": 1
             }
@@ -32656,7 +32656,7 @@
         "steadyShot",
         "step"
       ],
-      "ruleFingerprint": "35984e3be85"
+      "ruleFingerprint": "e787eebcf1c"
     },
     {
       "kingdomId": "balance-validation-012",
@@ -32866,10 +32866,10 @@
             "cardType": "action",
             "mechanic": "scrap",
             "family": "engine",
-            "cost": 0,
+            "cost": 1,
             "money": 0,
             "tactical": false,
-            "supply": -1,
+            "supply": 10,
             "values": {
               "damage": 1
             }
@@ -32892,7 +32892,7 @@
         "stipend",
         "volley"
       ],
-      "ruleFingerprint": "2a8269edd2c"
+      "ruleFingerprint": "1c45578adc3"
     },
     {
       "kingdomId": "balance-validation-013",
@@ -33102,10 +33102,10 @@
             "cardType": "action",
             "mechanic": "scrap",
             "family": "engine",
-            "cost": 0,
+            "cost": 1,
             "money": 0,
             "tactical": false,
-            "supply": -1,
+            "supply": 10,
             "values": {
               "damage": 1
             }
@@ -33128,7 +33128,7 @@
         "silver",
         "step"
       ],
-      "ruleFingerprint": "34a16fafde0"
+      "ruleFingerprint": "3126559ee77"
     },
     {
       "kingdomId": "balance-validation-014",
@@ -33338,10 +33338,10 @@
             "cardType": "action",
             "mechanic": "scrap",
             "family": "engine",
-            "cost": 0,
+            "cost": 1,
             "money": 0,
             "tactical": false,
-            "supply": -1,
+            "supply": 10,
             "values": {
               "damage": 1
             }
@@ -33364,7 +33364,7 @@
         "step",
         "volley"
       ],
-      "ruleFingerprint": "c0ef33ecda2"
+      "ruleFingerprint": "650bb051e39"
     },
     {
       "kingdomId": "balance-validation-015",
@@ -33570,10 +33570,10 @@
             "cardType": "action",
             "mechanic": "scrap",
             "family": "engine",
-            "cost": 0,
+            "cost": 1,
             "money": 0,
             "tactical": false,
-            "supply": -1,
+            "supply": 10,
             "values": {
               "damage": 1
             }
@@ -33596,7 +33596,7 @@
         "step",
         "strike"
       ],
-      "ruleFingerprint": "9c5c3dd6e14"
+      "ruleFingerprint": "d5c8b58feab"
     },
     {
       "kingdomId": "balance-validation-016",
@@ -33808,10 +33808,10 @@
             "cardType": "action",
             "mechanic": "scrap",
             "family": "engine",
-            "cost": 0,
+            "cost": 1,
             "money": 0,
             "tactical": false,
-            "supply": -1,
+            "supply": 10,
             "values": {
               "damage": 1
             }
@@ -33834,7 +33834,7 @@
         "starfire",
         "step"
       ],
-      "ruleFingerprint": "df5b2591d08"
+      "ruleFingerprint": "a479b45ed9f"
     },
     {
       "kingdomId": "balance-validation-017",
@@ -34048,10 +34048,10 @@
             "cardType": "action",
             "mechanic": "scrap",
             "family": "engine",
-            "cost": 0,
+            "cost": 1,
             "money": 0,
             "tactical": false,
-            "supply": -1,
+            "supply": 10,
             "values": {
               "damage": 1
             }
@@ -34074,7 +34074,7 @@
         "step",
         "strike"
       ],
-      "ruleFingerprint": "ba6b2409e59"
+      "ruleFingerprint": "ca6a6c36ef0"
     },
     {
       "kingdomId": "balance-validation-018",
@@ -34281,10 +34281,10 @@
             "cardType": "action",
             "mechanic": "scrap",
             "family": "engine",
-            "cost": 0,
+            "cost": 1,
             "money": 0,
             "tactical": false,
-            "supply": -1,
+            "supply": 10,
             "values": {
               "damage": 1
             }
@@ -34307,7 +34307,7 @@
         "stipend",
         "strike"
       ],
-      "ruleFingerprint": "794e2d7bd6a"
+      "ruleFingerprint": "76ef825ae01"
     },
     {
       "kingdomId": "balance-validation-019",
@@ -34518,10 +34518,10 @@
             "cardType": "action",
             "mechanic": "scrap",
             "family": "engine",
-            "cost": 0,
+            "cost": 1,
             "money": 0,
             "tactical": false,
-            "supply": -1,
+            "supply": 10,
             "values": {
               "damage": 1
             }
@@ -34544,7 +34544,7 @@
         "silver",
         "step"
       ],
-      "ruleFingerprint": "0334e06ce00"
+      "ruleFingerprint": "52a031d1e97"
     },
     {
       "kingdomId": "balance-validation-020",
@@ -34754,10 +34754,10 @@
             "cardType": "action",
             "mechanic": "scrap",
             "family": "engine",
-            "cost": 0,
+            "cost": 1,
             "money": 0,
             "tactical": false,
-            "supply": -1,
+            "supply": 10,
             "values": {
               "damage": 1
             }
@@ -34780,7 +34780,7 @@
         "step",
         "stipend"
       ],
-      "ruleFingerprint": "e2d640d2ca0"
+      "ruleFingerprint": "e9aeff2bd37"
     },
     {
       "kingdomId": "balance-validation-021",
@@ -34987,10 +34987,10 @@
             "cardType": "action",
             "mechanic": "scrap",
             "family": "engine",
-            "cost": 0,
+            "cost": 1,
             "money": 0,
             "tactical": false,
-            "supply": -1,
+            "supply": 10,
             "values": {
               "damage": 1
             }
@@ -35013,7 +35013,7 @@
         "steadyShot",
         "step"
       ],
-      "ruleFingerprint": "d890f431e48"
+      "ruleFingerprint": "966e6cfeedf"
     },
     {
       "kingdomId": "balance-validation-022",
@@ -35224,10 +35224,10 @@
             "cardType": "action",
             "mechanic": "scrap",
             "family": "engine",
-            "cost": 0,
+            "cost": 1,
             "money": 0,
             "tactical": false,
-            "supply": -1,
+            "supply": 10,
             "values": {
               "damage": 1
             }
@@ -35250,7 +35250,7 @@
         "step",
         "strike"
       ],
-      "ruleFingerprint": "aedcb3f8e4a"
+      "ruleFingerprint": "a7cb6f6dee1"
     },
     {
       "kingdomId": "balance-validation-023",
@@ -35453,10 +35453,10 @@
             "cardType": "action",
             "mechanic": "scrap",
             "family": "engine",
-            "cost": 0,
+            "cost": 1,
             "money": 0,
             "tactical": false,
-            "supply": -1,
+            "supply": 10,
             "values": {
               "damage": 1
             }
@@ -35479,7 +35479,7 @@
         "steadyShot",
         "step"
       ],
-      "ruleFingerprint": "36bbdae7d06"
+      "ruleFingerprint": "a701ca08d9d"
     },
     {
       "kingdomId": "balance-validation-024",
@@ -35692,10 +35692,10 @@
             "cardType": "action",
             "mechanic": "scrap",
             "family": "engine",
-            "cost": 0,
+            "cost": 1,
             "money": 0,
             "tactical": false,
-            "supply": -1,
+            "supply": 10,
             "values": {
               "damage": 1
             }
@@ -35718,7 +35718,7 @@
         "stipend",
         "strike"
       ],
-      "ruleFingerprint": "352bfa9ed9c"
+      "ruleFingerprint": "4186e317e33"
     },
     {
       "kingdomId": "balance-validation-025",
@@ -35926,10 +35926,10 @@
             "cardType": "action",
             "mechanic": "scrap",
             "family": "engine",
-            "cost": 0,
+            "cost": 1,
             "money": 0,
             "tactical": false,
-            "supply": -1,
+            "supply": 10,
             "values": {
               "damage": 1
             }
@@ -35952,7 +35952,7 @@
         "step",
         "volley"
       ],
-      "ruleFingerprint": "ebc60af0e3a"
+      "ruleFingerprint": "ed3a2045ed1"
     },
     {
       "kingdomId": "balance-validation-026",
@@ -36162,10 +36162,10 @@
             "cardType": "action",
             "mechanic": "scrap",
             "family": "engine",
-            "cost": 0,
+            "cost": 1,
             "money": 0,
             "tactical": false,
-            "supply": -1,
+            "supply": 10,
             "values": {
               "damage": 1
             }
@@ -36188,7 +36188,7 @@
         "step",
         "stipend"
       ],
-      "ruleFingerprint": "55cd32fbe23"
+      "ruleFingerprint": "fbf2c37ceba"
     },
     {
       "kingdomId": "balance-validation-027",
@@ -36399,10 +36399,10 @@
             "cardType": "action",
             "mechanic": "scrap",
             "family": "engine",
-            "cost": 0,
+            "cost": 1,
             "money": 0,
             "tactical": false,
-            "supply": -1,
+            "supply": 10,
             "values": {
               "damage": 1
             }
@@ -36425,7 +36425,7 @@
         "steadyShot",
         "step"
       ],
-      "ruleFingerprint": "4ebbe26ae2e"
+      "ruleFingerprint": "21844363ec5"
     },
     {
       "kingdomId": "balance-validation-028",
@@ -36635,10 +36635,10 @@
             "cardType": "action",
             "mechanic": "scrap",
             "family": "engine",
-            "cost": 0,
+            "cost": 1,
             "money": 0,
             "tactical": false,
-            "supply": -1,
+            "supply": 10,
             "values": {
               "damage": 1
             }
@@ -36661,7 +36661,7 @@
         "step",
         "volley"
       ],
-      "ruleFingerprint": "6f43c195dc7"
+      "ruleFingerprint": "9a65f992e5e"
     },
     {
       "kingdomId": "balance-validation-029",
@@ -36869,10 +36869,10 @@
             "cardType": "action",
             "mechanic": "scrap",
             "family": "engine",
-            "cost": 0,
+            "cost": 1,
             "money": 0,
             "tactical": false,
-            "supply": -1,
+            "supply": 10,
             "values": {
               "damage": 1
             }
@@ -36895,7 +36895,7 @@
         "step",
         "volley"
       ],
-      "ruleFingerprint": "932f96cbd6d"
+      "ruleFingerprint": "a8ff988ce04"
     },
     {
       "kingdomId": "balance-validation-030",
@@ -37106,10 +37106,10 @@
             "cardType": "action",
             "mechanic": "scrap",
             "family": "engine",
-            "cost": 0,
+            "cost": 1,
             "money": 0,
             "tactical": false,
-            "supply": -1,
+            "supply": 10,
             "values": {
               "damage": 1
             }
@@ -37132,7 +37132,7 @@
         "step",
         "volley"
       ],
-      "ruleFingerprint": "de4b1e74e44"
+      "ruleFingerprint": "3cab2933edb"
     },
     {
       "kingdomId": "balance-validation-031",
@@ -37335,10 +37335,10 @@
             "cardType": "action",
             "mechanic": "scrap",
             "family": "engine",
-            "cost": 0,
+            "cost": 1,
             "money": 0,
             "tactical": false,
-            "supply": -1,
+            "supply": 10,
             "values": {
               "damage": 1
             }
@@ -37361,7 +37361,7 @@
         "step",
         "stipend"
       ],
-      "ruleFingerprint": "937a1e0cd02"
+      "ruleFingerprint": "046bad71d99"
     },
     {
       "kingdomId": "balance-validation-032",
@@ -37572,10 +37572,10 @@
             "cardType": "action",
             "mechanic": "scrap",
             "family": "engine",
-            "cost": 0,
+            "cost": 1,
             "money": 0,
             "tactical": false,
-            "supply": -1,
+            "supply": 10,
             "values": {
               "damage": 1
             }
@@ -37598,7 +37598,7 @@
         "starfire",
         "step"
       ],
-      "ruleFingerprint": "0ff6d6e3dd8"
+      "ruleFingerprint": "2341de04e6f"
     }
   ]
 }

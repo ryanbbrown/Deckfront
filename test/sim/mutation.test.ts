@@ -69,16 +69,20 @@ describe('shared build repair', () => {
 });
 
 describe('strategy normalization', () => {
-  it('removes Copper, zero targets, and rungs the draft already satisfied', () => {
+  it('excludes Copper and Scrap from AI strategy candidates and removes invalid plan rungs', () => {
+    expect(kingdomFacts('current-duel')).toMatchObject({
+      marketIds: expect.not.arrayContaining(['copper', 'scrap']),
+      purchaseIds: expect.not.arrayContaining(['copper', 'scrap'])
+    });
     const repaired = repairStrategy('current-duel', strategy({
-      startingBuild: ['copper', 'channel'],
+      startingBuild: ['copper', 'scrap', 'channel'],
       buyPlan: [
         { kind: 'buy', cardId: 'copper', desiredCount: 9 },
+        { kind: 'buy', cardId: 'scrap', desiredCount: 3 },
         { kind: 'buy', cardId: 'channel', desiredCount: 1 },
         { kind: 'buy', cardId: 'aim', desiredCount: 3 },
         { kind: 'buy', cardId: 'aim', desiredCount: 4 },
-        { kind: 'buy', cardId: 'volley', desiredCount: 0 },
-        { kind: 'buy', cardId: 'copper', desiredCount: INFINITE_COUNT }
+        { kind: 'buy', cardId: 'volley', desiredCount: 0 }
       ]
     }));
     expect(repaired.startingBuild).toEqual(['channel']);

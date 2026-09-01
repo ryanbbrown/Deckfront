@@ -2,7 +2,7 @@
   "schemaVersion": 1,
   "suiteVersion": "balance-smoke-v1",
   "sourceSuiteVersion": "balance-suite-v4",
-  "sourceManifestDigest": "15ce9f8187605fe347198f772b0be8069cf155629339a889990b8b85da631d4d",
+  "sourceManifestDigest": "f16dcebdbac618ebfd54fe2962583ced0aa2cfd7cd15158cd867ab9fe0e60400",
   "selectedCount": 30,
   "selectedKingdomIds": [
     "balance-tuning-005",
@@ -148,7 +148,7 @@
         "requiredTripleCovered": 60,
         "requiredTripleTotal": 60,
         "requiredTripleMinimum": 1,
-        "routesCovered": 14,
+        "routesCovered": 13,
         "routesTotal": 14,
         "maximumOverlap": 5
       },
@@ -197,7 +197,7 @@
         "requiredTripleCovered": 60,
         "requiredTripleTotal": 60,
         "requiredTripleMinimum": 1,
-        "routesCovered": 14,
+        "routesCovered": 13,
         "routesTotal": 14,
         "maximumOverlap": 5
       },
@@ -298,7 +298,7 @@
         "requiredTripleCovered": 60,
         "requiredTripleTotal": 60,
         "requiredTripleMinimum": 1,
-        "routesCovered": 14,
+        "routesCovered": 13,
         "routesTotal": 14,
         "maximumOverlap": 5
       },
@@ -356,5 +356,5 @@
       }
     ]
   },
-  "digest": "d88c6160c248ed0d5b56f2496a2c268936c2a43747a8cb4cfe7d14a6908cb6eb"
+  "digest": "af4a34ca91e71d4f4a855776a57c1e28dbc5efa00008200a951f5a7c83c75b92"
 }

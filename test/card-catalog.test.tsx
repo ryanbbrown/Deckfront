@@ -24,7 +24,7 @@ describe('card catalog assets and presentation', () => {
     }));
     expect(actual).toEqual([
       { heading: 'Treasure', cards: ['Copper:0', 'Silver:3', 'Gold:6'] },
-      { heading: 'Engine', cards: ['Scrap:0', 'Discipline:2', 'Step:2', 'Cull:3', 'Footwork:3', 'Reclaim:3', 'Regroup:3', 'Sharpen:3', 'Stipend:3', 'Adapt:4', 'Reforge:4', 'Flurry:5', 'Improvise:5', 'Muster:5', 'Scour:5', 'Regiment:7'] },
+      { heading: 'Engine', cards: ['Scrap:1', 'Discipline:2', 'Step:2', 'Cull:3', 'Footwork:3', 'Reclaim:3', 'Regroup:3', 'Sharpen:3', 'Stipend:3', 'Adapt:4', 'Reforge:4', 'Flurry:5', 'Improvise:5', 'Muster:5', 'Scour:5', 'Regiment:7'] },
       { heading: 'Melee', cards: ['Bull Rush:3', 'Jab:3', 'Opening Strike:3', 'Rally:3', 'Strike:3', 'Drive:4', 'Feint:4', 'Heavy Blow:5'] },
       { heading: 'Ranged', cards: ['Longshot:3', 'Peppering Shot:3', 'Steady Shot:3', 'Aim:4', 'Repelling Shot:4', 'Salvage Shot:4', 'Precision Shot:5', 'Volley:5'] },
       { heading: 'Mage', cards: ['Focus:1', 'Channel:3', 'Ley Step:3', 'Arc Bolt:4', 'Attune:4', 'Discharge:4', 'Overload:4', 'Cascade:5', 'Fireball:5', 'Prism:5', 'Starfire:6'] }

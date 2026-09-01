@@ -139,7 +139,7 @@ function kernelKingdom(kingdomId: string): KernelKingdom {
   const cached = kingdomCache.get(kingdomId);
   if (cached) return cached;
   const kingdom = kingdomOf(kingdomId);
-  const definitions = [...kingdomMarket(kingdomId), cardDefinition('scrap')];
+  const definitions = kingdomMarket(kingdomId);
   const cards = definitions.map((definition): KernelCard => ({
     id: definition.id, type: definition.type, mechanic: definition.mechanic, family: definition.family,
     cost: definition.cost, money: definition.money ?? 0, values: definition.values ?? {},
