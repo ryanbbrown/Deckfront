@@ -29,6 +29,15 @@ describe('local game HTTP interface', () => {
     expect(response.status).toBe(200);
     expect(await response.json()).toEqual({ ok: true });
   });
+  it('serves every public route and the play route through the client app', async () => {
+    const { base } = await server();
+    for (const route of ['/', '/rules', '/about', '/play']) {
+      const response = await fetch(`${base}${route}`);
+      expect(response.status, route).toBe(200);
+      expect(response.headers.get('content-type'), route).toBe('text/html; charset=utf-8');
+      expect(await response.text(), route).toContain('<div id="root"></div>');
+    }
+  });
   it('serves the setup catalog with fixed and variable cards separated', async () => {
     const { base } = await server(); const response = await fetch(`${base}/api/setup`);
     const setup = await response.json() as { fixedCardIds: string[]; variableCardIds: string[]; trainedVariableCardSets: string[][]; cards: Record<string, unknown> };

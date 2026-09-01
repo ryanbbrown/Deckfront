@@ -28,12 +28,12 @@ export const test = base.extend<Fixtures>({
   baseUrl: async ({ dataDirectory }, use) => {
     const app = createHexdeckServer({ dataDirectory, distDirectory: path.join(root, 'dist'), aiTrainer });
     await new Promise<void>((resolve) => app.server.listen(0, '127.0.0.1', resolve)); const address = app.server.address(); if (!address || typeof address === 'string') throw new Error('No address');
-    await use(`http://127.0.0.1:${address.port}`); await new Promise<void>((resolve, reject) => app.server.close((error) => error ? reject(error) : resolve()));
+    await use(`http://127.0.0.1:${address.port}/play`); await new Promise<void>((resolve, reject) => app.server.close((error) => error ? reject(error) : resolve()));
   },
   repository: async ({ dataDirectory }, use) => { await use(new FileGameRepository(dataDirectory)); },
   openGame: async ({ baseUrl, repository }, use) => {
     await use(async (page, mutate) => {
-      const response = await fetch(`${baseUrl}/api/games`, { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ seed: 7, mode: 'local', variableCardIds: VARIABLE_ACTION_IDS.slice(0, 10), startingDraftEnabled: true }) });
+      const response = await fetch(new URL('/api/games', baseUrl), { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ seed: 7, mode: 'local', variableCardIds: VARIABLE_ACTION_IDS.slice(0, 10), startingDraftEnabled: true }) });
       if (!response.ok) throw new Error(await response.text()); const created = await response.json() as { id: string }; const record = await repository.load(created.id);
       expect(record.schemaVersion).toBe(15); expect(record.startingDraftEnabled).toBe(true);
       completeSetup(record); mutate?.(record); resetRecord(record); await repository.save(record);

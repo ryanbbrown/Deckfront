@@ -819,7 +819,7 @@ fn process_outputs_are_thread_restart_and_repeat_stable() {
         serde_json::from_slice(&fs::read(report).unwrap()).expect("resume report");
     let resumed_games = report["totalGames"].as_u64().expect("total games");
     assert!(committed_games > 0 && resumed_games > 0);
-    assert_eq!(committed_games + resumed_games, 19_348);
+    assert_eq!(committed_games + resumed_games, 19_476);
     assert_eq!(evidence(&mid_confirmation), expected);
 
     let missing_self_play = root.join("missing-self-play");

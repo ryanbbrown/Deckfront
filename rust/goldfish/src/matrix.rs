@@ -1150,7 +1150,7 @@ mod tests {
             action_cap_per_turn: ACTION_CAP,
             starting_draft_enabled: false,
             infinite_count: 99,
-            first_player_health_penalty: 4,
+            first_player_health_penalty: 3,
             threads: 1,
             cpu_request: 1,
         })

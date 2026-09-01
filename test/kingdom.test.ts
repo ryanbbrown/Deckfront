@@ -31,7 +31,7 @@ describe('kingdom registry', () => {
     expect(state.kingdomId).toBe(DEFAULT_KINGDOM_ID); expect(state.startingHealth).toBe(50);
     expect(state.supply).toEqual({ cull:10, footwork:10, feint:10, jab:10, drive:10, flurry:10,
       aim:10, pepperingShot:10, repellingShot:10, volley:10, step:10, focus:10, scrap:10 });
-    expect(state.fighters.ochre.health).toBe(46); expect(state.fighters.indigo.health).toBe(50); assertInvariants(state);
+    expect(state.fighters.ochre.health).toBe(47); expect(state.fighters.indigo.health).toBe(50); assertInvariants(state);
   });
 
   it('makes Step, Focus, and Scrap universal and keeps Cull variable', () => {
@@ -122,7 +122,7 @@ describe('curated kingdoms', () => {
 
   it('keeps first-player health and setup invariants in every curated kingdom', () => {
     for (const id of Object.keys(CURATED)) { const state = createGame({ seed:4, kingdomId:id });
-      expect(state.fighters.ochre.health).toBe(46); expect(state.fighters.indigo.health).toBe(50);
+      expect(state.fighters.ochre.health).toBe(47); expect(state.fighters.indigo.health).toBe(50);
       assertInvariants(state); assertInvariants(ready(state)); }
   });
 });

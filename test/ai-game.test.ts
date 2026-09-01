@@ -39,7 +39,7 @@ describe('AI games', () => {
     expect(created).toMatchObject({ mode: 'ai', humanPlayerId: 'indigo', aiPlayerId: 'ochre',
       aiDifficulty: 'hard', startingDraftEnabled: false, phase: 'action', activePlayerId: 'indigo', turn: 2 });
     expect(repository.record?.aiDifficulty).toBe('hard');
-    expect(created.fighters.ochre.health).toBe(46); expect(created.training?.strategyId).toBe(strategy.id);
+    expect(created.fighters.ochre.health).toBe(47); expect(created.training?.strategyId).toBe(strategy.id);
     expect(created.completedBuilds).toBeNull();
     expect(created.presentation.frames[0]).toMatchObject({ playerId: 'ochre', commandType: 'aiTurnStart' });
     expect(created.presentation.frames.at(-1)?.state).toMatchObject({ activePlayerId: created.activePlayerId, phase: created.phase, turn: created.turn });
@@ -136,7 +136,7 @@ describe('AI games', () => {
     const service = new GameService(new MemoryRepository(), trainer);
     const created = await service.create({ seed: 9, mode: 'ai', humanPlayerId: 'ochre', variableCardIds: market });
     expect(created).toMatchObject({ humanPlayerId: 'ochre', aiPlayerId: 'indigo', selectedFirstPlayerId: 'ochre', activePlayerId: 'ochre' });
-    expect(created.fighters.ochre.health).toBe(46); expect(created.fighters.indigo.health).toBe(50);
+    expect(created.fighters.ochre.health).toBe(47); expect(created.fighters.indigo.health).toBe(50);
   });
 
   it('returns public AI events without hidden hand or draw-order details', async () => {

@@ -31,7 +31,7 @@ The initial public playtest chooses from [160 fixed markets selected for broad c
 
 ## How a match works
 
-The first player starts at 46 health and the second player starts at 50. Reduce the other fighter to 0 health to win.
+The first player starts at 47 health and the second player starts at 50. Reduce the other fighter to 0 health to win.
 
 A turn has two phases:
 

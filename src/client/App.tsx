@@ -5,6 +5,7 @@ import { createGame, loadGame, loadSetup } from './api';
 import { Game, InstructionsDialog, PreviewTable } from './Game';
 import { AI_ANIMATION_KEY, updateGame } from './playback';
 import { chooseTrainedVariableCards } from './setupMarket';
+import { PublicSite } from './PublicPages';
 
 const ACTIVE_GAME_KEY = 'hexdeck.activeGameId';
 const INSTRUCTIONS_DISMISSED_KEY = 'deckfront.instructionsDismissed';
@@ -19,6 +20,14 @@ const cryptoRandom: RandomIndexSource = {
 };
 
 export function App() {
+  const path = window.location.pathname.replace(/\/+$/, '') || '/';
+  if (path === '/') return <PublicSite page="home" />;
+  if (path === '/rules') return <PublicSite page="rules" />;
+  if (path === '/about') return <PublicSite page="about" />;
+  return <div className="game-app"><PlayApp /></div>;
+}
+
+function PlayApp() {
   const [catalog, setCatalog] = useState<SetupCatalog | null>(null);
   const [market, setMarket] = useState<string[]>([]);
   const [game, setGame] = useState<GameView | null>(null);
