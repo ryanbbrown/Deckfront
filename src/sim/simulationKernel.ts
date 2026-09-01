@@ -61,7 +61,7 @@ interface KernelState {
   positions: [number, number];
   health: [number, number];
   aimBonus: [number, number];
-  exposed: [boolean, boolean];
+  exposedAttacksRemaining: [number, number];
   supply: Int16Array;
   active: 0 | 1;
   turn: number;
@@ -239,7 +239,10 @@ function draw(state: KernelState, playerIndex: 0 | 1, count: number): number {
 function addDamage(state: KernelState, actor: 0 | 1, amount: number, close: boolean, source: number): boolean {
   const target = other(actor);
   let actual = amount;
-  if (close && state.exposed[target]) actual += kingdomValue(state, 'feint', 'bonus');
+  if (close && state.exposedAttacksRemaining[target] > 0) {
+    actual += kingdomValue(state, 'feint', 'bonus');
+    state.exposedAttacksRemaining[target] -= 1;
+  }
   state.health[target] = Math.max(0, state.health[target] - actual);
   if (state.telemetry) bump(state.telemetry.damageByCard[playerId(actor)], state.kingdom.cards[source]!.id, actual);
   event(state);
@@ -264,7 +267,7 @@ function positionAfter(position: number, movement: MovementChoice): number {
 
 function enabled(state: KernelState, actor: 0 | 1, card: KernelCard): boolean {
   const close = state.positions[actor] === state.positions[other(actor)];
-  if (['melee', 'drive', 'flurry', 'feint', 'openingStrike', 'rally', 'bullRush'].includes(card.mechanic) && !close) return false;
+  if (['melee', 'drive', 'feint', 'openingStrike', 'rally', 'bullRush'].includes(card.mechanic) && !close) return false;
   if (['ranged', 'repellingShot', 'volley', 'aim', 'longshot', 'salvageShot', 'precisionShot'].includes(card.mechanic) && close) return false;
   if (['spell', 'cascade'].includes(card.mechanic) && state.players[actor].mana < cardValue(card, 'manaCost')) return false;
   if (card.mechanic === 'bullRush') return state.players[actor].hand.filter((index) => state.kingdom.cards[index]!.family === 'melee').length > 1;
@@ -394,8 +397,9 @@ function pilotView(state: KernelState, actor: 0 | 1, pending: 'discard' | 'recov
     actorPosition: state.positions[actor], opponentPosition: state.positions[other(actor)],
     opponentHealth: state.health[other(actor)], aimed: state.aimBonus[actor] > 0,
     aimBonus: state.aimBonus[actor],
-    opponentExposed: state.exposed[other(actor)],
-    opponentExposedBonus: state.exposed[other(actor)] ? kingdomValue(state, 'feint', 'bonus') : 0,
+    opponentExposed: state.exposedAttacksRemaining[other(actor)] > 0,
+    opponentExposedAttacksRemaining: state.exposedAttacksRemaining[other(actor)],
+    opponentExposedBonus: state.exposedAttacksRemaining[other(actor)] > 0 ? kingdomValue(state, 'feint', 'bonus') : 0,
     mana: player.mana, manaSpent: state.manaSpent, spellsPlayed: state.spellsPlayed,
     attacksPlayed: state.cardsPlayed.filter((index) => ATTACK_MECHANICS.has(state.kingdom.cards[index]!.mechanic)).length,
     copiesPlayed: Object.fromEntries(state.kingdom.cards.map((card, index) => [card.id, state.copiesPlayed[index]!])),
@@ -485,7 +489,7 @@ function playCard(state: KernelState, actor: 0 | 1, decision: Extract<ReturnType
       break;
     }
     case 'muster': draw(state, actor, cardValue(card, 'draw')); break;
-    case 'feint': draw(state, actor, cardValue(card, 'draw')); state.exposed[other(actor)] = true; event(state); break;
+    case 'feint': draw(state, actor, cardValue(card, 'draw')); state.exposedAttacksRemaining[other(actor)] = cardValue(card, 'attacks'); event(state); break;
     case 'drive': {
       if (addDamage(state, actor, cardValue(card, 'damage'), true, cardIndex)) return true;
       const movement = decision.movement;
@@ -502,7 +506,7 @@ function playCard(state: KernelState, actor: 0 | 1, decision: Extract<ReturnType
       break;
     }
     case 'flurry': if (addDamage(state, actor,
-      previousTactical * cardValue(card, 'perAction'), true, cardIndex)) return true; break;
+      previousTactical * cardValue(card, 'perAction'), false, cardIndex)) return true; break;
     case 'aim': state.aimBonus[actor] += cardValue(card, 'bonus'); event(state); draw(state, actor, cardValue(card, 'draw')); break;
     case 'volley': {
       const near = Math.abs(state.positions[actor] - state.positions[other(actor)]) === 1;
@@ -661,7 +665,7 @@ function recordDeadDraws(state: KernelState, actor: 0 | 1): void {
   for (const index of player.hand) {
     const card = state.kingdom.cards[index]!;
     if (card.type !== 'action') continue;
-    if ((['melee', 'drive', 'flurry', 'feint', 'openingStrike', 'rally', 'bullRush'].includes(card.mechanic) && !close)
+    if ((['melee', 'drive', 'feint', 'openingStrike', 'rally', 'bullRush'].includes(card.mechanic) && !close)
       || (['ranged', 'repellingShot', 'volley', 'aim', 'longshot', 'salvageShot', 'precisionShot'].includes(card.mechanic) && close)) {
       counts.range += 1; counts.total += 1; continue;
     }
@@ -728,7 +732,7 @@ function endBuyPhase(state: KernelState, actor: 0 | 1): void {
   player.discard.push(...player.hand, ...player.play); player.hand = []; player.play = [];
   player.money = 0; player.mana = Math.min(player.mana, MAX_CARRIED_MANA); player.carriedMana = player.mana;
   player.firstBuyPending = false; player.firstBuyMoney = 0;
-  state.aimBonus[actor] = 0; state.exposed[other(actor)] = false;
+  state.aimBonus[actor] = 0; state.exposedAttacksRemaining[other(actor)] = 0;
   draw(state, actor, 5); state.tacticalPlayed = 0; state.cardsPlayed = []; state.spacesMoved = 0; state.manaSpent = 0; state.spellsPlayed = 0;
   state.copiesPlayed.fill(0); state.familiesPlayed.clear();
   state.active = other(actor); state.turn += 1; event(state);
@@ -744,7 +748,7 @@ function createState(config: SimulationMatchConfig, collectTelemetry = true): Ke
     kingdom, players, positions: config.swapSides ? [4, 3] : [3, 4],
     health: [playerStartingHealth(kingdom.health, config.firstPlayerId === 'ochre'),
       playerStartingHealth(kingdom.health, config.firstPlayerId === 'indigo')],
-    aimBonus: [0, 0], exposed: [false, false], supply: new Int16Array(kingdom.initialSupply),
+    aimBonus: [0, 0], exposedAttacksRemaining: [0, 0], supply: new Int16Array(kingdom.initialSupply),
     active: seat(config.firstPlayerId), turn: 1, rng: config.seed >>> 0, tacticalPlayed: 0,
     cardsPlayed: [], spacesMoved: 0, manaSpent: 0, spellsPlayed: 0, copiesPlayed: new Int16Array(kingdom.cards.length), familiesPlayed: new Set(), eventCount: 2,
     telemetry: null, collectTelemetry

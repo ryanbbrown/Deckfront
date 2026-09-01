@@ -142,8 +142,8 @@ describe('attacks', () => {
   it('Heavy Blow deals 6 at Close and gains the persistent Feint bonus at Close', () => {
     let state = ready(); state.fighters.indigo.position = 3; isolateHand(state, 'ochre', ['heavyBlow']);
     state = playCard(state, 'heavyBlow'); expect(state.fighters.indigo.health).toBe(34); assertInvariants(state);
-    state = ready(); state.fighters.indigo.position = 3; state.fighters.indigo.exposed = true; isolateHand(state, 'ochre', ['heavyBlow']);
-    state = playCard(state, 'heavyBlow'); expect(state.fighters.indigo.health).toBe(33); expect(state.fighters.indigo.exposed).toBe(true);
+    state = ready(); state.fighters.indigo.position = 3; state.fighters.indigo.exposedAttacksRemaining = 2; isolateHand(state, 'ochre', ['heavyBlow']);
+    state = playCard(state, 'heavyBlow'); expect(state.fighters.indigo.health).toBe(32); expect(state.fighters.indigo.exposedAttacksRemaining).toBe(1);
     for (const position of [4, 6]) {
       const near = ready(); near.fighters.indigo.position = position; isolateHand(near, 'ochre', ['heavyBlow']);
       expect(availability(near, 'heavyBlow')).toMatchObject({ enabled: false, reasonCode: 'NEEDS_CLOSE' });
@@ -203,11 +203,11 @@ describe('attacks', () => {
     aimed = playCard(aimed, 'repellingShot');
     expect(aimed.fighters.ochre.aimBonus).toBe(0); expect(aimed.fighters.indigo.health).toBe(37);
   });
-  it('a spell leaves Exposed alone while Close attacks use it without consuming it', () => {
-    let spell = ready(); spell.fighters.indigo.position = 3; spell.fighters.indigo.exposed = true; spell.players.ochre.mana = 1; isolateHand(spell, 'ochre', ['arcBolt']);
-    spell = playCard(spell, 'arcBolt'); expect(spell.fighters.indigo.health).toBe(37); expect(spell.fighters.indigo.exposed).toBe(true);
-    let melee = ready(); melee.fighters.indigo.position = 3; melee.fighters.indigo.exposed = true; isolateHand(melee, 'ochre', ['strike']);
-    melee = playCard(melee, 'strike'); expect(melee.fighters.indigo.health).toBe(36); expect(melee.fighters.indigo.exposed).toBe(true);
+  it('a spell leaves Exposed alone while a Close attack consumes one charge', () => {
+    let spell = ready(); spell.fighters.indigo.position = 3; spell.fighters.indigo.exposedAttacksRemaining = 2; spell.players.ochre.mana = 1; isolateHand(spell, 'ochre', ['arcBolt']);
+    spell = playCard(spell, 'arcBolt'); expect(spell.fighters.indigo.health).toBe(37); expect(spell.fighters.indigo.exposedAttacksRemaining).toBe(2);
+    let melee = ready(); melee.fighters.indigo.position = 3; melee.fighters.indigo.exposedAttacksRemaining = 2; isolateHand(melee, 'ochre', ['strike']);
+    melee = playCard(melee, 'strike'); expect(melee.fighters.indigo.health).toBe(35); expect(melee.fighters.indigo.exposedAttacksRemaining).toBe(1);
   });
   it('Opening Strike treats setup as non-attacks and earlier attack cards as attacks', () => {
     let setup = ready(); setup.fighters.indigo.position = 3; isolateHand(setup, 'ochre', ['focus', 'openingStrike']);

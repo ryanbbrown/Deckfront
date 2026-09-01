@@ -36,7 +36,7 @@ function play(state: GameState, definitionId: string, targets?: string[]): GameS
 describe('combo card batch', () => {
   it('loads every specified card and classifies exactly the Tactical Actions', () => {
     expect(Object.keys(CARDS)).toHaveLength(46);
-    const expected = ['step','footwork','leyStep','feint','jab','strike','drive','heavyBlow','openingStrike','rally','bullRush','flurry','aim','pepperingShot','steadyShot','repellingShot','longshot','volley','salvageShot','precisionShot','arcBolt','fireball','starfire','discharge','cascade','overload','discipline','improvise','scrap'].sort();
+    const expected = ['focus','channel','leyStep','attune','prism','step','footwork','feint','jab','strike','drive','heavyBlow','openingStrike','rally','bullRush','flurry','aim','pepperingShot','steadyShot','repellingShot','longshot','volley','salvageShot','precisionShot','arcBolt','fireball','starfire','discharge','cascade','overload','discipline','improvise'].sort();
     expect([...TACTICAL_ACTIONS].sort()).toEqual(expected);
     expect(Object.values(CARDS).filter((card) => EFFECTS[card.mechanic].tactical).map((card) => card.id).sort()).toEqual(expected);
   });
@@ -88,13 +88,13 @@ describe('combo card batch', () => {
     expect(ranged.fighters.indigo.health).toBe(33);
   });
 
-  it('applies persistent Feint and one-shot Aim through shared attack paths', () => {
-    let state = ready(); state.fighters.ochre.position = state.fighters.indigo.position = 2; hand(state, ['feint','strike','rally']);
-    state = play(state, 'feint'); state = play(state, 'strike'); state = play(state, 'rally');
-    expect(state.fighters.indigo.health).toBe(33); expect(state.fighters.indigo.exposed).toBe(true);
+  it('applies Feint to exactly two Close attacks and one-shot Aim through shared attack paths', () => {
+    let state = ready(); state.fighters.ochre.position = state.fighters.indigo.position = 2; hand(state, ['feint','strike','rally','strike']);
+    state = play(state, 'feint'); state = play(state, 'strike'); state = play(state, 'rally'); state = play(state, 'strike');
+    expect(state.fighters.indigo.health).toBe(28); expect(state.fighters.indigo.exposedAttacksRemaining).toBe(0);
     state = applyAction(state, listLegalActions(state).find((a) => a.command.type === 'endActionPhase')!.id);
     state = applyAction(state, listLegalActions(state).find((a) => a.command.type === 'endBuyPhase')!.id);
-    expect(state.fighters.indigo.exposed).toBe(false);
+    expect(state.fighters.indigo.exposedAttacksRemaining).toBe(0);
 
     state = ready(); hand(state, ['aim','repellingShot','steadyShot']); state = play(state, 'aim'); state = play(state, 'repellingShot');
     expect(state.fighters.indigo.health).toBe(37); expect(state.fighters.ochre.aimBonus).toBe(0);
@@ -157,7 +157,7 @@ describe('combo card batch', () => {
     expect(on.telemetry.startingBuild).toEqual({ ochre: [], indigo: [] }); expect(off.telemetry.startingBuild).toEqual({ ochre: [], indigo: [] });
     const fingerprint = rulesFingerprint('distance-duel');
     expect(fingerprint).toMatchObject({ version: 3, rules: { maximumCarriedMana: 2, manaUsableTurns: 'unlimited',
-      simulationKernelProtocol: 'stacking-aim-v12', tacticalPilotProtocol: 'aim-stack-priority-v10' } });
+      simulationKernelProtocol: 'feint-flurry-v13', tacticalPilotProtocol: 'expanded-tactical-v11' } });
     expect(rulesFingerprint('three-way-open').rules.tacticalPilotProtocol).toBe('first-attack-v9');
     expect(fingerprint.hash).not.toBe(rulesFingerprint('distance-duel', undefined, undefined, false).hash);
   });
@@ -166,7 +166,7 @@ describe('combo card batch', () => {
 
 describe('complete public card coverage', () => {
   // Feint is included because this set places every card that requires Close range, not only attacks.
-  const closeRangeCards = new Set(['feint','jab','strike','drive','heavyBlow','openingStrike','rally','bullRush','flurry']);
+  const closeRangeCards = new Set(['feint','jab','strike','drive','heavyBlow','openingStrike','rally','bullRush']);
   const manaGated = new Set(['arcBolt','fireball','starfire','cascade']);
 
   it.each(Object.values(CARDS).filter((card) => card.type === 'action').map((card) => card.id))(
@@ -198,7 +198,7 @@ describe('complete public card coverage', () => {
   );
 
   it('gates every Close, ranged, and mana-cost attack with literal reason codes', () => {
-    for (const id of ['feint','jab','strike','drive','heavyBlow','openingStrike','rally','bullRush','flurry']) {
+    for (const id of ['feint','jab','strike','drive','heavyBlow','openingStrike','rally','bullRush']) {
       const state = ready(); state.fighters.indigo.position = 4; hand(state, id === 'bullRush' ? [id,'strike'] : [id]);
       expect(listLegalActions(state).some((entry) => 'cardInstanceId' in entry.command)).toBe(false);
     }
@@ -213,14 +213,14 @@ describe('complete public card coverage', () => {
   });
 
   it.each([
-    ['jab',3],['strike',4],['drive',4],['heavyBlow',7],['openingStrike',5],['rally',3],['bullRush',8],['flurry',2]
-  ] as const)('Feint routes persistent Close bonus through %s', (attackId, damage) => {
+    ['jab',4],['strike',5],['drive',5],['heavyBlow',8],['openingStrike',6],['rally',4],['bullRush',9]
+  ] as const)('Feint gives +2 damage to a Close attack through %s', (attackId, damage) => {
     let state = ready(); state.fighters.indigo.position = 3;
     hand(state,['feint',attackId,...(attackId === 'bullRush' ? ['strike'] : [])]); state = play(state,'feint');
     const source = state.players.ochre.deck.hand.find((card) => card.definitionId === attackId)!;
     const legal = listLegalActions(state).filter((entry) => 'cardInstanceId' in entry.command && entry.command.cardInstanceId === source.id);
     state = applyAction(state,legal[0]!.id);
-    expect(state.fighters.indigo.health).toBe(40-damage); expect(state.fighters.indigo.exposed).toBe(true);
+    expect(state.fighters.indigo.health).toBe(40-damage); expect(state.fighters.indigo.exposedAttacksRemaining).toBe(1);
   });
 
   it.each(['pepperingShot','steadyShot','repellingShot','longshot','volley','salvageShot','precisionShot'])(

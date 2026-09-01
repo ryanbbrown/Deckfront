@@ -53,7 +53,7 @@ export interface FighterState {
   position: number;
   health: number;
   aimBonus: number;
-  exposed: boolean;
+  exposedAttacksRemaining: number;
 }
 export interface TurnState {
   cardsPlayed: string[];
@@ -82,7 +82,7 @@ export interface GameEvent {
   detail: Record<string, unknown>;
 }
 export interface GameState {
-  schemaVersion: 11;
+  schemaVersion: 12;
   seed: number;
   rngState: number;
   version: number;

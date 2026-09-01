@@ -76,7 +76,7 @@ describe('fixed buy ladder', () => {
   it('buys finite targets, then repeats the explicit final card', () => {
     const plan = strategy({ buyPlan: [{ kind: 'buy', cardId: 'footwork', desiredCount: 2 }, { kind: 'buy', cardId: 'aim', desiredCount: INFINITE_COUNT }] });
     const commands = buyRun(buyState({ money: 20 }), plan);
-    expect(bought(commands)).toEqual(['footwork', 'footwork', 'aim', 'aim']);
+    expect(bought(commands)).toEqual(['footwork', 'footwork', 'aim', 'aim', 'aim']);
     expect(commands.at(-1)!.type).toBe('endBuyPhase');
   });
 
@@ -204,7 +204,7 @@ describe('strategy agent dispatch', () => {
 
     // Muster is not sold in Distance Duel; the legal equal-cost cards remain in stable order.
     const tied = ['flurry', 'muster', 'aim', 'aim'];
-    expect(repairBuild(state, tied)).toEqual(['flurry', 'aim']);
+    expect(repairBuild(state, tied)).toEqual(['aim', 'aim']);
     expect(repairBuild(state, tied)).toEqual(repairBuild(state, tied));
   });
 

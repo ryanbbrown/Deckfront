@@ -26,7 +26,7 @@ export interface GamePlayerView {
   firstBuyPending: boolean;
   purchases: string[];
 }
-export interface FighterView { playerId: PlayerId; position: number; health: number; aimBonus: number; exposed: boolean }
+export interface FighterView { playerId: PlayerId; position: number; health: number; aimBonus: number; exposedAttacksRemaining: number }
 export interface PublicGameEvent { sequence: number; type: GameEventType; playerId: PlayerId; detail: Record<string, unknown> }
 export interface BrowserAction { id: string; label: string; text: string }
 export interface CardActionChoice extends BrowserAction {

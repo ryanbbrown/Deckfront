@@ -206,8 +206,8 @@ export function memoKey(state: GameState, playerId: PlayerId): string {
   const copies = Object.entries(turn.copiesPlayed).sort(([left], [right]) => left.localeCompare(right));
   const pending = state.pendingChoice;
   return [
-    mine.position, mine.health, mine.aimBonus, mine.exposed ? 1 : 0,
-    foe.position, foe.health, foe.aimBonus, foe.exposed ? 1 : 0,
+    mine.position, mine.health, mine.aimBonus, mine.exposedAttacksRemaining,
+    foe.position, foe.health, foe.aimBonus, foe.exposedAttacksRemaining,
     counts(player.deck.hand), counts(player.deck.play), ordered(player.deck.draw), ordered(player.deck.discard),
     player.mana, player.money, player.positionChanged ? 1 : 0, state.rngState,
     pending ? JSON.stringify(pending) : '-', tactical,

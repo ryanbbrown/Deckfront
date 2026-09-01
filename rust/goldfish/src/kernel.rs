@@ -45,6 +45,8 @@ pub struct RawValues {
     #[serde(default)]
     bonus: i16,
     #[serde(default)]
+    attacks: i16,
+    #[serde(default)]
     money: i16,
     #[serde(default)]
     mana: i16,
@@ -467,7 +469,7 @@ struct State<'a> {
     pos: [i16; 2],
     health: [i16; 2],
     aim_bonus: [i16; 2],
-    exposed: [bool; 2],
+    exposed: [i16; 2],
     active_seat: u8,
     supply: Vec<i16>,
     turn: i16,
@@ -597,7 +599,7 @@ impl<'a> State<'a> {
             pos: [3, 4],
             health: [(k.health - FIRST_PLAYER_HEALTH_PENALTY).max(1), 50],
             aim_bonus: [0, 0],
-            exposed: [false, false],
+            exposed: [0, 0],
             active_seat: 0,
             supply: k.cards.iter().map(|c| c.supply).collect(),
             turn: 1,
@@ -655,7 +657,7 @@ impl<'a> State<'a> {
                 },
             ],
             aim_bonus: [0, 0],
-            exposed: [false, false],
+            exposed: [0, 0],
             active_seat: 0,
             supply: k.cards.iter().map(|c| c.supply).collect(),
             turn: 1,
@@ -735,7 +737,6 @@ impl<'a> State<'a> {
             }
             Mechanic::Melee
             | Mechanic::Drive
-            | Mechanic::Flurry
             | Mechanic::Feint
             | Mechanic::OpeningStrike
             | Mechanic::Rally => self.close(),
@@ -838,7 +839,7 @@ impl<'a> State<'a> {
         let c = &self.k.cards[ci];
         let close = ap == op;
         let aim = if aimed || public { self.k.aim_bonus } else { 0 };
-        let close_bonus = if !public && self.exposed[1] {
+        let close_bonus = if !public && self.exposed[1] > 0 {
             self.k.feint_bonus
         } else {
             0
@@ -864,13 +865,7 @@ impl<'a> State<'a> {
                     0
                 }
             }
-            Mechanic::Flurry => {
-                if close {
-                    (if public { 1 } else { tactical }) * c.v.per_action + close_bonus
-                } else {
-                    0
-                }
-            }
+            Mechanic::Flurry => (if public { 1 } else { tactical }) * c.v.per_action,
             Mechanic::OpeningStrike => {
                 if close {
                     (if public || !self.attack_played() {
@@ -981,7 +976,7 @@ impl<'a> State<'a> {
     fn immediate(&self, hi: usize) -> i16 {
         let ci = self.p.hand[hi];
         let card = &self.k.cards[ci];
-        let close_bonus = if self.exposed[1] {
+        let close_bonus = if self.exposed[1] > 0 {
             self.k.feint_bonus
         } else {
             0
@@ -998,7 +993,7 @@ impl<'a> State<'a> {
                         0
                     }
             }
-            Mechanic::Flurry => self.tactical * card.v.per_action + close_bonus,
+            Mechanic::Flurry => self.tactical * card.v.per_action,
             Mechanic::OpeningStrike => {
                 (if self.attack_played() {
                     card.v.later
@@ -1071,6 +1066,7 @@ impl<'a> State<'a> {
         let mut spell = [0i16; MAX_MANA + 1];
         let spell = &mut spell[..=available_mana];
         let mut scrap = self.copies[self.k.scrap] == 0;
+        let mut exposed = self.exposed[1];
         for (i, &ci) in self.p.hand.iter().enumerate() {
             let c = &self.k.cards[ci];
             if !attack_mechanic(c.mechanic) {
@@ -1097,6 +1093,22 @@ impl<'a> State<'a> {
                 .max()
                 .unwrap_or(0);
             let mut damage = self.printed(ci, ap, op, false, mana, tactical, salvage, false);
+            let close_attack = ap == op
+                && matches!(
+                    c.mechanic,
+                    Mechanic::Melee
+                        | Mechanic::Drive
+                        | Mechanic::OpeningStrike
+                        | Mechanic::Rally
+                        | Mechanic::BullRush
+                );
+            if close_attack && self.exposed[1] > 0 {
+                if exposed > 0 {
+                    exposed -= 1;
+                } else {
+                    damage -= self.k.feint_bonus;
+                }
+            }
             if c.mechanic == Mechanic::Scrap {
                 if !scrap {
                     damage = 0
@@ -1250,7 +1262,7 @@ impl<'a> State<'a> {
             let actor = if collision { self.pos[0] } else { destination };
             let opponent = if collision { self.pos[1] } else { destination };
             let damage = c.v.damage
-                + if self.exposed[1] {
+                + if self.exposed[1] > 0 {
                     self.k.feint_bonus
                 } else {
                     0
@@ -1341,14 +1353,13 @@ impl<'a> State<'a> {
             }
         }
         if let Some(i) = find(Mechanic::Feint) {
-            if !self.exposed[1]
+            if self.exposed[1] == 0
                 && self.p.hand.iter().any(|&ci| {
                     self.enabled(ci)
                         && matches!(
                             self.k.cards[ci].mechanic,
                             Mechanic::Melee
                                 | Mechanic::Drive
-                                | Mechanic::Flurry
                                 | Mechanic::OpeningStrike
                                 | Mechanic::Rally
                                 | Mechanic::BullRush
@@ -1569,11 +1580,11 @@ impl<'a> State<'a> {
         self.p.mana -= amount;
     }
     fn damage(&mut self, n: i16, close: bool, family: Family) -> bool {
-        let actual = n + if close && self.exposed[1] {
-            self.k.feint_bonus
-        } else {
-            0
-        };
+        let exposed = close && self.exposed[1] > 0;
+        let actual = n + if exposed { self.k.feint_bonus } else { 0 };
+        if exposed {
+            self.exposed[1] -= 1;
+        }
         let before = self.health[1];
         self.health[1] = (self.health[1] - actual).max(0);
         self.family_damage[self.active_seat as usize][family.index()] +=
@@ -1820,7 +1831,7 @@ impl<'a> State<'a> {
                 true
             ),
             Mechanic::Rally => hit!(c.v.damage + (self.copies[ci] - 1) * c.v.per_copy, true),
-            Mechanic::Flurry => hit!(prev * c.v.per_action, true),
+            Mechanic::Flurry => hit!(prev * c.v.per_action, false),
             Mechanic::Aim => {
                 self.aim_bonus[0] += c.v.bonus;
                 self.draw(c.v.draw)
@@ -1838,7 +1849,7 @@ impl<'a> State<'a> {
             }
             Mechanic::Feint => {
                 self.draw(c.v.draw);
-                self.exposed[1] = true
+                self.exposed[1] = c.v.attacks
             }
             Mechanic::Discipline => {
                 let i = after.unwrap_or(0);
@@ -2021,7 +2032,7 @@ impl<'a> State<'a> {
         self.p.first_buy_money = 0;
         self.p.first_buy_pending = false;
         self.aim_bonus[0] = 0;
-        self.exposed[1] = false;
+        self.exposed[1] = 0;
         self.draw(5);
         self.tactical = 0;
         self.cards_played.clear();

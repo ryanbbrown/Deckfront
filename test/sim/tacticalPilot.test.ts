@@ -113,7 +113,7 @@ describe('the shared tactical pilot', () => {
       draw: [], mana: 0, ochre: 2, indigo: 2, indigoHand: [], indigoDraw: [], indigoDiscard: []
     });
     state.turnState.cardsPlayed = ['footwork', 'footwork', 'footwork', 'footwork', 'footwork'];
-    expect(playedDefinition(state, choose(state))).toBe('adapt');
+    expect(playedDefinition(state, choose(state))).toBe('leyStep');
   });
 
   it('does not trade away current Melee damage to enable one spell with Ley Step', () => {

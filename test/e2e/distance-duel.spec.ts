@@ -154,7 +154,8 @@ test('DD-E2E-073: full card catalog covers the viewport and shows all cards in a
   const familyCards = async (family: string) => dialog.locator(`[data-catalog-family="${family}"] [data-card-name]`).evaluateAll((cards) => cards.map((card) => `${card.getAttribute('data-card-name')}:${card.getAttribute('data-card-cost')}`));
   expect(await familyCards('treasure')).toEqual(['Copper:0', 'Silver:3', 'Gold:6']);
   expect((await familyCards('engine')).slice(0, 5)).toEqual(['Scrap:0', 'Discipline:2', 'Step:2', 'Cull:3', 'Footwork:3']);
-  expect((await familyCards('melee')).slice(-3)).toEqual(['Feint:5', 'Flurry:5', 'Heavy Blow:5']);
+  expect(await familyCards('engine')).toContain('Flurry:5');
+  expect((await familyCards('melee')).slice(-3)).toEqual(['Drive:4', 'Feint:4', 'Heavy Blow:5']);
   expect((await familyCards('ranged')).slice(0, 3)).toEqual(['Longshot:3', 'Peppering Shot:3', 'Steady Shot:3']);
   expect((await familyCards('mana')).slice(-3)).toEqual(['Overload:4', 'Prism:5', 'Starfire:6']);
   const layout = await dialog.evaluate((overlay) => {

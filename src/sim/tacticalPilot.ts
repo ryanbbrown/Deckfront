@@ -40,6 +40,7 @@ export interface TacticalView {
   aimed: boolean;
   aimBonus: number;
   opponentExposed: boolean;
+  opponentExposedAttacksRemaining: number;
   opponentExposedBonus: number;
   mana: number;
   manaSpent: number;
@@ -69,7 +70,7 @@ function immediateDamage(card: PilotCard, view: TacticalView): number {
     case 'melee': return value(card, 'damage') + view.opponentExposedBonus;
     case 'drive': return value(card, 'damage') + view.opponentExposedBonus
       + ((view.actorPosition === ARENA_MIN || view.actorPosition === ARENA_MAX) ? value(card, 'wallDamage') : 0);
-    case 'flurry': return view.tacticalPlayed * value(card, 'perAction') + view.opponentExposedBonus;
+    case 'flurry': return view.tacticalPlayed * value(card, 'perAction');
     case 'openingStrike': return value(card, view.attacksPlayed === 0 ? 'first' : 'later') + view.opponentExposedBonus;
     case 'rally': return value(card, 'damage') + (view.copiesPlayed[card.definitionId] ?? 0) * value(card, 'perCopy') + view.opponentExposedBonus;
     case 'bullRush': return value(card, 'damage') + view.opponentExposedBonus;
@@ -116,6 +117,8 @@ function currentHandDamageAt(
     'ranged', 'repellingShot', 'longshot', 'salvageShot', 'precisionShot', 'volley'
   ]);
   let scrapAvailable = (view.copiesPlayed.scrap ?? 0) === 0;
+  let exposedAttacksRemaining = view.opponentExposedAttacksRemaining;
+  const closeMechanics = new Set<CardMechanic>(['melee', 'drive', 'openingStrike', 'rally', 'bullRush']);
   for (const card of view.hand) {
     if (!['melee', 'drive', 'flurry', 'openingStrike', 'rally', 'bullRush', 'ranged', 'repellingShot',
       'longshot', 'salvageShot', 'precisionShot', 'spell', 'discharge', 'cascade', 'overload', 'discipline', 'improvise', 'scrap', 'volley']
@@ -132,6 +135,8 @@ function currentHandDamageAt(
       continue;
     }
     const state = attackState(card, view, mana, tacticalPlayed);
+    state.closeBonus = exposedAttacksRemaining > 0 && actorPosition === opponentPosition
+      && closeMechanics.has(card.mechanic) ? view.opponentExposedBonus : 0;
     if (card.mechanic === 'scrap') {
       if (!scrapAvailable) state.copiesPlayed = { ...view.copiesPlayed, scrap: 1 };
       scrapAvailable = false;
@@ -140,6 +145,7 @@ function currentHandDamageAt(
     state.aimBonus = 0;
     const damage = printedAttackDamage(card, actorPosition, opponentPosition, state);
     total += damage;
+    if (damage > 0 && state.closeBonus) exposedAttacksRemaining -= 1;
     if (damage > 0 && ranged.has(card.mechanic)) canUseAim = true;
   }
   return total + (canUseAim ? view.aimBonus : 0) + (spellDamage?.at(-1) ?? 0);

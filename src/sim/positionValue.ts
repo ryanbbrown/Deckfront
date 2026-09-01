@@ -51,9 +51,7 @@ export function printedAttackDamage(
       ? value(card.values, 'damage') + closeBonus(state)
         + ((actorPosition === ARENA_MIN || actorPosition === ARENA_MAX) ? value(card.values, 'wallDamage') : 0)
       : 0;
-    case 'flurry': return close
-      ? (state.publicFuture ? 1 : state.tacticalPlayed) * value(card.values, 'perAction') + closeBonus(state)
-      : 0;
+    case 'flurry': return (state.publicFuture ? 1 : state.tacticalPlayed) * value(card.values, 'perAction');
     case 'openingStrike': return close
       ? value(card.values, state.publicFuture || (state.attacksPlayed ?? 0) === 0 ? 'first' : 'later') + closeBonus(state)
       : 0;

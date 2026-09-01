@@ -1,7 +1,7 @@
 import type { CardMechanic } from './types';
 
 export const VALUE_KEYS: Readonly<Record<CardMechanic, readonly string[]>> = Object.freeze({
-  money: [], footwork: ['draw'], cull: [], muster: ['draw'], feint: ['draw', 'bonus'],
+  money: [], footwork: ['draw'], cull: [], muster: ['draw'], feint: ['draw', 'bonus', 'attacks'],
   drive: ['damage', 'wallDamage'], flurry: ['perAction'], aim: ['draw', 'bonus'], volley: ['near', 'far'],
   stipend: ['draw', 'money'], reclaim: ['draw'], adapt: ['draw', 'movedDraw'], melee: ['damage', 'draw'],
   ranged: ['damage', 'draw'], repellingShot: ['near', 'far'], spell: ['damage', 'manaCost'],

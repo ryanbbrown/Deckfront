@@ -85,10 +85,10 @@ describe('public position value', () => {
     expect(printedAttackDamage(cascade, 2, 4, { ...base, spellsPlayed: 2 })).toBe(8);
   });
 
-  it('gives public-future Flurry one nominal prior Tactical Action at Close range', () => {
+  it('gives public-future Flurry one nominal prior Tactical Action at any range', () => {
     const flurry = profile('flurry');
     expect(profilePositionValue(flurry, 3, 3)).toBe(6);
-    expect(profilePositionValue(flurry, 2, 3)).toBe(-1);
+    expect(profilePositionValue(flurry, 2, 3)).toBe(6);
   });
 
   it('keeps Longshot at one damage for Near and absolute-distance damage for Far', () => {

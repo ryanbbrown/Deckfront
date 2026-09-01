@@ -53,7 +53,7 @@ const fighter = z.object({
   position: z.number().int().min(1).max(6),
   health: z.number().int().nonnegative(),
   aimBonus: z.number().int().nonnegative(),
-  exposed: z.boolean()
+  exposedAttacksRemaining: z.number().int().nonnegative()
 });
 const pendingChoice = z.discriminatedUnion('type', [
   z.object({ type: z.literal('discard'), playerId, remaining: z.number().int().positive() }),
@@ -100,7 +100,7 @@ const turnState = z.object({
 });
 
 export const gameStateSchema = z.object({
-  schemaVersion: z.literal(11),
+  schemaVersion: z.literal(12),
   seed: z.number().int(),
   rngState: z.number().int().nonnegative(),
   version: z.number().int().nonnegative(),

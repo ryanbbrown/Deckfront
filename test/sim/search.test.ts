@@ -35,7 +35,7 @@ describe('shared damage pilot', () => {
   it('orders tactical actions before Flurry', () => {
     const state = arena({ hand: ['footwork', 'feint', 'flurry'], draw: ['copper', 'copper'], ochre: 3, indigo: 3, health: 20 });
     const finished = playPhase(state, strategy());
-    expect(finished.fighters.indigo.health).toBe(17);
+    expect(finished.fighters.indigo.health).toBe(18);
     expect(finished.turnState.cardsPlayed.at(-1)).toBe('flurry');
   });
 

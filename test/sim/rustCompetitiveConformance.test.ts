@@ -66,8 +66,10 @@ describe.skipIf(!fs.existsSync(binary))('Rust competitive scorer conformance', (
       startingHealth: 50, actionPiles: cardIds.map((cardId) => ({ cardId, count: 10 })) };
     registerKingdom(mechanicsKingdom);
     const strategies = cardIds.map((cardId) => identify({ id: '', startingBuild: [],
-      buyPlan: fixedBuyPlan(cardId === 'leyStep'
-        ? [{ kind: 'buy', cardId, desiredCount: 2 }, { kind: 'buy', cardId: 'longshot', desiredCount: 2 }]
+      buyPlan: fixedBuyPlan(cardId === 'flurry'
+        ? [{ kind: 'buy', cardId: 'footwork', desiredCount: 1 }, { kind: 'buy', cardId, desiredCount: 2 }]
+        : cardId === 'leyStep'
+          ? [{ kind: 'buy', cardId, desiredCount: 2 }, { kind: 'buy', cardId: 'longshot', desiredCount: 2 }]
         : cardId === 'feint'
           ? [{ kind: 'buy', cardId: 'step', desiredCount: 2 },
             { kind: 'buy', cardId: 'strike', desiredCount: 2 }, { kind: 'buy', cardId, desiredCount: 2 }]

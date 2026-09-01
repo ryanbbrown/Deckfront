@@ -5,7 +5,7 @@ import type { GameState } from './types';
 
 export function checkInvariants(state: GameState): string[] {
   const errors: string[] = [];
-  if (state.schemaVersion !== 11) errors.push('Unsupported game schema version.');
+  if (state.schemaVersion !== 12) errors.push('Unsupported game schema version.');
 
   for (const fighter of Object.values(state.fighters)) {
     if (fighter.position < ARENA_MIN || fighter.position > ARENA_MAX) {
@@ -16,6 +16,9 @@ export function checkInvariants(state: GameState): string[] {
     }
     if (!Number.isInteger(fighter.aimBonus) || fighter.aimBonus < 0) {
       errors.push(`${fighter.playerId} has invalid Aim bonus.`);
+    }
+    if (!Number.isInteger(fighter.exposedAttacksRemaining) || fighter.exposedAttacksRemaining < 0) {
+      errors.push(`${fighter.playerId} has an invalid Exposed count.`);
     }
   }
 

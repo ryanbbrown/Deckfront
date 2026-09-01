@@ -23,16 +23,16 @@ export function createGame(config: CreateGameConfig): GameState {
   const firstPlayerId = config.firstPlayerId ?? 'ochre';
   const draft = config.startingDraftEnabled ?? true;
   const state: GameState = {
-    schemaVersion: 11, seed: config.seed, rngState: config.seed >>> 0, version: 0, nextCardSerial: 1,
+    schemaVersion: 12, seed: config.seed, rngState: config.seed >>> 0, version: 0, nextCardSerial: 1,
     kingdomId: kingdom.id, startingHealth: health, startingDraftEnabled: draft,
     activePlayerId: draft ? 'ochre' : firstPlayerId, selectedFirstPlayerId: firstPlayerId,
     phase: draft ? 'startingBuild' : 'action', turn: draft ? 0 : 1, winner: null,
     players: { ochre: player('ochre', draft), indigo: player('indigo', draft) },
     fighters: {
       ochre: { playerId: 'ochre', position: config.swapSides ? 4 : 3,
-        health: playerStartingHealth(health, firstPlayerId === 'ochre'), aimBonus: 0, exposed: false },
+        health: playerStartingHealth(health, firstPlayerId === 'ochre'), aimBonus: 0, exposedAttacksRemaining: 0 },
       indigo: { playerId: 'indigo', position: config.swapSides ? 3 : 4,
-        health: playerStartingHealth(health, firstPlayerId === 'indigo'), aimBonus: 0, exposed: false }
+        health: playerStartingHealth(health, firstPlayerId === 'indigo'), aimBonus: 0, exposedAttacksRemaining: 0 }
     },
     supply: kingdomSupply(kingdom), trash: [], turnState: emptyTurnState(), pendingChoice: null, events: []
   };
