@@ -1,6 +1,6 @@
 # Feint and Flurry balance run
 
-Status: In progress
+Status: Complete
 
 ## Rules
 
@@ -31,3 +31,22 @@ Status: In progress
 - All 30 kingdoms are valid with no missing outputs.
 - Every kingdom has two clean final PSRO searches.
 - The report records the exact scientific commit and source evidence.
+
+## Result
+
+Scientific commit: `9bcc8d28f1e59603680b3c8ae7ca28a82d767a70`.
+
+All 30 kingdoms completed Goldfish, local Matrix, and Modal PSRO. Goldfish completed 60 tasks with no retries or admission failures. Every kingdom passed structural validation and ended with two clean final PSRO searches.
+
+Modal cost was $0.988457 for Goldfish and $0.584902 for the PSRO ledger, for $1.573360 total. Cumulative Modal cost across the recorded balance experiments is about $12.7508.
+
+Compared with the accepted Aim-pilot baseline:
+
+- Melee expected damage fell from 11.4936 to 10.4207 per player side.
+- Ranged expected damage rose from 11.2074 to 11.6249.
+- Mage expected damage fell from 10.6890 to 10.5197.
+- Engine expected damage rose from 8.9180 to 9.7896.
+- Flurry selection rose from 28.40% to 38.33% across the ten kingdoms that offered it. Conditional copies rose from 0.217 to 0.653.
+- Feint selection stayed at 14.29% across seven offered kingdoms. Conditional copies rose from 0.038 to 0.144, so Feint remains barely reached.
+
+The result improves family damage balance without increasing Melee's metagame presence materially. The report is `.html/strategy-search-30-feint-flurry-engine-head-9bcc8d2.html`.
