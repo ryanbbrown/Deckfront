@@ -387,7 +387,7 @@ export function InstructionsDialog({ onDismiss, onNeverShow }: { onDismiss: () =
           <div className="range-rules">
             <article className="range-rule range-rule--melee"><span aria-hidden="true">⚔</span><div><h4>Melee · Close</h4><p>You and your opponent must be on the same space.</p></div></article>
             <article className="range-rule range-rule--ranged"><span aria-hidden="true">➶</span><div><h4>Ranged · Near or Far</h4><p>You and your opponent must be on different spaces.</p></div></article>
-            <article className="range-rule range-rule--mana"><span aria-hidden="true">✦</span><div><h4>Mage · Any range</h4><p>Cast spells from any position. You keep up to 2 unspent mana between turns until you use it.</p></div></article>
+            <article className="range-rule range-rule--mana"><span aria-hidden="true">✦</span><div><h4>Mage · Any range</h4><p>Mana stays until used. Keep up to 2 between turns.</p></div></article>
           </div>
         </section>
       </div>
