@@ -186,7 +186,7 @@ h1,h2,h3,p { margin: 0; } h1,h2,h3 { font-family: Georgia, "Times New Roman", se
 .range-rules { display: grid; grid-template-rows: repeat(3,minmax(0,1fr)); gap: clamp(7px,.65vw,15px); min-height: 0; }
 .range-rule { display: grid; grid-template-columns: clamp(38px,3.5vw,78px) 1fr; min-height: 0; align-items: center; gap: clamp(8px,.8vw,18px); padding: clamp(9px,.8vw,20px); border: 1px solid #c9bfaa; border-inline-start: clamp(4px,.3vw,7px) solid var(--family); border-radius: 5px; background: #eee8db; }
 .range-rule > span { color: var(--family); font-size: clamp(24px,1.9vw,44px); font-weight: 900; text-align: center; }
-.range-rule h4 { margin: 0 0 clamp(2px,.2vw,5px); font-family: Georgia,serif; font-size: clamp(17px,1.4vw,32px); }
+.range-rule h4 { margin: 0 0 clamp(2px,.2vw,5px); font-family: Georgia,serif; font-size: clamp(16px,1.25vw,28px); }
 .range-rule p { color: #56605c; font-size: clamp(13px,1vw,23px); line-height: 1.3; }
 .range-rule--melee { --family: var(--melee); } .range-rule--ranged { --family: var(--ranged); } .range-rule--mana { --family: var(--mana); }
 .instructions-dialog footer { display: flex; justify-content: flex-end; gap: clamp(8px,.7vw,16px); padding: clamp(13px,1vw,24px); border-top: 1px solid #ffffff25; background: #0b261f; }
@@ -334,7 +334,7 @@ h1,h2,h3,p { margin: 0; } h1,h2,h3 { font-family: Georgia, "Times New Roman", se
   .instructions-map-caption { font-size: 9px; }
   .range-rule { grid-template-columns: 30px 1fr; gap: 7px; padding: 6px 8px; }
   .range-rule > span { font-size: 20px; }
-  .range-rule h4 { font-size: 13px; }
+  .range-rule h4 { font-size: 12px; }
   .range-rule p { font-size: 9px; }
   .instructions-dialog footer { padding: 10px 14px; }
   .instructions-dialog footer .control-button { min-height: 38px; font-size: 12px; }
