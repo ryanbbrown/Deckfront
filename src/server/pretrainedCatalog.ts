@@ -6,9 +6,9 @@ import type { BuyPlanSlot, Strategy } from '../sim/strategy';
 import { z } from 'zod';
 
 const EXPECTED_KINGDOM_COUNT = 160;
-const EXPECTED_PLAN_COUNT = 8_650;
-const EXPECTED_POSITIVE_WEIGHT_COUNT = 431;
-const EXPECTED_CATALOG_HASH = '4787fdb182fa748d7ba9d25cefed9b2dc9b44cdd6525199c6cde4d3bac5a2520';
+const EXPECTED_PLAN_COUNT = 8_671;
+const EXPECTED_POSITIVE_WEIGHT_COUNT = 430;
+const EXPECTED_CATALOG_HASH = '4624c549a2c71ebac9d2066d20150c39bfaa837ff1a11108249a567b9a083e5b';
 
 const rawPlanSchema = z.tuple([
   z.string().regex(/^gf-\d+$/u),

@@ -27,7 +27,7 @@ describe('pretrained AI difficulty selection', () => {
     }));
 
     expect(actualKingdoms).toEqual(expectedKingdoms);
-    expect(kingdoms.flatMap((kingdom) => kingdom.plans)).toHaveLength(8_650);
+    expect(kingdoms.flatMap((kingdom) => kingdom.plans)).toHaveLength(8_671);
   });
 
   it('loads five active and five inactive legal slots for every strategy', () => {
@@ -46,15 +46,15 @@ describe('pretrained AI difficulty selection', () => {
     }
   });
 
-  it('loads 431 positive weights and unit kingdom lotteries', () => {
+  it('loads 430 positive weights and unit kingdom lotteries', () => {
     const kingdoms = loadedKingdoms();
     const positive = kingdoms.flatMap((kingdom) => kingdom.plans).filter((plan) => plan.equilibriumWeight > 0);
-    expect(positive).toHaveLength(431);
+    expect(positive).toHaveLength(430);
     const savedWeights = kingdoms.map((kingdom) => [
       kingdom.id, kingdom.plans.map((plan) => [plan.strategy.id, plan.equilibriumWeight])
     ]);
     expect(createHash('sha256').update(JSON.stringify(savedWeights)).digest('hex'))
-      .toBe('b0a6e3accf0f0342e9cded5d368efe6bd39c093b3d3d946033328088319dea7b');
+      .toBe('7e5123c1f69bebd417e6b2660fe02c1ffafffb656ef1183597f69acd3250d9de');
     for (const kingdom of kingdoms) {
       expect(Math.abs(kingdom.plans.reduce((sum, plan) => sum + plan.equilibriumWeight, 0) - 1)).toBeLessThan(1e-12);
     }
@@ -72,9 +72,9 @@ describe('pretrained AI difficulty selection', () => {
   it('keeps deterministic saved score-band choices for Easy, Normal, and Hard', async () => {
     const trainer = new PretrainedAiTrainer();
 
-    await expect(trainer.train(firstKingdom, 17, 'easy')).resolves.toMatchObject({ strategy: { id: 'gf-9812897' } });
-    await expect(trainer.train(firstKingdom, 17, 'normal')).resolves.toMatchObject({ strategy: { id: 'gf-9812897' } });
-    await expect(trainer.train(firstKingdom, 17, 'hard')).resolves.toMatchObject({ strategy: { id: 'gf-9812897' } });
+    await expect(trainer.train(firstKingdom, 17, 'easy')).resolves.toMatchObject({ strategy: { id: 'gf-9949504' } });
+    await expect(trainer.train(firstKingdom, 17, 'normal')).resolves.toMatchObject({ strategy: { id: 'gf-9022876' } });
+    await expect(trainer.train(firstKingdom, 17, 'hard')).resolves.toMatchObject({ strategy: { id: 'gf-9949504' } });
   });
 
   it('samples Expert deterministically from only the saved positive-weight lottery', async () => {
