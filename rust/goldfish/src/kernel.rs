@@ -320,6 +320,15 @@ pub struct CompetitiveScoreInput {
 
 #[derive(Clone, Debug, Deserialize)]
 #[serde(rename_all = "camelCase")]
+pub struct SeatBiasScoreInput {
+    pub protocol_version: String,
+    pub load_id: String,
+    pub blocks: Vec<CompetitiveBlockInput>,
+    pub penalties: Vec<i16>,
+}
+
+#[derive(Clone, Debug, Deserialize)]
+#[serde(rename_all = "camelCase")]
 pub struct CompetitiveFixtureInput {
     pub load_id: String,
     pub candidate_index: usize,
@@ -630,6 +639,7 @@ impl<'a> State<'a> {
         draft: bool,
         limit: i16,
         cap: i16,
+        first_player_health_penalty: i16,
     ) -> Self {
         let mut rng = seed;
         let zone_capacity = 10usize.saturating_add(
@@ -648,10 +658,10 @@ impl<'a> State<'a> {
                 if first_indigo {
                     k.health
                 } else {
-                    (k.health - FIRST_PLAYER_HEALTH_PENALTY).max(1)
+                    (k.health - first_player_health_penalty).max(1)
                 },
                 if first_indigo {
-                    (k.health - FIRST_PLAYER_HEALTH_PENALTY).max(1)
+                    (k.health - first_player_health_penalty).max(1)
                 } else {
                     k.health
                 },
@@ -2083,6 +2093,20 @@ pub struct CompetitiveBatchScore {
 
 #[derive(Clone, Debug, Serialize, PartialEq)]
 #[serde(rename_all = "camelCase")]
+pub struct SeatBiasPenaltyScore {
+    penalty: i16,
+    outcomes: Vec<u8>,
+    aborts: Vec<CompetitiveAbort>,
+}
+
+#[derive(Clone, Debug, Serialize, PartialEq)]
+#[serde(rename_all = "camelCase")]
+pub struct SeatBiasBatchScore {
+    penalties: Vec<SeatBiasPenaltyScore>,
+}
+
+#[derive(Clone, Debug, Serialize, PartialEq)]
+#[serde(rename_all = "camelCase")]
 pub struct CompetitiveAbort {
     block_index: usize,
     orientation_index: u8,
@@ -2104,7 +2128,7 @@ pub(crate) struct CompetitiveGame {
     pub(crate) seats: [CompetitiveTelemetry; 2],
 }
 
-pub(crate) fn competitive_game(
+fn competitive_game_with_penalty(
     kingdom: &Kingdom,
     ochre: &Strategy,
     indigo: &Strategy,
@@ -2113,15 +2137,16 @@ pub(crate) fn competitive_game(
     draft: bool,
     turn_limit: i16,
     action_cap: i16,
+    first_player_health_penalty: i16,
 ) -> CompetitiveGame {
     let starting_health = if first_indigo {
         [
             kingdom.health,
-            (kingdom.health - FIRST_PLAYER_HEALTH_PENALTY).max(1),
+            (kingdom.health - first_player_health_penalty).max(1),
         ]
     } else {
         [
-            (kingdom.health - FIRST_PLAYER_HEALTH_PENALTY).max(1),
+            (kingdom.health - first_player_health_penalty).max(1),
             kingdom.health,
         ]
     };
@@ -2135,6 +2160,7 @@ pub(crate) fn competitive_game(
         draft,
         turn_limit,
         action_cap,
+        first_player_health_penalty,
     );
     let mut phase = false;
     let mut actions = 0;
@@ -2209,12 +2235,36 @@ pub(crate) fn competitive_game(
     CompetitiveGame { result, seats }
 }
 
-fn competitive_match(
+pub(crate) fn competitive_game(
+    kingdom: &Kingdom,
+    ochre: &Strategy,
+    indigo: &Strategy,
+    seed: u32,
+    first_indigo: bool,
+    draft: bool,
+    turn_limit: i16,
+    action_cap: i16,
+) -> CompetitiveGame {
+    competitive_game_with_penalty(
+        kingdom,
+        ochre,
+        indigo,
+        seed,
+        first_indigo,
+        draft,
+        turn_limit,
+        action_cap,
+        FIRST_PLAYER_HEALTH_PENALTY,
+    )
+}
+
+fn competitive_match_with_penalty(
     session: &CompetitiveSession,
     candidate_index: usize,
     opponent_index: usize,
     seed: u32,
     first_indigo: bool,
+    first_player_health_penalty: i16,
 ) -> Result<CompetitiveMatchResult, String> {
     let candidate = session
         .strategies
@@ -2224,7 +2274,7 @@ fn competitive_match(
         .strategies
         .get(opponent_index)
         .ok_or_else(|| format!("opponent index {opponent_index} is out of range"))?;
-    Ok(competitive_game(
+    Ok(competitive_game_with_penalty(
         &session.kingdom,
         candidate,
         opponent,
@@ -2233,8 +2283,26 @@ fn competitive_match(
         session.starting_draft_enabled,
         session.turn_limit_per_player,
         session.action_cap_per_turn,
+        first_player_health_penalty,
     )
     .result)
+}
+
+fn competitive_match(
+    session: &CompetitiveSession,
+    candidate_index: usize,
+    opponent_index: usize,
+    seed: u32,
+    first_indigo: bool,
+) -> Result<CompetitiveMatchResult, String> {
+    competitive_match_with_penalty(
+        session,
+        candidate_index,
+        opponent_index,
+        seed,
+        first_indigo,
+        FIRST_PLAYER_HEALTH_PENALTY,
+    )
 }
 
 pub fn load_competitive(input: CompetitiveLoadInput) -> Result<CompetitiveSession, String> {
@@ -2312,6 +2380,91 @@ pub fn score_competitive(
         score_bytes,
         aborts: vec![],
     })
+}
+
+pub fn score_seat_bias(
+    session: &CompetitiveSession,
+    input: SeatBiasScoreInput,
+) -> Result<SeatBiasBatchScore, String> {
+    if input.protocol_version != "seat-bias-v1" {
+        return Err("seat-bias protocol version mismatch".into());
+    }
+    if input.load_id != session.load_id {
+        return Err("competitive load id mismatch".into());
+    }
+    if input.penalties.is_empty() {
+        return Err("seat-bias evaluation needs at least one penalty".into());
+    }
+    let mut unique_penalties = input.penalties.clone();
+    unique_penalties.sort_unstable();
+    unique_penalties.dedup();
+    if unique_penalties.len() != input.penalties.len()
+        || input
+            .penalties
+            .iter()
+            .any(|&penalty| penalty < 0 || penalty >= session.kingdom.health)
+    {
+        return Err("seat-bias penalties must be unique and below kingdom health".into());
+    }
+    let penalties = input
+        .penalties
+        .into_iter()
+        .map(|penalty| {
+            let blocks = session.pool.install(|| {
+                input
+                    .blocks
+                    .par_iter()
+                    .enumerate()
+                    .map(|(block_index, block)| {
+                        let mut outcomes = [0; 2];
+                        let mut aborts = Vec::new();
+                        for (orientation_index, first_indigo) in
+                            [false, true].into_iter().enumerate()
+                        {
+                            let result = competitive_match_with_penalty(
+                                session,
+                                block.candidate_index,
+                                block.opponent_index,
+                                block.seed,
+                                first_indigo,
+                                penalty,
+                            )?;
+                            outcomes[orientation_index] = match result.outcome.as_str() {
+                                "ochre" => 0,
+                                "indigo" => 1,
+                                "draw" => 2,
+                                "aborted" => {
+                                    aborts.push(CompetitiveAbort {
+                                        block_index,
+                                        orientation_index: orientation_index as u8,
+                                        reason: result.reason,
+                                    });
+                                    3
+                                }
+                                value => {
+                                    return Err(format!("invalid competitive outcome {value}"));
+                                }
+                            };
+                        }
+                        Ok((outcomes, aborts))
+                    })
+                    .collect::<Vec<Result<([u8; 2], Vec<CompetitiveAbort>), String>>>()
+            });
+            let mut outcomes = Vec::with_capacity(input.blocks.len() * 2);
+            let mut aborts = Vec::new();
+            for block in blocks {
+                let (block_outcomes, block_aborts) = block?;
+                outcomes.extend(block_outcomes);
+                aborts.extend(block_aborts);
+            }
+            Ok(SeatBiasPenaltyScore {
+                penalty,
+                outcomes,
+                aborts,
+            })
+        })
+        .collect::<Result<Vec<_>, String>>()?;
+    Ok(SeatBiasBatchScore { penalties })
 }
 
 pub fn fixture_competitive(
@@ -2808,6 +2961,7 @@ mod tests {
             false,
             30,
             200,
+            FIRST_PLAYER_HEALTH_PENALTY,
         )
     }
 
@@ -2964,6 +3118,24 @@ mod tests {
             assert_eq!(actual.result.reason, reason, "draft {draft} seed {seed}");
             assert_eq!(actual.result.turns, turns, "draft {draft} seed {seed}");
         }
+    }
+
+    #[test]
+    fn seat_bias_penalty_reaches_shared_competitive_game() {
+        let kingdom = balance_fixture();
+        let strategy = kingdom
+            .strategy(raw_strategy("shared", &[], &[("strike", 2)]))
+            .expect("shared strategy");
+        for (penalty, expected_health) in [(2, 48), (4, 46)] {
+            let game = competitive_game_with_penalty(
+                &kingdom, &strategy, &strategy, 91, false, false, 30, 200, penalty,
+            );
+            assert_eq!(game.seats[0].starting_health, expected_health);
+            assert_eq!(game.seats[1].starting_health, 50);
+        }
+        let production = competitive_game(&kingdom, &strategy, &strategy, 91, true, false, 30, 200);
+        assert_eq!(production.seats[0].starting_health, 50);
+        assert_eq!(production.seats[1].starting_health, 47);
     }
 
     #[test]

@@ -41,6 +41,9 @@ enum Request {
     ScoreCompetitive {
         payload: kernel::CompetitiveScoreInput,
     },
+    ScoreSeatBias {
+        payload: kernel::SeatBiasScoreInput,
+    },
     FixtureCompetitive {
         payload: kernel::CompetitiveFixtureInput,
     },
@@ -254,6 +257,18 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
                 None => serde_json::to_value(failure::<Value>(
                     "competitive_not_loaded",
                     "load competitive strategies before scoring",
+                ))?,
+            },
+            Ok(Request::ScoreSeatBias { payload }) => match &competitive_session {
+                Some(session) => match kernel::score_seat_bias(session, payload) {
+                    Ok(score) => serde_json::to_value(success(score))?,
+                    Err(message) => {
+                        serde_json::to_value(failure::<Value>("seat_bias_score_error", message))?
+                    }
+                },
+                None => serde_json::to_value(failure::<Value>(
+                    "competitive_not_loaded",
+                    "load competitive strategies before seat-bias scoring",
                 ))?,
             },
             Ok(Request::FixtureCompetitive { payload }) => match &competitive_session {

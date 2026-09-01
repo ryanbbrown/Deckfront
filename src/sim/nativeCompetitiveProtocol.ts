@@ -9,6 +9,7 @@ import type { MixtureSchedule } from './mixtureEvaluation';
 
 export const NATIVE_COMPETITIVE_PROTOCOL_VERSION = 1;
 export const NATIVE_COMPETITIVE_SCORER_VERSION = 'native-competitive-v1';
+export const NATIVE_SEAT_BIAS_PROTOCOL_VERSION = 'seat-bias-v1';
 
 export interface CompetitiveKernelConfig {
   kingdomId: string;
@@ -60,6 +61,18 @@ export function nativeCompetitiveLoadRequest(
 
 export function nativeCompetitiveScoreRequest(loadId: string, blocks: readonly CompetitiveBlock[]) {
   return { type: 'score_competitive' as const, payload: { loadId, blocks } };
+}
+
+export function nativeSeatBiasScoreRequest(
+  loadId: string, blocks: readonly CompetitiveBlock[], penalties: readonly number[]
+) {
+  if (!penalties.length || new Set(penalties).size !== penalties.length
+    || penalties.some((penalty) => !Number.isSafeInteger(penalty) || penalty < 0)) {
+    throw new Error('Seat-bias penalties must be unique non-negative integers.');
+  }
+  return { type: 'score_seat_bias' as const, payload: {
+    protocolVersion: NATIVE_SEAT_BIAS_PROTOCOL_VERSION, loadId, blocks, penalties
+  } };
 }
 
 export function nativeCompetitiveFixtureRequest(

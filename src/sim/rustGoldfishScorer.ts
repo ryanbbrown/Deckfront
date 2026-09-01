@@ -5,7 +5,7 @@ import type { ChildProcessWithoutNullStreams } from 'node:child_process';
 import type { Kingdom } from '../game';
 import type { GoldfishConfig, MovementAwareGoldfishScore, CompactMovementAwareGoldfishScore } from './goldfish';
 import { nativeCompetitiveFixtureRequest, nativeCompetitiveLoadRequest,
-  nativeCompetitiveScoreRequest } from './nativeCompetitiveProtocol';
+  nativeCompetitiveScoreRequest, nativeSeatBiasScoreRequest } from './nativeCompetitiveProtocol';
 import type { CompetitiveBlock, CompetitiveKernelConfig } from './nativeCompetitiveProtocol';
 import { nativeScoreBatchRequest } from './nativeGoldfishProtocol';
 import type { Strategy } from './strategy';
@@ -26,6 +26,16 @@ export interface NativeCompetitiveFixture {
   outcome: 'ochre' | 'indigo' | 'draw' | 'aborted';
   reason: 'victory' | 'turnLimit' | 'actionCap' | 'actionSearchOverflow';
   turns: number;
+}
+
+export interface NativeSeatBiasPenaltyScore {
+  penalty: number;
+  outcomes: Uint8Array;
+  aborts: Array<{ blockIndex: number; orientationIndex: number; reason: string }>;
+}
+
+export interface NativeSeatBiasScore {
+  penalties: NativeSeatBiasPenaltyScore[];
 }
 
 export class RustGoldfishScorer {
@@ -152,6 +162,27 @@ export class RustGoldfishScorer {
       throw new Error('Native competitive scorer returned an invalid compact result.');
     }
     return { scoreBytes, played, aborts };
+  }
+
+  async scoreSeatBias(
+    loadId: string, blocks: readonly CompetitiveBlock[], penalties: readonly number[]
+  ): Promise<NativeSeatBiasScore> {
+    const result = await this.request(nativeSeatBiasScoreRequest(loadId, blocks, penalties));
+    const raw = result.penalties as Array<Record<string, unknown>> | undefined;
+    if (!Array.isArray(raw) || raw.length !== penalties.length) {
+      throw new Error('Native seat-bias scorer returned the wrong penalty count.');
+    }
+    const scored = raw.map((entry, index): NativeSeatBiasPenaltyScore => {
+      const outcomes = Uint8Array.from(entry.outcomes as number[] ?? []);
+      const aborts = entry.aborts as NativeSeatBiasPenaltyScore['aborts'] | undefined;
+      if (entry.penalty !== penalties[index] || outcomes.length !== blocks.length * 2
+        || outcomes.some((value) => value > 3) || !Array.isArray(aborts)
+        || outcomes.filter((value) => value === 3).length !== aborts.length) {
+        throw new Error('Native seat-bias scorer returned an invalid result.');
+      }
+      return { penalty: entry.penalty as number, outcomes, aborts };
+    });
+    return { penalties: scored };
   }
 
   async fixtureCompetitive(
