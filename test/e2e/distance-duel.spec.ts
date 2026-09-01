@@ -84,11 +84,17 @@ async function expectTableWithinViewport(page: import('@playwright/test').Page):
 }
 
 test('DD-E2E-001: full-table preview refreshes, explains, and keeps both local builds', async ({ page, baseUrl }) => {
-  await page.setViewportSize({ width: 1920, height: 1080 }); await page.goto(baseUrl);
-  await expect(page.getByRole('heading', { name: 'Deckfront' })).toBeVisible(); await expect(page.getByText('Choose a kingdom')).toBeVisible(); await expect(page.getByLabel('Game setup')).toBeVisible(); const previewArena = page.getByRole('group', { name: 'Six space line arena' }); await expect(previewArena.locator('.arena-space')).toHaveCount(6); await expect(previewArena.getByRole('img', { name: /Player 1, 47 health/ })).toBeVisible(); await expect(previewArena.locator('.fighter__figure svg')).toHaveCount(2); await expect(page.getByText('I go first', { exact: true })).toHaveCount(0); await expect(page.getByText('AI goes first', { exact: true })).toHaveCount(0); await expect(page.getByRole('group', { name: 'AI strength' })).toHaveCount(0);
+  await page.setViewportSize({ width: 1920, height: 1080 }); await page.goto(`${baseUrl}?showInstructions=1`);
+  const instructions = page.getByRole('dialog', { name: 'Build your deck. Control the distance.' });
+  await expect(instructions).toContainText('7 Copper'); await expect(instructions).toContainText('3 Scrap'); await expect(instructions).toContainText('No action limit'); await expect(instructions).toContainText('No buy limit'); await expect(instructions).toContainText('six spaces'); await expect(instructions).toContainText('Melee · Close'); await expect(instructions).toContainText('Ranged · Near or Far'); await expect(instructions).toContainText('Mana · Any range');
+  await page.keyboard.press('Escape'); await expect(instructions).toHaveCount(0); await page.reload(); await expect(instructions).toBeVisible();
+  await instructions.getByRole('button', { name: 'Dismiss' }).click(); await page.reload(); await expect(instructions).toBeVisible(); await instructions.getByRole('button', { name: 'Don’t show this again' }).click(); await page.reload(); await expect(instructions).toHaveCount(0);
+  await expect(page.getByRole('heading', { name: 'Deckfront' })).toBeVisible(); await expect(page.getByText('Set up a match')).toBeVisible(); await expect(page.getByLabel('Game setup')).toBeVisible(); const previewArena = page.getByRole('group', { name: 'Six space line arena' }); await expect(previewArena.locator('.arena-space')).toHaveCount(6); await expect(previewArena.getByRole('img', { name: /Player 1, 47 health/ })).toBeVisible(); await expect(previewArena.locator('.fighter__figure svg')).toHaveCount(2); await expect(page.getByText('I go first', { exact: true })).toHaveCount(0); await expect(page.getByText('AI goes first', { exact: true })).toHaveCount(0); await expect(page.getByRole('group', { name: 'AI strength' })).toHaveCount(0);
+  await page.getByRole('button', { name: 'Play against AI' }).click(); await page.getByRole('button', { name: 'AI goes first' }).click(); await expect(previewArena.getByRole('img', { name: /AI, 47 health/ })).toBeVisible(); await expect(previewArena.getByRole('img', { name: /P1, 50 health/ })).toBeVisible(); await page.getByRole('button', { name: 'Local players' }).click();
   await expect(page.locator('[data-market-card="Step"]')).toBeVisible(); await expect(page.locator('[data-market-card="Focus"]')).toBeVisible(); await expect(page.locator('[data-market-card="Scrap"]')).toHaveCount(0); await expect(page.locator('[data-market-card]')).toHaveCount(15); await expect(page.locator('[data-market-card][aria-disabled="true"]')).toHaveCount(15); await expect(page.getByLabel('Starting draft')).not.toBeChecked();
-  await expect(page.locator('.pile-grid--fixed [data-market-card]')).toHaveCount(5); await expect(page.locator('.pile-grid--kingdom [data-market-card]')).toHaveCount(10); expect(await page.locator('.pile-grid--fixed [data-market-card]').evaluateAll((piles) => piles.map((pile) => pile.getAttribute('data-market-card')))).toEqual(['Copper','Silver','Gold','Step','Focus']);
+  await expect(page.getByRole('heading', { name: 'Battlefield piles' })).toBeVisible(); await expect(page.locator('.pile-grid--fixed [data-market-card]')).toHaveCount(5); await expect(page.locator('.pile-grid--kingdom [data-market-card]')).toHaveCount(10); expect(await page.locator('.pile-grid--fixed [data-market-card]').evaluateAll((piles) => piles.map((pile) => pile.getAttribute('data-market-card')))).toEqual(['Copper','Silver','Gold','Step','Focus']);
   expect(Number.parseFloat(await page.locator('.kingdom-pile__effect').first().evaluate((element) => getComputedStyle(element).fontSize))).toBeGreaterThanOrEqual(7);
+  await page.getByRole('button', { name: 'View all cards' }).click(); const setupCatalog = page.getByRole('dialog', { name: 'All cards' }); await expect(setupCatalog.locator('.catalog-card')).toHaveCount(46); await setupCatalog.getByRole('button', { name: 'Close all cards' }).click();
   const compactLayout = await page.evaluate(() => { const boxes = (selector: string) => [...document.querySelectorAll<HTMLElement>(selector)].map((pile) => pile.getBoundingClientRect()); const fixed = boxes('.pile-grid--fixed [data-market-card]'); const kingdom = boxes('.pile-grid--kingdom [data-market-card]'); const header = document.querySelector('.table-header')!.getBoundingClientRect(); return { headerHeight: Math.round(header.height), fixedRows: new Set(fixed.map((box) => Math.round(box.top))).size, fixedColumns: new Set(fixed.map((box) => Math.round(box.left))).size, kingdomRows: new Set(kingdom.map((box) => Math.round(box.top))).size, kingdomColumns: new Set(kingdom.map((box) => Math.round(box.left))).size, images: document.querySelectorAll('.market-zone [data-market-card] img').length }; });
   expect(compactLayout).toEqual({ headerHeight: 42, fixedRows: 3, fixedColumns: 2, kingdomRows: 2, kingdomColumns: 5, images: 15 });
   await page.locator('[data-market-card="Step"]').click({ button: 'right', force: true }); const cardPopup = page.getByRole('dialog', { name: 'Step details' }); await expect(cardPopup).toBeVisible(); await expect(cardPopup).toContainText('Move 1 space'); await expect(cardPopup.getByLabel('Cost 2')).toBeVisible(); expect(await cardPopup.evaluate((element) => element.matches(':modal'))).toBe(true); expect(Number.parseFloat(await cardPopup.locator('.card__rules').evaluate((element) => getComputedStyle(element).fontSize))).toBeGreaterThanOrEqual(7); await page.keyboard.press('Escape'); await expect(cardPopup).toHaveCount(0);
@@ -156,7 +162,7 @@ test('DD-E2E-073: full card catalog covers the viewport and shows all cards in a
   expect((await familyCards('engine')).slice(0, 5)).toEqual(['Scrap:0', 'Discipline:2', 'Step:2', 'Cull:3', 'Footwork:3']);
   expect((await familyCards('melee')).slice(-3)).toEqual(['Feint:5', 'Flurry:5', 'Heavy Blow:5']);
   expect((await familyCards('ranged')).slice(0, 3)).toEqual(['Longshot:3', 'Peppering Shot:3', 'Steady Shot:3']);
-  expect((await familyCards('mana')).slice(-3)).toEqual(['Overload:4', 'Prism:5', 'Starfire:6']);
+  expect((await familyCards('mana')).slice(-3)).toEqual(['Fireball:5', 'Prism:5', 'Starfire:6']);
   const layout = await dialog.evaluate((overlay) => {
     const rect = (element: Element) => element.getBoundingClientRect(); const overlayBox = rect(overlay);
     const cards = [...overlay.querySelectorAll('.catalog-card')].map(rect); const body = overlay.querySelector<HTMLElement>('.catalog-dialog__body')!;
@@ -398,9 +404,10 @@ test('DD-E2E-042: AI-first games force draft off, show public automatic turns, a
   const difficulty = page.getByRole('group', { name: 'AI strength' }); await expect(difficulty.getByRole('button')).toHaveText(['Easy', 'Normal', 'Hard', 'Expert']); await expect(difficulty.getByRole('button', { name: 'Expert' })).toHaveAttribute('aria-pressed', 'true'); await difficulty.getByRole('button', { name: 'Hard' }).click(); await expect(page.getByLabel('Starting draft')).toHaveCount(0);
   let createRequest: Record<string, unknown> | null = null;
   await page.route('**/api/games', async (route) => { createRequest = route.request().postDataJSON() as Record<string, unknown>; await new Promise((resolve) => setTimeout(resolve, 100)); await route.continue(); }); await recordFlights(page); await page.getByRole('button', { name: 'Start game' }).click(); await expect(page.getByText('Training opponent…')).toBeVisible();
-  await expect(page.getByRole('heading', { name: 'AI hand' })).toBeVisible(); await expect(page.locator('.choice-bar,.hand-choice-controls,.card-picker,.arena-space__choice-button')).toHaveCount(0); await expect(page.getByText(/Turn 2 · Player 2 action/)).toBeVisible(); const firstAiFlight = (await recordedFlights(page)).find((flight) => flight.kind === 'play')!; const firstAiSource = await recordedAiSource(page, firstAiFlight.name); expect(firstAiSource).not.toBeNull(); expectSameBounds(firstAiFlight.source, firstAiSource!); await expect(page.getByTestId('action-log').getByText('Turn 1 started')).toBeVisible(); await expect(page.getByTestId('action-log').getByText('Turn 2 started')).toBeVisible();
+  await expect(page.getByRole('heading', { name: 'AI hand' })).toBeVisible(); await expect(page.locator('.choice-bar,.hand-choice-controls,.card-picker,.arena-space__choice-button')).toHaveCount(0); await expect(page.getByText(/Turn 2 · P1 action/)).toBeVisible(); const firstAiFlight = (await recordedFlights(page)).find((flight) => flight.kind === 'play')!; const firstAiSource = await recordedAiSource(page, firstAiFlight.name); expect(firstAiSource).not.toBeNull(); expectSameBounds(firstAiFlight.source, firstAiSource!); await expect(page.getByTestId('action-log').getByText('Turn 1 started')).toBeVisible(); await expect(page.getByTestId('action-log').getByText('Turn 2 started')).toBeVisible();
+  await expect(page.locator('[data-player-id="ochre"]')).toHaveAttribute('title', 'AI'); await expect(page.locator('[data-player-id="indigo"]')).toHaveAttribute('title', 'P1');
   expect(createRequest).toMatchObject({ mode: 'ai', humanPlayerId: 'indigo', aiDifficulty: 'hard', startingDraftEnabled: false });
-  await page.getByRole('button', { name: 'End Action phase' }).click(); await page.getByRole('button', { name: 'End Buy phase' }).click(); await expect(page.getByText(/Turn 4 · Player 2 action/)).toBeVisible(); await page.getByRole('button', { name: 'Undo last action' }).click(); await expect(page.getByText(/Turn 2 · Player 2 buy/)).toBeVisible(); await page.reload(); await expect(page.getByText(/Turn 2 · Player 2 buy/)).toBeVisible();
+  await page.getByRole('button', { name: 'End Action phase' }).click(); await page.getByRole('button', { name: 'End Buy phase' }).click(); await expect(page.getByText(/Turn 4 · P1 action/)).toBeVisible(); await page.getByRole('button', { name: 'Undo last action' }).click(); await expect(page.getByText(/Turn 2 · P1 buy/)).toBeVisible(); await page.reload(); await expect(page.getByText(/Turn 2 · P1 buy/)).toBeVisible();
   const oldKingdom = await page.locator('.pile-grid--kingdom [data-market-card]').allTextContents(); await page.getByRole('button', { name: 'New game' }).click(); await expect(page.getByRole('button', { name: 'Start game' })).toBeVisible(); expect(await page.locator('.pile-grid--kingdom [data-market-card]').allTextContents()).not.toEqual(oldKingdom);
 });
 
@@ -660,29 +667,29 @@ test('DD-E2E-063: AI-first creation paints its hand before ordered flights and a
   await page.setViewportSize({ width: 1920, height: 1080 }); await page.goto(baseUrl); await page.getByText('Play against AI', { exact: true }).click(); await page.getByText('AI goes first', { exact: true }).click();
   await page.evaluate(() => {
     const state = window as typeof window & { sawAiHand?: boolean; flashedFinalBeforeAi?: boolean };
-    new MutationObserver(() => { const hasAi = document.querySelector('.hand-panel--ai h2')?.textContent === 'AI hand'; if (hasAi) state.sawAiHand = true; if (!state.sawAiHand && /Turn 2 · Player 2 action/.test(document.body.textContent ?? '')) state.flashedFinalBeforeAi = true; }).observe(document.body, { childList: true, subtree: true, characterData: true });
+    new MutationObserver(() => { const hasAi = document.querySelector('.hand-panel--ai h2')?.textContent === 'AI hand'; if (hasAi) state.sawAiHand = true; if (!state.sawAiHand && /Turn 2 · P1 action/.test(document.body.textContent ?? '')) state.flashedFinalBeforeAi = true; }).observe(document.body, { childList: true, subtree: true, characterData: true });
   });
   await recordFlights(page); await page.getByRole('button', { name: 'Start game' }).click(); await expect(page.getByRole('heading', { name: 'AI hand' })).toBeVisible();
   const firstAiCard = page.locator('.hand-panel--ai [data-card-name="Scrap"]'); const source = await bounds(firstAiCard);
-  await expect(page.getByText(/Turn 2 · Player 2 action/)).toBeVisible(); const creationFlights = (await recordedFlights(page)).filter((flight) => flight.kind === 'play'); expect(creationFlights.length).toBeGreaterThan(0);
+  await expect(page.getByText(/Turn 2 · P1 action/)).toBeVisible(); const creationFlights = (await recordedFlights(page)).filter((flight) => flight.kind === 'play'); expect(creationFlights.length).toBeGreaterThan(0);
   const firstFlight = creationFlights.find((flight) => flight.name === 'Scrap')!; expect(firstFlight).toBeDefined(); expectSameBounds(firstFlight.source, source);
   expect(await page.evaluate(() => (window as typeof window & { flashedFinalBeforeAi?: boolean }).flashedFinalBeforeAi ?? false)).toBe(false);
 
   await openGame(page, (record) => { makeAiGame(record); seedPlayerHand(record, 'indigo', ['precisionShot', 'precisionShot']); }); await page.getByLabel('Animate AI turns').check();
   await recordFlights(page); await page.getByRole('button', { name: 'End Action phase' }).click(); await page.getByRole('button', { name: 'End Buy phase' }).click(); await expect(page.getByRole('heading', { name: 'AI hand' })).toBeVisible();
-  await page.getByLabel('Animate AI turns').uncheck(); await expect(page.getByText(/Turn 3 · Player 1 action/)).toBeVisible(); await expect(page.locator('[data-flying-card]')).toHaveCount(0);
+  await page.getByLabel('Animate AI turns').uncheck(); await expect(page.getByText(/Turn 3 · P1 action/)).toBeVisible(); await expect(page.locator('[data-flying-card]')).toHaveCount(0);
 });
 
 test('DD-E2E-064: AI playback batches consecutive card copies and Undo or visibility interruption finishes safely', async ({ page, openGame }) => {
   const openAi = async () => { await openGame(page, (record) => { makeAiGame(record); seedPlayerHand(record, 'indigo', ['precisionShot', 'precisionShot']); }); await page.getByLabel('Animate AI turns').check(); };
   const startAi = async () => { await page.getByRole('button', { name: 'End Action phase' }).click(); await page.getByRole('button', { name: 'End Buy phase' }).click(); await expect(page.getByRole('heading', { name: 'AI hand' })).toBeVisible(); };
-  await openAi(); await recordFlights(page); await startAi(); await expect(page.getByText(/Turn 3 · Player 1 action/)).toBeVisible();
+  await openAi(); await recordFlights(page); await startAi(); await expect(page.getByText(/Turn 3 · P1 action/)).toBeVisible();
   const aiFlights = (await recordedFlights(page)).filter((flight) => flight.kind === 'play' && flight.name === 'Precision Shot'); expect(aiFlights.length).toBeGreaterThanOrEqual(2); expect(aiFlights[1]!.at - aiFlights[0]!.at).toBeGreaterThanOrEqual(70); expect(aiFlights[1]!.at - aiFlights[0]!.at).toBeLessThanOrEqual(120);
 
-  await openAi(); await startAi(); await page.getByRole('button', { name: 'Undo last action' }).click(); await expect(page.getByText(/Turn 1 · Player 1 buy/)).toBeVisible(); await expect(page.getByRole('heading', { name: 'AI hand' })).toHaveCount(0); await expect(page.locator('[data-flying-card]')).toHaveCount(0);
+  await openAi(); await startAi(); await page.getByRole('button', { name: 'Undo last action' }).click(); await expect(page.getByText(/Turn 1 · P1 buy/)).toBeVisible(); await expect(page.getByRole('heading', { name: 'AI hand' })).toHaveCount(0); await expect(page.locator('[data-flying-card]')).toHaveCount(0);
 
   await openAi(); await startAi(); await page.evaluate(() => { Object.defineProperty(document, 'hidden', { configurable: true, value: true }); document.dispatchEvent(new Event('visibilitychange')); });
-  await expect(page.getByText(/Turn 3 · Player 1 action/)).toBeVisible(); await expect(page.locator('[data-flying-card]')).toHaveCount(0);
+  await expect(page.getByText(/Turn 3 · P1 action/)).toBeVisible(); await expect(page.locator('[data-flying-card]')).toHaveCount(0);
 });
 
 test('DD-E2E-065: New game ignores late action successes and errors', async ({ page, openGame }) => {
@@ -728,7 +735,7 @@ test('DD-E2E-068: human and AI purchases show a readable market-anchored card pr
 
   await openGame(page, (record) => { makeAiGame(record); seedPlayerHand(record, 'ochre', []); seedPlayerHand(record, 'indigo', ['gold']); }); await page.getByLabel('Animate AI turns').check();
   await page.getByRole('button', { name: 'End Action phase' }).click(); await page.getByRole('button', { name: 'End Buy phase' }).click();
-  await expect(page.locator('[data-purchase-preview="Silver"]')).toBeVisible(); await expect(page.getByText(/Turn 3 · Player 1 action/)).toBeVisible();
+  await expect(page.locator('[data-purchase-preview="Silver"]')).toBeVisible(); await expect(page.getByText(/Turn 3 · P1 action/)).toBeVisible();
 
   await page.emulateMedia({ reducedMotion: 'reduce' }); await openGame(page, (record) => { seedHand(record, ['gold']); }); await page.getByRole('button', { name: 'End Action phase' }).click(); await page.locator('[data-market-card="Copper"]').click();
   await expect(page.locator('[data-purchase-preview]')).toHaveCount(0);
@@ -741,7 +748,7 @@ test('DD-E2E-069: damaging human and AI cards mark the correct fighter and exact
   await openGame(page, (record) => { seedHand(record, ['aim']); }); await page.locator('[data-card-name="Aim"]').click(); await expect(page.locator('[data-damage-target]')).toHaveCount(0);
 
   await openGame(page, (record) => { makeAiGame(record); seedPlayerHand(record, 'ochre', []); seedPlayerHand(record, 'indigo', ['precisionShot']); }); await page.getByLabel('Animate AI turns').check(); await recordDamageFeedback(page);
-  await page.getByRole('button', { name: 'End Action phase' }).click(); await page.getByRole('button', { name: 'End Buy phase' }).click(); await expect(page.getByText(/Turn 3 · Player 1 action/)).toBeVisible();
+  await page.getByRole('button', { name: 'End Action phase' }).click(); await page.getByRole('button', { name: 'End Buy phase' }).click(); await expect(page.getByText(/Turn 3 · P1 action/)).toBeVisible();
   await expect.poll(() => page.evaluate(() => (window as typeof window & { recordedDamage?: Array<{ target: string; amount: string }> }).recordedDamage ?? [])).toContainEqual({ target: 'ochre', amount: '4' }); await expect(page.locator('[data-player-score="ochre"]')).toContainText('43 HP');
 });
 
@@ -787,7 +794,7 @@ test('DD-E2E-070: text controls confirm and reset the same game while Cancel pre
   const openingHand = await page.locator('[data-testid="hand-grid"] [data-card-name]').evaluateAll((cards) => cards.map((card) => ({ name: card.getAttribute('data-card-name'), count: card.getAttribute('data-card-count') })));
   await page.getByRole('button', { name: 'End Action phase' }).click(); await expect(page.getByText(/Turn 1 · Player 1 buy/)).toBeVisible();
   await controls.getByRole('button', { name: 'Reset' }).click(); const confirmation = page.getByRole('dialog', { name: 'Reset this game?' });
-  await expect(confirmation).toContainText('same game and kingdom'); await expect(confirmation.getByRole('button')).toHaveText(['Yes, reset', 'Cancel']);
+  await expect(confirmation).toContainText('same game and market'); await expect(confirmation.getByRole('button')).toHaveText(['Yes, reset', 'Cancel']);
   await confirmation.getByRole('button', { name: 'Cancel' }).click(); await expect(confirmation).toHaveCount(0); await expect(page.getByText(/Turn 1 · Player 1 buy/)).toBeVisible(); await expect(controls.locator('button').first()).toBeEnabled();
   await controls.getByRole('button', { name: 'Reset' }).click(); await page.getByRole('button', { name: 'Yes, reset' }).click();
   await expect(page.getByText(/Turn 1 · Player 1 action/)).toBeVisible(); await expect(controls.locator('button').first()).toBeDisabled();
@@ -805,7 +812,7 @@ test('DD-E2E-072: Reset interrupts AI playback and reuses the existing trained g
   const gameId = await page.evaluate(() => localStorage.getItem('hexdeck.activeGameId'));
   await page.getByRole('button', { name: 'Reset' }).click(); await expect(page.getByRole('dialog', { name: 'Reset this game?' })).toBeVisible(); await expect(page.getByText('Playing AI turn…')).toHaveCount(0); await expect(page.locator('[data-flying-card]')).toHaveCount(0);
   const response = page.waitForResponse('**/api/games/*/reset'); await page.getByRole('button', { name: 'Yes, reset' }).click(); expect((await response).status()).toBe(200);
-  await expect(page.getByText(/Turn 2 · Player 2 action/)).toBeVisible(); expect(createRequests).toBe(1); expect(await page.evaluate(() => localStorage.getItem('hexdeck.activeGameId'))).toBe(gameId); await expect(page.getByRole('navigation', { name: 'Game controls' }).locator('button').first()).toBeDisabled();
+  await expect(page.getByText(/Turn 2 · P1 action/)).toBeVisible(); expect(createRequests).toBe(1); expect(await page.evaluate(() => localStorage.getItem('hexdeck.activeGameId'))).toBe(gameId); await expect(page.getByRole('navigation', { name: 'Game controls' }).locator('button').first()).toBeDisabled();
 });
 
 test('DD-E2E-071: unavailable warning stays inside the card and stacks above rules and cost', async ({ page, openGame }) => {

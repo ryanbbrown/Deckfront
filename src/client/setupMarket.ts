@@ -5,7 +5,7 @@ function signature(cardIds: readonly string[]): string { return [...cardIds].sor
 export function chooseTrainedVariableCards(
   random: RandomIndexSource, cardSets: readonly (readonly string[])[], current: readonly string[] = []
 ): string[] {
-  if (!cardSets.length) throw new Error('Setup has no trained kingdoms.');
+  if (!cardSets.length) throw new Error('Setup has no trained card sets.');
   const currentSignature = signature(current);
   const choices = cardSets.filter((cardIds) => signature(cardIds) !== currentSignature);
   const selectable = choices.length ? choices : cardSets;

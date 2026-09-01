@@ -8,6 +8,7 @@ import { Board, FighterCounter } from './Board';
 import { groupCardCatalog } from './cardCatalog';
 import { AI_SETTLE_MS, DRAW_DURATION_MS, DRAW_STAGGER_MS, FlyingCards, HUMAN_SETTLE_MS, PLAY_DURATION_MS, PURCHASE_PREVIEW_MS, PurchasePreview, gameAtFrame, updateGame, useReducedMotion, wait } from './playback';
 import type { Flight, PurchaseReveal } from './playback';
+import { playerLabel, playerShortLabel } from './playerLabel';
 
 interface GameProps { game: GameView; initialPresentation: PresentationSequence | null; error: string | null; animateAi: boolean; onAnimateAi: (enabled: boolean) => void; onGame: (game: GameView) => void; onError: (value: string | null) => void; onNew: () => void }
 interface CardGroup { definitionId: string; instances: CardInstance[] }
@@ -24,17 +25,19 @@ export function PreviewTable({ catalog, market, error, animateAi, onAnimateAi, o
   const [human, setHuman] = useState<PlayerId>('ochre');
   const [difficulty, setDifficulty] = useState<AiDifficulty>('expert');
   const [marketOpen, setMarketOpen] = useState(false);
+  const [catalogOpen, setCatalogOpen] = useState(false);
   const [inspectedCardId, setInspectedCardId] = useState<string | null>(null);
   const cards = Object.fromEntries([...catalog.fixedCardIds, ...market].map((id) => [id, catalog.cards[id]!]));
   return <main className="table-shell table-shell--preview" onContextMenuCapture={(event) => inspectCard(event, cards, setInspectedCardId)} onKeyDownCapture={(event) => inspectCardFromKeyboard(event, cards, setInspectedCardId)}>
-    <TableHeader title="Choose a kingdom" controls={null} />
+    <TableHeader title="Set up a match" controls={null} />
     {error ? <p role="alert" className="error">{error}</p> : null}
-    <PreviewArena />
+    <PreviewArena mode={mode} human={human} />
     <CompactMarket cards={cards} fixedIds={catalog.fixedCardIds} variableIds={market} onView={() => setMarketOpen(true)} />
     <EmptyPlayed />
     <section className="hand-panel table-zone"><div className="zone-title"><h2>Your hand</h2><span>Your opening hand appears here.</span></div><div className="hand-row"><p className="empty-row">Start the game to draw five cards.</p></div></section>
-    <SetupRail mode={mode} startingDraftEnabled={startingDraftEnabled} animateAi={animateAi} human={human} difficulty={difficulty} onMode={setMode} onStartingDraft={setStartingDraftEnabled} onAnimateAi={onAnimateAi} onHuman={setHuman} onDifficulty={setDifficulty} onRefresh={onRefresh} onStart={() => void onStart(mode, startingDraftEnabled, mode === 'ai' ? human : undefined, mode === 'ai' ? difficulty : undefined)} />
+    <SetupRail mode={mode} startingDraftEnabled={startingDraftEnabled} animateAi={animateAi} human={human} difficulty={difficulty} onMode={setMode} onStartingDraft={setStartingDraftEnabled} onAnimateAi={onAnimateAi} onHuman={setHuman} onDifficulty={setDifficulty} onRefresh={onRefresh} onCatalog={() => setCatalogOpen(true)} onStart={() => void onStart(mode, startingDraftEnabled, mode === 'ai' ? human : undefined, mode === 'ai' ? difficulty : undefined)} />
     {marketOpen ? <MarketDialog cards={cards} fixedIds={catalog.fixedCardIds} variableIds={market} onClose={() => setMarketOpen(false)} /> : null}
+    {catalogOpen ? <CardCatalogDialog cards={catalog.cards} onClose={() => setCatalogOpen(false)} /> : null}
     {inspectedCardId && cards[inspectedCardId] ? <CardInspectDialog card={cards[inspectedCardId]} onClose={() => setInspectedCardId(null)} /> : null}
   </main>;
 }
@@ -65,7 +68,7 @@ export function Game({ game, initialPresentation, error, animateAi, onAnimateAi,
   const view = presentationGame ?? game;
   const interactive = !playbackActive && !busy;
   const actor = view.players[view.activePlayerId];
-  const actorName = playerName(view.activePlayerId);
+  const actorName = playerLabel(view, view.activePlayerId);
   const availability = new Map((playbackActive ? [] : game.actions.cards).map((item) => [item.cardInstanceId, item]));
   const handGroups = stableHandGroups(actor.hand, `${view.id}:${view.turn}:${view.activePlayerId}`, handOrders.current);
   const playedGroups = groupPlayedCards(actor.played);
@@ -269,7 +272,7 @@ export function Game({ game, initialPresentation, error, animateAi, onAnimateAi,
     ? currentSelection : null;
   const endAction = game.actions.phases.find((action) => action.kind === 'endAction');
   const endBuy = game.actions.phases.find((action) => action.kind === 'endBuy');
-  const turnText = view.winner ? `${playerName(view.winner)} wins`
+  const turnText = view.winner ? `${playerLabel(view, view.winner)} wins`
     : playbackActive && view.mode === 'ai' && view.activePlayerId === view.aiPlayerId ? 'AI turn'
       : view.phase === 'startingBuild' ? `${actorName} starting build`
         : `Turn ${view.turn} · ${actorName} ${view.phase}`;
@@ -311,18 +314,21 @@ export function Game({ game, initialPresentation, error, animateAi, onAnimateAi,
 }
 
 function TableHeader({ title, controls }: { title: string; controls: React.ReactNode }) { return <header className="table-header"><div className="brand"><h1>Deckfront</h1></div><div className="turn-banner" role="status">{title}</div><div className="table-header__controls">{controls}</div></header>; }
-function PreviewArena() { return <section className="arena-zone table-zone"><div className="range-label">Tactical map · Near · 1 space</div><div className="arena battlefield" role="group" aria-label="Six space line arena">{[1,2,3,4,5,6].map((space) => <div className="arena-space" key={space}><span className="arena-space__number">{space}</span><div className="arena-space__fighters">{space === 3 ? <FighterCounter playerId="ochre" health={47} position={space} /> : null}{space === 4 ? <FighterCounter playerId="indigo" health={50} position={space} /> : null}</div></div>)}</div></section>; }
+function PreviewArena({ mode, human }: { mode: GameMode; human: PlayerId }) {
+  const labels = { mode, aiPlayerId: mode === 'ai' ? (human === 'ochre' ? 'indigo' : 'ochre') : null } as const;
+  return <section className="arena-zone table-zone"><div className="range-label">Tactical map · Near · 1 space</div><div className="arena battlefield" role="group" aria-label="Six space line arena">{[1,2,3,4,5,6].map((space) => <div className="arena-space" key={space}><span className="arena-space__number">{space}</span><div className="arena-space__fighters">{space === 3 ? <FighterCounter playerId="ochre" health={47} position={space} label={playerLabel(labels, 'ochre')} shortLabel={playerShortLabel(labels, 'ochre')} /> : null}{space === 4 ? <FighterCounter playerId="indigo" health={50} position={space} label={playerLabel(labels, 'indigo')} shortLabel={playerShortLabel(labels, 'indigo')} /> : null}</div></div>)}</div></section>;
+}
 function EmptyPlayed() { return <section className="played-panel table-zone"><div className="zone-title"><h2>Played this turn</h2></div><div className="played-row"><p className="empty-row">Cards move here from your hand.</p></div></section>; }
-function SetupRail({ mode, startingDraftEnabled, animateAi, human, difficulty, onMode, onStartingDraft, onAnimateAi, onHuman, onDifficulty, onRefresh, onStart }: {
+function SetupRail({ mode, startingDraftEnabled, animateAi, human, difficulty, onMode, onStartingDraft, onAnimateAi, onHuman, onDifficulty, onRefresh, onCatalog, onStart }: {
   mode: GameMode; startingDraftEnabled: boolean; animateAi: boolean; human: PlayerId; difficulty: AiDifficulty;
   onMode: (mode: GameMode) => void; onStartingDraft: (enabled: boolean) => void; onAnimateAi: (enabled: boolean) => void; onHuman: (playerId: PlayerId) => void;
-  onDifficulty: (difficulty: AiDifficulty) => void; onRefresh: () => void; onStart: () => void;
+  onDifficulty: (difficulty: AiDifficulty) => void; onRefresh: () => void; onCatalog: () => void; onStart: () => void;
 }) {
   return <aside className="setup-rail" aria-label="Game setup"><header><span>Game setup</span><h2>New match</h2></header><div className="setup-rail__body">
     <fieldset className="setup-group"><legend>Opponent</legend><div className="setup-options"><button type="button" aria-pressed={mode === 'local'} onClick={() => onMode('local')}>Local players</button><button type="button" aria-pressed={mode === 'ai'} onClick={() => onMode('ai')}>Play against AI</button></div></fieldset>
     {mode === 'ai' ? <><fieldset className="setup-group"><legend>Turn order</legend><div className="setup-options"><button type="button" aria-pressed={human === 'ochre'} onClick={() => onHuman('ochre')}>I go first</button><button type="button" aria-pressed={human === 'indigo'} onClick={() => onHuman('indigo')}>AI goes first</button></div></fieldset><fieldset className="setup-group"><legend>AI strength</legend><div className="setup-options setup-options--four">{AI_DIFFICULTIES.map((value) => <button type="button" key={value} aria-pressed={difficulty === value} onClick={() => onDifficulty(value)}>{value[0]!.toUpperCase() + value.slice(1)}</button>)}</div></fieldset><label className="setup-switch"><span><strong>Animate AI turns</strong><small>{animateAi ? 'Watch the AI play each card.' : 'Show the final result immediately.'}</small></span><input aria-label="Animate AI turns" type="checkbox" checked={animateAi} onChange={(event) => onAnimateAi(event.target.checked)} /><i aria-hidden="true" /></label></> : null}
     {mode === 'local' ? <label className="setup-switch"><span><strong>Starting draft</strong><small>{startingDraftEnabled ? 'Build a custom opening deck.' : 'Start with 7 Copper and 3 Scrap.'}</small></span><input type="checkbox" checked={startingDraftEnabled} onChange={(event) => onStartingDraft(event.target.checked)} /><i aria-hidden="true" /></label> : null}
-    <div className="setup-market-actions"><button className="control-button" onClick={onRefresh}>Refresh market</button></div>
+    <div className="setup-market-actions"><button className="control-button" onClick={onRefresh}>Refresh market</button><button className="control-button" onClick={onCatalog}>View all cards</button></div>
   </div><button className="control-button primary setup-start" onClick={onStart}>Start game</button></aside>;
 }
 function CompactMarket({ cards, fixedIds, variableIds, supply, onView, onCard, enabled }: {
@@ -341,7 +347,7 @@ function CompactMarket({ cards, fixedIds, variableIds, supply, onView, onCard, e
       {outOfStock ? <span className="pile-stock-label">Out of stock</span> : null}
     </button>;
   };
-  return <section className="market-zone table-zone"><div className="zone-title"><h2>Market</h2><button className="text-button" onClick={onView}>Card reference</button></div><div className="market-layout"><section className="market-section"><h3 className="market-section__heading">Fixed piles</h3><div className="pile-grid pile-grid--fixed">{fixedIds.map((id) => pile(id, true))}</div></section><section className="market-section"><h3 className="market-section__heading">Kingdom piles</h3><div className="pile-grid pile-grid--kingdom">{variableIds.map((id) => pile(id, false))}</div></section></div></section>;
+  return <section className="market-zone table-zone"><div className="zone-title"><h2>Market</h2><button className="text-button" onClick={onView}>Card reference</button></div><div className="market-layout"><section className="market-section"><h3 className="market-section__heading">Fixed piles</h3><div className="pile-grid pile-grid--fixed">{fixedIds.map((id) => pile(id, true))}</div></section><section className="market-section"><h3 className="market-section__heading">Battlefield piles</h3><div className="pile-grid pile-grid--kingdom">{variableIds.map((id) => pile(id, false))}</div></section></div></section>;
 }
 
 function cardIdAt(target: Element): string | undefined {
@@ -359,6 +365,35 @@ function inspectCardFromKeyboard(event: React.KeyboardEvent<HTMLElement>, cards:
   const definitionId = cardIdAt(event.target as Element);
   if (!definitionId || !cards[definitionId]) return;
   event.preventDefault(); event.stopPropagation(); show(definitionId);
+}
+
+export function InstructionsDialog({ onDismiss, onNeverShow }: { onDismiss: () => void; onNeverShow: () => void }) {
+  const ref = useRef<HTMLDialogElement>(null);
+  useEffect(() => { const dialog = ref.current; if (dialog && !dialog.open) dialog.showModal(); }, []);
+  return <dialog ref={ref} className="instructions-dialog" aria-labelledby="instructions-title" onClose={onDismiss}>
+    <div className="instructions-dialog__surface">
+      <header className="instructions-dialog__header"><span>How to play</span><h2 id="instructions-title">Build your deck. Control the distance.</h2><p>Deckfront combines Dominion-style deckbuilding with a tactical battlefield.</p></header>
+      <div className="instructions-dialog__content">
+        <section className="instructions-deck" aria-labelledby="instructions-deck-title">
+          <div className="instructions-section-title"><span className="instructions-section-icon" aria-hidden="true">♜</span><div><small>Your deck</small><h3 id="instructions-deck-title">Build as you battle</h3></div></div>
+          <p>Buy stronger cards from the market. Bought cards go into your deck and appear in later hands.</p>
+          <div className="starter-deck" aria-label="Your starting deck has 7 Copper cards and 3 Scrap cards"><span><strong>7</strong> Copper</span><b>+</b><span><strong>3</strong> Scrap</span></div>
+          <ul className="instructions-rules"><li><strong>No action limit</strong><span>Play every card in your hand if you can.</span></li><li><strong>No buy limit</strong><span>Buy as many cards as your money allows.</span></li></ul>
+        </section>
+        <section className="instructions-range" aria-labelledby="instructions-range-title">
+          <div className="instructions-section-title"><span className="instructions-section-icon" aria-hidden="true">⌖</span><div><small>The battlefield</small><h3 id="instructions-range-title">Position changes your attacks</h3></div></div>
+          <div className="instructions-map" role="img" aria-label="A battlefield with six spaces; fighters are on spaces 2 and 5"><span>1</span><span>2<i className="instructions-fighter instructions-fighter--ochre" /></span><span>3</span><span>4</span><span>5<i className="instructions-fighter instructions-fighter--indigo" /></span><span>6</span></div>
+          <p className="instructions-map-caption">Move across six spaces to enter the range your cards need.</p>
+          <div className="range-rules">
+            <article className="range-rule range-rule--melee"><span aria-hidden="true">⚔</span><div><h4>Melee · Close</h4><p>You and your opponent must be on the same space.</p></div></article>
+            <article className="range-rule range-rule--ranged"><span aria-hidden="true">➶</span><div><h4>Ranged · Near or Far</h4><p>You and your opponent must be on different spaces.</p></div></article>
+            <article className="range-rule range-rule--mana"><span aria-hidden="true">✦</span><div><h4>Mana · Any range</h4><p>Cast spells from any position on the battlefield.</p></div></article>
+          </div>
+        </section>
+      </div>
+      <footer><button className="control-button" onClick={() => ref.current?.close()}>Dismiss</button><button className="control-button primary" onClick={() => { onNeverShow(); ref.current?.close(); }}>Don’t show this again</button></footer>
+    </div>
+  </dialog>;
 }
 
 function CardInspectDialog({ card, onClose }: { card: CardDefinition; onClose: () => void }) {
@@ -400,7 +435,7 @@ function CardCatalogDialog({ cards, onClose }: { cards: Record<string, CardDefin
 function ZonePiles({ game, playerId }: { game: GameView; playerId: PlayerId }) {
   const player = game.players[playerId];
   const discard = player.discardTop ? game.cards[player.discardTop.definitionId] : null;
-  return <aside className="zone-piles" aria-label={`${playerName(playerId)} draw and discard piles`}>
+  return <aside className="zone-piles" aria-label={`${playerLabel(game, playerId)} draw and discard piles`}>
     <div className="zone-pile"><div className="card-back" data-testid="draw-pile" aria-label={`${player.zoneCounts.draw} ${cardWord(player.zoneCounts.draw)} in draw pile`}><span>Deckfront</span></div><strong>Draw ×{player.zoneCounts.draw}</strong></div>
     <div className="zone-pile"><div className="discard-top" data-testid="discard-pile" aria-label={`${player.zoneCounts.discard} ${cardWord(player.zoneCounts.discard)} in discard pile`}>{discard ? <article className={`card full-card card--${discard.family}`} data-discard-card={discard.name}><CardFace card={discard} /></article> : <span>Empty</span>}</div><strong>Discard ×{player.zoneCounts.discard}</strong></div>
   </aside>;
@@ -438,7 +473,7 @@ function ResetDialog({ onAccept, onCancel }: { onAccept: () => void; onCancel: (
   const ref = useRef<HTMLDialogElement>(null);
   useEffect(() => { const dialog = ref.current; if (dialog && !dialog.open) dialog.showModal(); }, []);
   return <dialog ref={ref} className="reset-dialog" aria-labelledby="reset-title" onCancel={(event) => { event.preventDefault(); onCancel(); }}>
-    <div><h2 id="reset-title">Reset this game?</h2><p>This returns the same game and kingdom to its starting point. Your progress will be lost.</p><footer><button className="control-button primary" onClick={onAccept}>Yes, reset</button><button className="control-button" onClick={onCancel}>Cancel</button></footer></div>
+    <div><h2 id="reset-title">Reset this game?</h2><p>This returns the same game and market to its starting point. Your progress will be lost.</p><footer><button className="control-button primary" onClick={onAccept}>Yes, reset</button><button className="control-button" onClick={onCancel}>Cancel</button></footer></div>
   </dialog>;
 }
 function ActionRail({ game, busy, playbackActive, onUndo, onReset, onNew, onCatalog }: { game: GameView; busy: boolean; playbackActive: boolean; onUndo: () => void; onReset: () => void; onNew: () => void; onCatalog: () => void }) {
@@ -447,12 +482,12 @@ function ActionRail({ game, busy, playbackActive, onUndo, onReset, onNew, onCata
   const newestEventIdentity = newestEvent ? `${newestEvent.sequence}:${newestEvent.type}:${newestEvent.playerId}:${JSON.stringify(newestEvent.detail)}` : '';
   useEffect(() => { const element = log.current; if (element) element.scrollTop = element.scrollHeight; }, [newestEventIdentity]);
   return <aside className="action-rail" aria-label="Action history, deck compositions, and game controls">
-    <section className="action-log"><header><div><span>Public record</span><h2>Actions</h2></div></header><ol ref={log} data-testid="action-log">{game.events.map((event) => <li key={event.sequence} className={event.type === 'turn' ? 'action-log__turn' : undefined}><span>{playerName(event.playerId)}</span><strong>{eventText(game, event)}</strong></li>)}</ol></section>
+    <section className="action-log"><header><div><span>Public record</span><h2>Actions</h2></div></header><ol ref={log} data-testid="action-log">{game.events.map((event) => <li key={event.sequence} className={event.type === 'turn' ? 'action-log__turn' : undefined}><span>{playerLabel(game, event.playerId)}</span><strong>{eventText(game, event)}</strong></li>)}</ol></section>
     <section className="rail-decks"><h2>Deck compositions</h2><div><DeckSummary game={game} playerId="ochre" /><DeckSummary game={game} playerId="indigo" /></div></section>
     <nav className="rail-controls" aria-label="Game controls"><button className="rail-control-button" aria-label="Undo last action" disabled={!game.canUndo || busy} onClick={onUndo}>Undo</button><button className="rail-control-button" disabled={busy || game.phase === 'startingBuild'} onClick={onReset}>Reset</button><button className="rail-control-button" onClick={onNew}>New game</button><button className="rail-control-button" onClick={onCatalog}>View all cards</button>{playbackActive ? <span className="playback-label" role="status" aria-live="polite" aria-atomic="true">Playing AI turn…</span> : null}</nav>
   </aside>;
 }
-function DeckSummary({ game, playerId }: { game: GameView; playerId: PlayerId }) { const entries = Object.entries(game.players[playerId].deckCounts).sort(([left], [right]) => (game.cards[left]?.name ?? left).localeCompare(game.cards[right]?.name ?? right)); return <section className={`deck-summary deck-summary--${playerId}`} data-testid={`deck-summary-${playerId}`}><h3>{playerName(playerId)}</h3><div>{entries.map(([id, count]) => <span key={id} data-deck-card={game.cards[id]?.name}><span>{game.cards[id]?.name ?? id}</span><strong>×{count}</strong></span>)}</div></section>; }
+function DeckSummary({ game, playerId }: { game: GameView; playerId: PlayerId }) { const entries = Object.entries(game.players[playerId].deckCounts).sort(([left], [right]) => (game.cards[left]?.name ?? left).localeCompare(game.cards[right]?.name ?? right)); return <section className={`deck-summary deck-summary--${playerId}`} data-testid={`deck-summary-${playerId}`}><h3>{playerLabel(game, playerId)}</h3><div>{entries.map(([id, count]) => <span key={id} data-deck-card={game.cards[id]?.name}><span>{game.cards[id]?.name ?? id}</span><strong>×{count}</strong></span>)}</div></section>; }
 function groupCards(cards: CardInstance[]): CardGroup[] { const groups = new Map<string, CardGroup>(); for (const card of cards) { const group = groups.get(card.definitionId); if (group) group.instances.push(card); else groups.set(card.definitionId, { definitionId: card.definitionId, instances: [card] }); } return [...groups.values()]; }
 function stableHandGroups(cards: CardInstance[], turnKey: string, orders: Map<string, string[]>): CardGroup[] {
   const groups = groupCards(cards);
@@ -463,9 +498,8 @@ function stableHandGroups(cards: CardInstance[], turnKey: string, orders: Map<st
   return groups.sort((left, right) => positions.get(left.definitionId)! - positions.get(right.definitionId)!);
 }
 function groupPlayedCards(cards: CardInstance[]): PlayedGroup[] { const groups: PlayedGroup[] = []; for (const card of cards) { const previous = groups.at(-1); if (previous?.definitionId === card.definitionId) previous.instances.push(card); else groups.push({ definitionId: card.definitionId, instances: [card] }); } return groups; }
-function playerName(playerId: PlayerId): string { return playerId === 'ochre' ? 'Player 1' : 'Player 2'; }
 function cardWord(count: number): string { return count === 1 ? 'card' : 'cards'; }
-function eventPlayerName(value: unknown): string { return value === 'ochre' || value === 'indigo' ? playerName(value) : 'Unknown player'; }
+function eventPlayerName(game: GameView, value: unknown): string { return value === 'ochre' || value === 'indigo' ? playerLabel(game, value) : 'Unknown player'; }
 function eventText(game: GameView, event: PublicGameEvent): string {
   const detail = event.detail;
   const cardName = (): string => game.cards[String(detail.definitionId)]?.name ?? String(detail.definitionId);
@@ -473,10 +507,10 @@ function eventText(game: GameView, event: PublicGameEvent): string {
     case 'buildComplete': return `Completed a ${String(detail.count)}-card starting build`;
     case 'cardPlayed': return `Played ${cardName()}`;
     case 'purchase': return `Bought ${cardName()}`;
-    case 'damage': return `Dealt ${String(detail.amount)} damage to ${eventPlayerName(detail.targetId)}`;
+    case 'damage': return `Dealt ${String(detail.amount)} damage to ${eventPlayerName(game, detail.targetId)}`;
     case 'move': if (detail.source === 'drive') return `Moved both fighters ${String(detail.movement)} to space ${String(detail.to)}`; if (detail.source === 'repellingShot') return `Repelling Shot increased the distance; one fighter moved ${String(detail.movement)} to space ${String(detail.to)}`; if (detail.movement === 'stay') return `Stayed on space ${String(detail.to)}`; return `Moved ${String(detail.movement)} to space ${String(detail.to)}`;
     case 'wallCollision': return `Wall blocked ${String(detail.direction)}; neither fighter moved`;
-    case 'condition': return `${String(detail.condition)} ${detail.change === 'set' ? 'applied to' : 'consumed from'} ${eventPlayerName(detail.targetId)}`;
+    case 'condition': return `${String(detail.condition)} ${detail.change === 'set' ? 'applied to' : 'consumed from'} ${eventPlayerName(game, detail.targetId)}`;
     case 'discard': return `Discarded ${cardName()}`;
     case 'recover': return 'Recovered a card to hand';
     case 'gain': return `Gained ${cardName()}`;
