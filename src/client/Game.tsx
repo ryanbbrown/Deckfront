@@ -71,8 +71,11 @@ export function Game({ game, initialPresentation, error, animateAi, onAnimateAi,
   const actor = view.players[view.activePlayerId];
   const actorName = playerLabel(view, view.activePlayerId);
   const availability = new Map((playbackActive ? [] : game.actions.cards).map((item) => [item.cardInstanceId, item]));
-  const handGroups = stableHandGroups(actor.hand, `${view.id}:${view.turn}:${view.activePlayerId}`, handOrders.current);
-  const playedGroups = groupPlayedCards(actor.played);
+  const handGroups = stableHandGroups(actor.hand, `${view.id}:${view.turn}:${view.activePlayerId}`, handOrders.current,
+    destinations.filter((item) => item.kind === 'drawToHand').map((item) => item.definitionId));
+  const playedDestinationCards = destinations.filter((item) => item.kind === 'handToPlayed').map((item, index) => ({ id: `played-destination-${index}`, definitionId: item.definitionId }));
+  const playedDestinationIds = new Set(playedDestinationCards.map((card) => card.id));
+  const playedGroups = groupPlayedCards([...actor.played, ...playedDestinationCards], game.cards);
   const proposalCost = game.buildProposal.reduce((sum, id) => sum + (game.cards[id]?.cost ?? 0), 0);
 
   const finishPlayback = useCallback(() => {
@@ -135,7 +138,7 @@ export function Game({ game, initialPresentation, error, animateAi, onAnimateAi,
             const selector = transfer.kind === 'handToPlayed' ? `[data-played-definition-id="${transfer.card.definitionId}"]` : `[data-hand-definition-id="${transfer.card.definitionId}"] .full-card`;
             const placeholder = document.querySelector<HTMLElement>(`[data-animation-destination="${transfer.kind}-${transfer.card.definitionId}"]`);
             const matches = document.querySelectorAll<HTMLElement>(selector);
-            const target = placeholder?.querySelector<HTMLElement>('.hand-card-frame') ?? placeholder ?? matches.item(matches.length - 1);
+            const target = placeholder?.querySelector<HTMLElement>('.full-card') ?? placeholder?.querySelector<HTMLElement>('.hand-card-frame') ?? placeholder ?? matches.item(matches.length - 1);
             if (!target) return;
             const to = target.getBoundingClientRect();
             const from = transfer.kind === 'handToPlayed' ? sourceRects.get(transfer.card.id) : new DOMRect(to.left, window.innerHeight + 12, to.width, to.height);
@@ -288,10 +291,18 @@ export function Game({ game, initialPresentation, error, animateAi, onAnimateAi,
     <section className="arena-zone table-zone"><div className="range-label" data-testid="range">{view.range} · {Math.abs(view.fighters.ochre.position - view.fighters.indigo.position)} {Math.abs(view.fighters.ochre.position - view.fighters.indigo.position) === 1 ? 'space' : 'spaces'}{movementCard && !playbackActive ? <button className="movement-cancel" onClick={clearChoice}>Cancel movement</button> : null}</div><Board game={view} movementChoices={playbackActive ? [] : movementChoices} busy={!interactive} damageFeedback={damageFeedback} onMovement={(choice) => void act(choice)} /></section>
     {game.phase === 'startingBuild' ? <div className="build-strip"><strong>{actorName} selected</strong><div>{game.buildProposal.map((id, index) => <button key={`${id}-${index}`} aria-label={`Remove ${game.cards[id]?.name}`} onClick={() => void saveBuild(game.buildProposal.filter((_, position) => position !== index))}>{game.cards[id]?.name} ×</button>)}</div><span>{game.buildProposal.length ? 'Click a selected card to remove it.' : 'Click market piles to add cards.'}</span></div> : null}
     <CompactMarket cards={game.cards} fixedIds={game.fixedCardIds} variableIds={game.variableCardIds} supply={view.supply} onView={() => setMarketOpen(true)} onCard={marketAction} enabled={(id) => !playbackActive && (game.phase === 'startingBuild' ? !busy : Boolean(buys.get(id)) && !busy)} />
-    <section className="played-panel table-zone"><div className="zone-title"><h2>Played this turn</h2><div className="played-summary"><div className="played-resources"><strong data-testid="zone-money">{actorName} money: {actor.money}</strong><strong className="mana-counter" data-testid="zone-mana">Mana: {actor.mana}</strong></div><span>Consecutive copies share a stack.</span></div></div><div className="played-row" data-testid="played-row">{playedGroups.length ? playedGroups.map((group) => { const pendingAction = pendingHandSelection?.choices.find((choice) => choice.cardInstanceId && group.instances.some((card) => card.id === choice.cardInstanceId)); return <PlayedCard key={group.instances[0]!.id} card={game.cards[group.definitionId]!} group={group} pendingAction={pendingAction} selected={pendingAction?.id === pendingHandActionId} busy={!interactive} onSelect={setPendingHandActionId} />; }) : null}{destinations.filter((item) => item.kind === 'handToPlayed' && playedGroups.at(-1)?.definitionId !== item.definitionId).map((item) => <div key={`played-placeholder-${item.definitionId}`} className="played-card-slot animation-placeholder" data-played-definition-id={item.definitionId} data-animation-destination={`handToPlayed-${item.definitionId}`} />)}{!playedGroups.length && !destinations.some((item) => item.kind === 'handToPlayed') ? <p className="empty-row">Cards move here from your hand.</p> : null}</div></section>
+    <section className="played-panel table-zone"><div className="zone-title"><h2>Played this turn</h2><div className="played-summary"><div className="played-resources"><strong data-testid="zone-money">{actorName} money: {actor.money}</strong><strong className="mana-counter" data-testid="zone-mana">Mana: {actor.mana}</strong></div><span>Each Treasure type shares one stack. Other cards stack only when consecutive.</span></div></div><div className="played-row" data-testid="played-row">{playedGroups.map((group) => {
+      const destination = group.instances.some((card) => playedDestinationIds.has(card.id)) ? `handToPlayed-${group.definitionId}` : undefined;
+      const visibleGroup = { ...group, instances: group.instances.filter((card) => !playedDestinationIds.has(card.id)) };
+      if (!visibleGroup.instances.length) return <div key={group.instances[0]!.id} className="played-card-slot animation-placeholder" data-played-definition-id={group.definitionId}><article className={`card full-card played-card card--${game.cards[group.definitionId]!.family}`} data-animation-destination={destination} /></div>;
+      const pendingAction = pendingHandSelection?.choices.find((choice) => choice.cardInstanceId && visibleGroup.instances.some((card) => card.id === choice.cardInstanceId));
+      return <PlayedCard key={visibleGroup.instances[0]!.id} card={game.cards[group.definitionId]!} group={visibleGroup} destination={destination} pendingAction={pendingAction} selected={pendingAction?.id === pendingHandActionId} busy={!interactive} onSelect={setPendingHandActionId} />;
+    })}{!playedGroups.length ? <p className="empty-row">Cards move here from your hand.</p> : null}</div></section>
     <section className={`hand-panel table-zone${playbackActive && view.mode === 'ai' && view.activePlayerId === view.aiPlayerId ? ` hand-panel--ai hand-panel--${view.aiPlayerId}` : ''}`}><div className="zone-title"><h2>{playbackActive && view.mode === 'ai' && view.activePlayerId === view.aiPlayerId ? 'AI hand' : `${actorName} hand`}</h2><span>{actor.zoneCounts.hand} physical cards</span></div><div className="hand-control-bar">
       {!playbackActive && targetedCard ? <div className="choice-bar"><p>Select {targetCount} {targetNoun} to {targetVerb}.{groupedTargetHint} {selectedTargets.length} selected.</p><div><button className="control-button primary" disabled={!targetAction} onClick={() => targetAction && void act(targetAction)}>{selectedTargets.length === 0 ? 'Play with no targets' : `${selectedTargetLabel} selected ${selectedTargets.length === 1 ? 'card' : 'cards'}`}</button><button className="control-button" onClick={clearChoice}>Cancel</button></div></div> : pendingHandSelection ? <div className="hand-choice-controls" role="group" aria-label={pendingHandSelection.kind === 'discard' ? 'Discard choice' : 'Trash choice'}><strong>{pendingHandSelection.kind === 'discard' ? 'Select one card to discard' : 'Select one card to trash, or skip'}</strong><button className="control-button primary" disabled={busy || !pendingHandAction} onClick={() => pendingHandAction && void act(pendingHandAction)}>{pendingHandSelection.kind === 'discard' ? 'Confirm discard' : 'Confirm trash'}</button>{pendingSkipAction ? <button className="control-button" disabled={busy} onClick={() => void act(pendingSkipAction)}>Skip</button> : null}</div> : !playbackActive && !movementCard && endAction ? <button className="hand-phase-button" disabled={busy} onClick={() => void act(endAction)}>End Action phase</button> : !playbackActive && !movementCard && endBuy ? <button className="hand-phase-button" disabled={busy} onClick={() => void act(endBuy)}>End Buy phase</button> : null}
     </div><div className="hand-content"><ZonePiles game={view} playerId={view.activePlayerId} /><div className="hand-row" data-testid="hand-grid">{handGroups.map((group, index) => {
+      const destination = destinations.some((item) => item.kind === 'drawToHand' && item.definitionId === group.definitionId) ? `drawToHand-${group.definitionId}` : undefined;
+      if (!group.instances.length) return <div key={group.definitionId} className="hand-card-slot animation-placeholder" style={{ zIndex: index + 1 }} data-hand-definition-id={group.definitionId} data-animation-destination={destination}><div className="hand-card-frame" /></div>;
       const enabledInstance = group.instances.find((card) => availability.get(card.id)?.enabled) ?? group.instances[0]!;
       const info = availability.get(enabledInstance.id);
       const targetIds = targetedCard ? group.instances.filter((card) => availability.get(targetedCard)?.eligibleCardInstanceIds.includes(card.id)).map((card) => card.id) : [];
@@ -301,8 +312,8 @@ export function Game({ game, initialPresentation, error, animateAi, onAnimateAi,
       const pendingSelected = pendingActions.some((choice) => choice.id === pendingHandActionId);
       const unavailable = playbackActive ? false : pendingHandSelection ? !pendingAction : targetedCard ? targetIds.length === 0 : !info?.enabled;
       const batchPlayableCount = group.instances.filter((card) => { const action = availability.get(card.id); return action?.enabled && action.batchPlayable && Boolean(action.actionId); }).length;
-      return <div className="hand-card-slot" key={group.definitionId} style={{ zIndex: index + 1 }} data-hand-definition-id={group.definitionId}><div className="hand-card-frame">{group.instances.length > 1 ? <span className="quantity-badge" data-testid={`hand-count-${group.definitionId}`}>×{group.instances.length}</span> : null}<button className={`card full-card card--${game.cards[group.definitionId]!.family}${unavailable ? ' card--unavailable' : ''}${selectedCount ? ' card--target' : ''}${pendingSelected || movementCard === enabledInstance.id || targetedCard === enabledInstance.id ? ' card--selected' : ''}`} data-card-name={game.cards[group.definitionId]!.name} data-card-instance-id={enabledInstance.id} data-card-count={group.instances.length} disabled={!interactive} aria-disabled={unavailable || playbackActive} title={!targetedCard && !pendingHandSelection ? info?.reason ?? undefined : undefined} onClick={() => { if (unavailable || playbackActive) return; if (pendingAction) setPendingHandActionId(pendingAction.id); else if (targetedCard) toggleTargetGroup(targetIds); else chooseCard(enabledInstance.id); }}><CardFace card={game.cards[group.definitionId]!} />{selectedCount ? <span className="selected-count">Selected ×{selectedCount}</span> : null}{!playbackActive && info?.reason && !targetedCard && !pendingHandSelection && game.cards[group.definitionId]!.type === 'action' ? <em>{info.reason}</em> : null}</button>{!playbackActive && batchPlayableCount >= 2 && !targetedCard && !pendingHandSelection ? <button className="play-all-button" disabled={busy} onClick={() => void playAll(group.definitionId)}>Play all</button> : null}</div></div>;
-    })}{destinations.filter((item) => item.kind === 'drawToHand' && !handGroups.some((group) => group.definitionId === item.definitionId)).map((item) => <div key={`hand-placeholder-${item.definitionId}`} className="hand-card-slot animation-placeholder" data-hand-definition-id={item.definitionId} data-animation-destination={`drawToHand-${item.definitionId}`}><div className="hand-card-frame" /></div>)}</div></div></section>
+      return <div className="hand-card-slot" key={group.definitionId} style={{ zIndex: index + 1 }} data-hand-definition-id={group.definitionId} data-animation-destination={destination}><div className="hand-card-frame">{group.instances.length > 1 ? <span className="quantity-badge" data-testid={`hand-count-${group.definitionId}`}>×{group.instances.length}</span> : null}<button className={`card full-card card--${game.cards[group.definitionId]!.family}${unavailable ? ' card--unavailable' : ''}${selectedCount ? ' card--target' : ''}${pendingSelected || movementCard === enabledInstance.id || targetedCard === enabledInstance.id ? ' card--selected' : ''}`} data-card-name={game.cards[group.definitionId]!.name} data-card-instance-id={enabledInstance.id} data-card-count={group.instances.length} disabled={!interactive} aria-disabled={unavailable || playbackActive} title={!targetedCard && !pendingHandSelection ? info?.reason ?? undefined : undefined} onClick={() => { if (unavailable || playbackActive) return; if (pendingAction) setPendingHandActionId(pendingAction.id); else if (targetedCard) toggleTargetGroup(targetIds); else chooseCard(enabledInstance.id); }}><CardFace card={game.cards[group.definitionId]!} />{selectedCount ? <span className="selected-count">Selected ×{selectedCount}</span> : null}{!playbackActive && info?.reason && !targetedCard && !pendingHandSelection && game.cards[group.definitionId]!.type === 'action' ? <em>{info.reason}</em> : null}</button>{!playbackActive && batchPlayableCount >= 2 && !targetedCard && !pendingHandSelection ? <button className="play-all-button" disabled={busy} onClick={() => void playAll(group.definitionId)}>Play all</button> : null}</div></div>;
+    })}</div></div></section>
     <ActionRail game={view} busy={busy} playbackActive={playbackActive} onUndo={() => void undo()} onReset={confirmReset} onNew={() => { if (playbackActive) finishPlayback(); onNew(); }} onCatalog={() => setCatalogOpen(true)} />
     <FlyingCards flights={flights} renderCard={(card) => <CardFace card={card} />} />
     <PurchasePreview reveal={purchaseReveal} renderCard={(card) => <CardFace card={card} />} />
@@ -463,13 +474,13 @@ function CardPicker({ cards, kind, choices, busy, onChoose }: {
 }
 
 export function CardFace({ card }: { card: CardDefinition }) { const copyLength = card.headline.length + (card.detail?.length ?? 0); const detailDensity = copyLength > 150 ? ' card__detail--very-dense' : copyLength > 90 ? ' card__detail--dense' : ''; return <span className="card__face" data-card-definition-id={card.id}><span className="card__header"><strong className="card__title">{card.name}</strong></span><img className="card__image" src={`/card-art/${card.id}.jpg`} alt="" loading="eager" decoding="async" /><span className="card__rules"><strong className="card__headline">{card.headline}</strong>{card.detail ? <small className={`card__detail${detailDensity}`}>{card.detail}</small> : null}</span><span className="card__cost" aria-label={`Cost ${card.cost}`}>{card.cost}</span></span>; }
-function PlayedCard({ card, group, pendingAction, selected, busy, onSelect }: {
-  card: CardDefinition; group: PlayedGroup; pendingAction?: SelectionActionPresentation | undefined;
+function PlayedCard({ card, group, destination, pendingAction, selected, busy, onSelect }: {
+  card: CardDefinition; group: PlayedGroup; destination?: string | undefined; pendingAction?: SelectionActionPresentation | undefined;
   selected: boolean; busy: boolean; onSelect: (actionId: string) => void;
 }) {
   const count = group.instances.length;
   const className = `card full-card played-card card--${card.family}${selected ? ' card--selected' : ''}`;
-  const attributes = { 'data-played-card-name': card.name, 'data-played-definition-id': card.id, 'data-card-count': count };
+  const attributes = { 'data-played-card-name': card.name, 'data-played-definition-id': card.id, 'data-card-count': count, 'data-animation-destination': destination };
   return <div className="played-card-slot">{count > 1 ? <span className="quantity-badge played-card-count" data-testid={`played-count-${card.id}`}>×{count}</span> : null}{pendingAction ? <button className={className} {...attributes} disabled={busy} aria-label={pendingAction.label} onClick={() => onSelect(pendingAction.id)}><CardFace card={card} /></button> : <article className={className} {...attributes}><CardFace card={card} /></article>}</div>;
 }
 function ResetDialog({ onAccept, onCancel }: { onAccept: () => void; onCancel: () => void }) {
@@ -492,15 +503,31 @@ function ActionRail({ game, busy, playbackActive, onUndo, onReset, onNew, onCata
 }
 function DeckSummary({ game, playerId }: { game: GameView; playerId: PlayerId }) { const entries = Object.entries(game.players[playerId].deckCounts).sort(([left], [right]) => (game.cards[left]?.name ?? left).localeCompare(game.cards[right]?.name ?? right)); return <section className={`deck-summary deck-summary--${playerId}`} data-testid={`deck-summary-${playerId}`}><h3>{playerLabel(game, playerId)}</h3><div>{entries.map(([id, count]) => <span key={id} data-deck-card={game.cards[id]?.name}><span>{game.cards[id]?.name ?? id}</span><strong>×{count}</strong></span>)}</div></section>; }
 function groupCards(cards: CardInstance[]): CardGroup[] { const groups = new Map<string, CardGroup>(); for (const card of cards) { const group = groups.get(card.definitionId); if (group) group.instances.push(card); else groups.set(card.definitionId, { definitionId: card.definitionId, instances: [card] }); } return [...groups.values()]; }
-function stableHandGroups(cards: CardInstance[], turnKey: string, orders: Map<string, string[]>): CardGroup[] {
+function stableHandGroups(cards: CardInstance[], turnKey: string, orders: Map<string, string[]>, destinationDefinitionIds: readonly string[] = []): CardGroup[] {
   const groups = groupCards(cards);
+  const activeDefinitionIds = groups.map((group) => group.definitionId);
+  for (const definitionId of destinationDefinitionIds) if (!activeDefinitionIds.includes(definitionId)) activeDefinitionIds.push(definitionId);
   let order = orders.get(turnKey);
-  if (!order) { order = groups.map((group) => group.definitionId); orders.set(turnKey, order); }
-  for (const group of groups) if (!order.includes(group.definitionId)) order.push(group.definitionId);
+  if (!order) { order = [...activeDefinitionIds]; orders.set(turnKey, order); }
+  for (const definitionId of activeDefinitionIds) if (!order.includes(definitionId)) order.push(definitionId);
   const positions = new Map(order.map((definitionId, index) => [definitionId, index]));
-  return groups.sort((left, right) => positions.get(left.definitionId)! - positions.get(right.definitionId)!);
+  const groupsByDefinition = new Map(groups.map((group) => [group.definitionId, group]));
+  return activeDefinitionIds.map((definitionId) => groupsByDefinition.get(definitionId) ?? { definitionId, instances: [] })
+    .sort((left, right) => positions.get(left.definitionId)! - positions.get(right.definitionId)!);
 }
-function groupPlayedCards(cards: CardInstance[]): PlayedGroup[] { const groups: PlayedGroup[] = []; for (const card of cards) { const previous = groups.at(-1); if (previous?.definitionId === card.definitionId) previous.instances.push(card); else groups.push({ definitionId: card.definitionId, instances: [card] }); } return groups; }
+function groupPlayedCards(cards: CardInstance[], definitions: Record<string, CardDefinition>): PlayedGroup[] {
+  const groups: PlayedGroup[] = []; const treasureGroups = new Map<string, PlayedGroup>(); let previous: CardInstance | undefined;
+  for (const card of cards) {
+    if (definitions[card.definitionId]?.type === 'treasure') {
+      const existing = treasureGroups.get(card.definitionId);
+      if (existing) existing.instances.push(card);
+      else { const group = { definitionId: card.definitionId, instances: [card] }; groups.push(group); treasureGroups.set(card.definitionId, group); }
+    } else if (previous?.definitionId === card.definitionId && definitions[previous.definitionId]?.type !== 'treasure') groups.at(-1)!.instances.push(card);
+    else groups.push({ definitionId: card.definitionId, instances: [card] });
+    previous = card;
+  }
+  return groups;
+}
 function cardWord(count: number): string { return count === 1 ? 'card' : 'cards'; }
 function eventPlayerName(game: GameView, value: unknown): string { return value === 'ochre' || value === 'indigo' ? playerLabel(game, value) : 'Unknown player'; }
 function eventText(game: GameView, event: PublicGameEvent): string {

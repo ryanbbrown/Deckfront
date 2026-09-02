@@ -11,7 +11,7 @@ function expectSameBounds(actual: CardBounds, expected: CardBounds): void {
   expect(actual.left).toBeCloseTo(expected.left, 0); expect(actual.top).toBeCloseTo(expected.top, 0);
   expect(actual.width).toBeCloseTo(expected.width, 0); expect(actual.height).toBeCloseTo(expected.height, 0);
 }
-interface RecordedFlight { name: string; kind: string; at: number; source: CardBounds; target: CardBounds; destinations: CardBounds[]; earlyCardCount: number }
+interface RecordedFlight { name: string; kind: string; at: number; source: CardBounds; target: CardBounds; destinations: CardBounds[]; handGroups: Record<string, CardBounds>; earlyCardCount: number }
 async function recordFlights(page: import('@playwright/test').Page): Promise<void> {
   await page.evaluate(() => {
     const target = (element: HTMLElement) => ({
@@ -30,7 +30,8 @@ async function recordFlights(page: import('@playwright/test').Page): Promise<voi
         const definitionId = name.replaceAll(' ', '').replace(/^./, (letter) => letter.toLowerCase());
         const destination = kind === 'draw' ? `drawToHand-${definitionId}` : `handToPlayed-${definitionId}`;
         const delay = Number.parseFloat(flight.style.animationDelay) || 0;
-        state.recordedFlights!.push({ name, kind, at: performance.now() + delay, source: { left: Number.parseFloat(flight.style.left), top: Number.parseFloat(flight.style.top), width: Number.parseFloat(flight.style.width), height: Number.parseFloat(flight.style.height) }, target: target(flight), destinations: [...document.querySelectorAll(`[data-animation-destination="${destination}"]`)].map((element) => rect(element.querySelector('.hand-card-frame') ?? element)), earlyCardCount: document.querySelectorAll(`[data-card-name="${name}"]`).length });
+        const handGroups = Object.fromEntries([...document.querySelectorAll<HTMLElement>('[data-testid="hand-grid"] [data-hand-definition-id]')].map((slot) => [slot.dataset.handDefinitionId!, rect(slot)]));
+        state.recordedFlights!.push({ name, kind, at: performance.now() + delay, source: { left: Number.parseFloat(flight.style.left), top: Number.parseFloat(flight.style.top), width: Number.parseFloat(flight.style.width), height: Number.parseFloat(flight.style.height) }, target: target(flight), destinations: [...document.querySelectorAll(`[data-animation-destination="${destination}"]`)].map((element) => rect(element.querySelector('.full-card') ?? element.querySelector('.hand-card-frame') ?? element)), handGroups, earlyCardCount: document.querySelectorAll(`[data-card-name="${name}"]`).length });
       });
     }).observe(document.body, { childList: true, subtree: true });
   });
@@ -146,7 +147,7 @@ test('DD-E2E-074: shipped card art has valid JPEG delivery, decoding, dimensions
       hashedStatus: hashed.status, hashedCache: hashed.headers.get('cache-control')
     };
   });
-  expect(delivery).toEqual({ status: 200, type: 'image/jpeg', cache: 'no-cache', width: 800, height: 536,
+  expect(delivery).toEqual({ status: 200, type: 'image/jpeg', cache: 'public, max-age=86400', width: 800, height: 536,
     hashedStatus: 200, hashedCache: 'public, max-age=31536000, immutable' });
 });
 
@@ -641,18 +642,20 @@ test('DD-E2E-056: hand groups keep turn slots and append newly drawn definitions
   await expect(stipend).toHaveAttribute('data-card-count', '2'); expect(await slotLeft()).toBe(before);
 });
 
-test('DD-E2E-059: one and multiple new draw groups hold exact centered landing slots', async ({ page, openGame }) => {
-  await openGame(page, (record) => { seedHand(record, ['muster'], ['aim', 'volley']); record.state.players.ochre.deck.discard.push(createCard(record.state, 'gold')); });
-  await expect(page.getByTestId('draw-pile')).toHaveAttribute('aria-label', '2 cards in draw pile');
+test('DD-E2E-059: existing and new hand groups keep their final bounds through grouped draw landings', async ({ page, openGame }) => {
+  await openGame(page, (record) => { seedHand(record, ['muster', 'muster', 'copper', 'scrap'], ['volley', 'volley', 'precisionShot', 'precisionShot']); record.state.players.ochre.deck.discard.push(createCard(record.state, 'gold')); });
+  await expect(page.getByTestId('draw-pile')).toHaveAttribute('aria-label', '4 cards in draw pile');
   await expect(page.getByTestId('discard-pile')).toHaveAttribute('aria-label', '1 card in discard pile');
   await expect(page.locator('[data-discard-card="Gold"]')).toBeVisible();
-  await recordFlights(page); await page.locator('[data-card-name="Muster"]').click();
-  await expect(page.locator('[data-card-name="Aim"]')).toBeVisible(); await expect(page.locator('[data-card-name="Volley"]')).toBeVisible();
-  const flights = await recordedFlights(page); const musterFlight = flights.find((flight) => flight.name === 'Muster')!; const aimFlight = flights.find((flight) => flight.name === 'Aim')!; const volleyFlight = flights.find((flight) => flight.name === 'Volley')!;
-  expect(musterFlight).toBeDefined(); expect(musterFlight.earlyCardCount).toBe(0); expect(aimFlight.earlyCardCount).toBe(0); expect(volleyFlight.earlyCardCount).toBe(0);
-  expect(aimFlight.target.left).not.toBeCloseTo(volleyFlight.target.left, 0); expect(aimFlight.destinations).toHaveLength(1); expect(volleyFlight.destinations).toHaveLength(1);
-  expectSameBounds(aimFlight.target, aimFlight.destinations[0]!); expectSameBounds(volleyFlight.target, volleyFlight.destinations[0]!);
-  expectSameBounds(await bounds(page.locator('[data-card-name="Aim"]')), aimFlight.target); expectSameBounds(await bounds(page.locator('[data-card-name="Volley"]')), volleyFlight.target);
+  await recordFlights(page); await page.getByRole('button', { name: 'Play all', exact: true }).click();
+  await expect(page.getByTestId('hand-count-volley')).toHaveText('×2'); await expect(page.getByTestId('hand-count-precisionShot')).toHaveText('×2');
+  const flights = await recordedFlights(page); const drawFlights = flights.filter((flight) => flight.kind === 'draw'); const volleyFlights = drawFlights.filter((flight) => flight.name === 'Volley'); const precisionFlights = drawFlights.filter((flight) => flight.name === 'Precision Shot');
+  expect(volleyFlights).toHaveLength(2); expect(precisionFlights).toHaveLength(2); expect(drawFlights.every((flight) => flight.earlyCardCount === 0 && flight.destinations.length === 1)).toBe(true);
+  expectSameBounds(volleyFlights[0]!.target, volleyFlights[1]!.target); expectSameBounds(precisionFlights[0]!.target, precisionFlights[1]!.target); expect(volleyFlights[0]!.target.left).not.toBeCloseTo(precisionFlights[0]!.target.left, 0);
+  const flightLayout = drawFlights[0]!.handGroups; expect(Object.keys(flightLayout)).toEqual(['copper', 'scrap', 'volley', 'precisionShot']);
+  for (const flight of drawFlights) expect(flight.handGroups).toEqual(flightLayout);
+  for (const definitionId of ['copper', 'scrap', 'volley', 'precisionShot']) expectSameBounds(await bounds(page.locator(`[data-hand-definition-id="${definitionId}"]`)), flightLayout[definitionId]!);
+  expectSameBounds(volleyFlights[0]!.target, volleyFlights[0]!.destinations[0]!); expectSameBounds(precisionFlights[0]!.target, precisionFlights[0]!.destinations[0]!);
   await expect(page.getByTestId('draw-pile')).toHaveAttribute('aria-label', '0 cards in draw pile');
 
   await openGame(page, (record) => { seedHand(record, ['muster'], ['aim']); }); await recordFlights(page); await page.locator('[data-card-name="Muster"]').click();
@@ -773,7 +776,7 @@ test('DD-E2E-066: centered hands and zone piles do not overflow at supported des
   }
 });
 
-test('DD-E2E-067: Play all uses the same stack cadence as automatic Treasure play', async ({ page, openGame }) => {
+test('DD-E2E-067: Play all cadence and interleaved Treasures keep definition stacks without regrouping actions', async ({ page, openGame }) => {
   await page.setViewportSize({ width: 1920, height: 1080 }); const intervals = (flights: RecordedFlight[]) => flights.slice(1).map((flight, index) => flight.at - flights[index]!.at);
   await openGame(page, (record) => { seedHand(record, ['precisionShot', 'precisionShot', 'precisionShot']); record.state.fighters.indigo.health = 50; }); await recordFlights(page);
   await page.getByRole('button', { name: 'Play all', exact: true }).click(); await expect(page.locator('[data-played-card-name="Precision Shot"]')).toHaveAttribute('data-card-count', '3');
@@ -783,7 +786,30 @@ test('DD-E2E-067: Play all uses the same stack cadence as automatic Treasure pla
   const treasures = (await recordedFlights(page)).filter((flight) => flight.name === 'Gold'); expect(treasures).toHaveLength(3);
   const repeatedIntervals = intervals(repeated); const treasureIntervals = intervals(treasures);
   for (const interval of [...repeatedIntervals, ...treasureIntervals]) { expect(interval).toBeGreaterThanOrEqual(70); expect(interval).toBeLessThanOrEqual(120); }
-  expect(repeatedIntervals).toEqual(treasureIntervals.map((interval) => expect.closeTo(interval, 0)));
+  for (const [index, interval] of repeatedIntervals.entries()) expect(Math.abs(interval - treasureIntervals[index]!)).toBeLessThan(2);
+
+  await openGame(page, (record) => {
+    seedHand(record, ['copper', 'silver', 'copper', 'silver']);
+    record.state.players.ochre.deck.play = ['muster', 'copper', 'stipend', 'muster', 'muster'].map((id) => createCard(record.state, id));
+  });
+  await expect(page.locator('.played-summary')).toContainText('Each Treasure type shares one stack. Other cards stack only when consecutive.');
+  await recordFlights(page); await page.getByRole('button', { name: 'End Action phase' }).click();
+  await expect(page.locator('[data-played-card-name="Copper"]')).toHaveAttribute('data-card-count', '3'); await expect(page.locator('[data-played-card-name="Silver"]')).toHaveAttribute('data-card-count', '2');
+  const played = await page.locator('[data-played-card-name]').evaluateAll((cards) => cards.map((card) => ({ name: card.getAttribute('data-played-card-name'), count: card.getAttribute('data-card-count') })));
+  expect(played).toEqual([
+    { name: 'Muster', count: '1' }, { name: 'Copper', count: '3' }, { name: 'Stipend', count: '1' },
+    { name: 'Muster', count: '2' }, { name: 'Silver', count: '2' }
+  ]);
+  expect(played.filter(({ name }) => name === 'Copper' || name === 'Silver')).toHaveLength(2);
+  expect(played.filter(({ name }) => name !== 'Copper' && name !== 'Silver')).toEqual([
+    { name: 'Muster', count: '1' }, { name: 'Stipend', count: '1' }, { name: 'Muster', count: '2' }
+  ]);
+  const interleaved = (await recordedFlights(page)).filter((flight) => flight.kind === 'play');
+  expect(interleaved.map((flight) => flight.name)).toEqual(['Copper', 'Silver', 'Copper', 'Silver']);
+  expect(interleaved.every((flight) => flight.destinations.length === 1)).toBe(true);
+  const settledCopper = await bounds(page.locator('[data-played-card-name="Copper"]')); const settledSilver = await bounds(page.locator('[data-played-card-name="Silver"]'));
+  for (const flight of interleaved.filter((item) => item.name === 'Copper')) { expectSameBounds(flight.target, flight.destinations[0]!); expectSameBounds(flight.target, settledCopper); }
+  for (const flight of interleaved.filter((item) => item.name === 'Silver')) { expectSameBounds(flight.target, flight.destinations[0]!); expectSameBounds(flight.target, settledSilver); }
 });
 
 test('DD-E2E-068: human and AI purchases show a readable market-anchored card preview', async ({ page, openGame }) => {

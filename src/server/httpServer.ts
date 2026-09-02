@@ -96,12 +96,23 @@ async function serveClient(request: IncomingMessage, response: ServerResponse, d
   const requested = url.pathname === '/' ? 'index.html' : decodeURIComponent(url.pathname.slice(1));
   let candidate = path.resolve(distDirectory, requested);
   if (!candidate.startsWith(`${path.resolve(distDirectory)}${path.sep}`) && candidate !== path.resolve(distDirectory)) { sendJson(response, 404, { error: 'Not found.' }); return; }
-  try { if (!(await stat(candidate)).isFile()) throw new Error('Not a file.'); }
-  catch { candidate = path.join(distDirectory, 'index.html'); }
-  const body = await readFile(candidate); response.statusCode = 200;
+  let fileStats;
+  try { fileStats = await stat(candidate); if (!fileStats.isFile()) throw new Error('Not a file.'); }
+  catch { candidate = path.join(distDirectory, 'index.html'); fileStats = await stat(candidate); }
+  const isCardArt = url.pathname.startsWith('/card-art/') && ['.jpg', '.jpeg'].includes(path.extname(candidate).toLowerCase());
   response.setHeader('content-type', MIME_TYPES[path.extname(candidate).toLowerCase()] ?? 'application/octet-stream');
   response.setHeader('cache-control', url.pathname.startsWith('/assets/')
-    ? 'public, max-age=31536000, immutable' : 'no-cache');
+    ? 'public, max-age=31536000, immutable' : isCardArt ? 'public, max-age=86400' : 'no-cache');
+  if (isCardArt) {
+    const lastModified = fileStats.mtime.toUTCString();
+    response.setHeader('last-modified', lastModified);
+    const ifModifiedSince = request.headers['if-modified-since'];
+    const revalidationTime = typeof ifModifiedSince === 'string' ? Date.parse(ifModifiedSince) : Number.NaN;
+    if (!Number.isNaN(revalidationTime) && Math.floor(fileStats.mtimeMs / 1000) * 1000 <= revalidationTime) {
+      response.statusCode = 304; response.end(); return;
+    }
+  }
+  const body = await readFile(candidate); response.statusCode = 200;
   response.end(request.method === 'HEAD' ? undefined : body);
 }
 function sendJson(response: ServerResponse, status: number, value: unknown): void {

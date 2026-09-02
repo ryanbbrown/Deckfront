@@ -1,5 +1,5 @@
 import { randomUUID } from 'node:crypto';
-import { mkdir, mkdtemp, readdir, rm, writeFile } from 'node:fs/promises';
+import { mkdir, mkdtemp, readFile, readdir, rm, stat, writeFile } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
@@ -56,6 +56,27 @@ describe('local game HTTP interface', () => {
       expect(response.headers.get('content-type'), route).toBe('text/html; charset=utf-8');
       expect(await response.text(), route).toContain('<div id="root"></div>');
     }
+  });
+  it('serves card art with its JPEG body and one-day cache headers', async () => {
+    const { base } = await server();
+    const artPath = path.join(root, 'dist/card-art/drive.jpg');
+    const response = await fetch(`${base}/card-art/drive.jpg`);
+    expect(response.status).toBe(200);
+    expect(Object.fromEntries(['content-type', 'cache-control', 'last-modified'].map((name) => [name, response.headers.get(name)]))).toEqual({
+      'content-type': 'image/jpeg',
+      'cache-control': 'public, max-age=86400',
+      'last-modified': (await stat(artPath)).mtime.toUTCString()
+    });
+    expect(Buffer.from(await response.arrayBuffer())).toEqual(await readFile(artPath));
+  });
+  it('returns no card-art body when If-Modified-Since matches', async () => {
+    const { base } = await server();
+    const lastModified = (await stat(path.join(root, 'dist/card-art/drive.jpg'))).mtime.toUTCString();
+    const response = await fetch(`${base}/card-art/drive.jpg`, { headers: { 'if-modified-since': lastModified } });
+    expect(response.status).toBe(304);
+    expect(response.headers.get('cache-control')).toBe('public, max-age=86400');
+    expect(response.headers.get('last-modified')).toBe(lastModified);
+    expect((await response.arrayBuffer()).byteLength).toBe(0);
   });
   it('serves the setup catalog with fixed and variable cards separated', async () => {
     const { base } = await server(); const response = await fetch(`${base}/api/setup`);
