@@ -44,7 +44,8 @@ export class GameService {
     const startingDraftEnabled = mode === 'ai' ? false : input.startingDraftEnabled ?? false;
     const initialState = createGame({ seed, firstPlayerId: 'ochre', kingdomId: kingdom.id, startingDraftEnabled });
     const record: GameRecord = {
-      schemaVersion: 15, id, revision: 0, createdAt: now, updatedAt: now, finishedAt: null,
+      schemaVersion: 16, id, seriesId: id, attemptNumber: 1, previousAttemptId: null, nextAttemptId: null,
+      revision: 0, createdAt: now, updatedAt: now, finishedAt: null,
       completedActions: 0, durationSeconds: null, buildProposal: [], kingdom, startingDraftEnabled, mode, humanPlayerId,
       aiDifficulty,
       aiStrategy: trained?.strategy ?? null, training: trained?.summary ?? null,
@@ -60,6 +61,7 @@ export class GameService {
   async updateBuild(id: string, expectedRevision: number, definitionIds: string[], complete: boolean): Promise<GameUpdateView> {
     return this.repository.withLock(id, async () => {
       const record = await this.repository.load(id);
+      this.assertMutable(record);
       this.assertRevision(record, expectedRevision);
       const builderId = record.state.activePlayerId;
       if (record.mode === 'ai' && builderId !== record.humanPlayerId) throw new ForbiddenActionError('The AI controls this starting build.');
@@ -85,6 +87,7 @@ export class GameService {
   async commitAction(id: string, expectedRevision: number, actionId: string): Promise<GameUpdateView> {
     return this.repository.withLock(id, async () => {
       const record = await this.repository.load(id);
+      this.assertMutable(record);
       this.assertRevision(record, expectedRevision);
       if (record.state.winner || record.state.phase === 'startingBuild') throw new ForbiddenActionError('It is not a local player’s turn.');
       if (record.mode === 'ai' && record.state.activePlayerId !== record.humanPlayerId) throw new ForbiddenActionError('The AI controls this turn.');
@@ -105,6 +108,7 @@ export class GameService {
   async undoAction(id: string, expectedRevision: number): Promise<GameUpdateView> {
     return this.repository.withLock(id, async () => {
       const record = await this.repository.load(id);
+      this.assertMutable(record);
       this.assertRevision(record, expectedRevision);
       const entry = record.undoHistory.pop();
       if (!entry) throw new ForbiddenActionError('There is no action to undo.');
@@ -121,35 +125,44 @@ export class GameService {
   }
   async resetGame(id: string, expectedRevision: number): Promise<GameUpdateView> {
     return this.repository.withLock(id, async () => {
-      const record = await this.repository.load(id);
-      this.assertRevision(record, expectedRevision);
+      const parent = await this.repository.load(id);
+      this.assertMutable(parent);
+      this.assertRevision(parent, expectedRevision);
       const setupCommands: GameCommand[] = [];
-      if (record.startingDraftEnabled) {
-        const ochreBuild = record.state.players.ochre.startingBuild;
-        const indigoBuild = record.state.players.indigo.startingBuild;
+      if (parent.startingDraftEnabled) {
+        const ochreBuild = parent.state.players.ochre.startingBuild;
+        const indigoBuild = parent.state.players.indigo.startingBuild;
         if (!ochreBuild || !indigoBuild) throw new ForbiddenActionError('Complete both starting builds before resetting the game.');
         setupCommands.push(
           { type: 'submitStartingBuild', playerId: 'ochre', definitionIds: [...ochreBuild] },
           { type: 'submitStartingBuild', playerId: 'indigo', definitionIds: [...indigoBuild] }
         );
       }
-      record.committedCommands = setupCommands;
-      record.state = replayCommands(record.initialState, setupCommands);
-      record.buildProposal = [];
-      record.undoHistory = [];
-      record.completedActions = 0;
-      record.finishedAt = null;
-      record.durationSeconds = null;
+      const childId = randomUUID();
+      const now = new Date().toISOString();
+      const child: GameRecord = {
+        schemaVersion: 16, id: childId, seriesId: parent.seriesId, attemptNumber: parent.attemptNumber + 1,
+        previousAttemptId: parent.id, nextAttemptId: null,
+        revision: 0, createdAt: now, updatedAt: now, finishedAt: null,
+        completedActions: 0, durationSeconds: null, buildProposal: [], kingdom: structuredClone(parent.kingdom),
+        startingDraftEnabled: parent.startingDraftEnabled, mode: parent.mode, humanPlayerId: parent.humanPlayerId,
+        aiDifficulty: parent.aiDifficulty, aiStrategy: structuredClone(parent.aiStrategy), training: structuredClone(parent.training),
+        initialState: cloneGame(parent.initialState), committedCommands: setupCommands, undoHistory: [],
+        state: replayCommands(parent.initialState, setupCommands)
+      };
       const frames: PresentationFrame[] = [];
-      this.advanceComputer(record, frames);
-      this.touch(record);
-      this.assertRecordReplay(record);
-      await this.repository.save(record);
-      return this.gameUpdate(record, frames);
+      this.advanceComputer(child, frames);
+      this.assertRecordReplay(child);
+      parent.nextAttemptId = child.id;
+      this.touch(parent);
+      this.assertRecordReplay(parent);
+      await this.repository.save(parent);
+      await this.repository.create(child);
+      return this.gameUpdate(child, frames);
     });
   }
   async exportGame(id: string): Promise<GameExport> {
-    return { schemaVersion: 15, exportedAt: new Date().toISOString(), game: this.gameView(await this.repository.load(id)) };
+    return { schemaVersion: 16, exportedAt: new Date().toISOString(), game: this.gameView(await this.repository.load(id)) };
   }
   private advanceComputer(record: GameRecord, frames: PresentationFrame[]): void {
     if (record.mode !== 'ai' || !record.aiStrategy || !record.humanPlayerId) return;
@@ -216,6 +229,9 @@ export class GameService {
   private finish(record: GameRecord): void {
     record.finishedAt = record.updatedAt;
     record.durationSeconds = Math.max(0, Math.round((Date.parse(record.updatedAt) - Date.parse(record.createdAt)) / 100) / 10);
+  }
+  private assertMutable(record: GameRecord): void {
+    if (record.nextAttemptId) throw new ConflictError('This game has already been reset.');
   }
   private assertRevision(record: GameRecord, expected: number): void {
     if (record.revision !== expected) throw new ConflictError(`Expected revision ${expected}, but current revision is ${record.revision}.`);
@@ -378,7 +394,9 @@ export class GameService {
       ? { ochre: [...state.players.ochre.startingBuild], indigo: [...state.players.indigo.startingBuild] }
       : null;
     return {
-      schemaVersion: 15, id: record.id, revision: record.revision, createdAt: record.createdAt, updatedAt: record.updatedAt,
+      schemaVersion: 16, id: record.id, seriesId: record.seriesId, attemptNumber: record.attemptNumber,
+      previousAttemptId: record.previousAttemptId, nextAttemptId: record.nextAttemptId,
+      revision: record.revision, createdAt: record.createdAt, updatedAt: record.updatedAt,
       elapsedSeconds: Math.max(0, Math.floor((Date.parse(record.updatedAt) - Date.parse(record.createdAt)) / 1000)),
       completedActions: record.completedActions, durationSeconds: record.durationSeconds,
       activePlayerId: state.activePlayerId, selectedFirstPlayerId: state.selectedFirstPlayerId, phase: state.phase,

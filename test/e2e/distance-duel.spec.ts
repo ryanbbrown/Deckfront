@@ -84,13 +84,32 @@ async function expectTableWithinViewport(page: import('@playwright/test').Page):
 }
 
 test('DD-E2E-001: full-table preview refreshes, explains, and keeps both local builds', async ({ page, baseUrl }) => {
+  await page.route('**/api/stats', (route) => route.fulfill({ json: { difficulties: [
+    { difficulty: 'easy', gamesPlayed: 11, humanWins: 4, aiWins: 7 },
+    { difficulty: 'normal', gamesPlayed: 22, humanWins: 12, aiWins: 10 },
+    { difficulty: 'hard', gamesPlayed: 33, humanWins: 18, aiWins: 15 },
+    { difficulty: 'expert', gamesPlayed: 0, humanWins: 0, aiWins: 0 }
+  ] } }));
   await page.setViewportSize({ width: 1920, height: 1080 }); await page.goto(`${baseUrl}?showInstructions=1`);
   const instructions = page.getByRole('dialog', { name: 'Build your deck. Control the distance.' });
   await expect(instructions).toContainText('7 Copper'); await expect(instructions).toContainText('3 Scrap'); await expect(instructions).toContainText('No action limit'); await expect(instructions).toContainText('No buy limit'); await expect(instructions).toContainText('six spaces'); await expect(instructions).toContainText('Melee · Close'); await expect(instructions).toContainText('Ranged · Near or Far'); await expect(instructions).toContainText('Mage · Any range'); await expect(instructions).toContainText('Carry up to 2 unspent mana from turn to turn.');
   await page.keyboard.press('Escape'); await expect(instructions).toHaveCount(0); await page.reload(); await expect(instructions).toBeVisible();
   await instructions.getByRole('button', { name: 'Dismiss' }).click(); await page.reload(); await expect(instructions).toBeVisible(); await instructions.getByRole('button', { name: 'Don’t show this again' }).click(); await page.reload(); await expect(instructions).toHaveCount(0);
   await expect(page.getByRole('heading', { name: 'Deckfront' })).toBeVisible(); await expect(page.getByText('Set up a match')).toBeVisible(); await expect(page.getByLabel('Game setup')).toBeVisible(); const previewArena = page.getByRole('group', { name: 'Six space line arena' }); await expect(previewArena.locator('.arena-space')).toHaveCount(6); await expect(previewArena.getByRole('img', { name: /Player 1, 47 health/ })).toBeVisible(); await expect(previewArena.locator('.fighter__figure svg')).toHaveCount(2); await expect(page.getByText('I go first', { exact: true })).toHaveCount(0); await expect(page.getByText('AI goes first', { exact: true })).toHaveCount(0); await expect(page.getByRole('group', { name: 'AI strength' })).toHaveCount(0);
-  await page.getByRole('button', { name: 'Play against AI' }).click(); await page.getByRole('button', { name: 'AI goes first' }).click(); await expect(previewArena.getByRole('img', { name: /AI, 47 health/ })).toBeVisible(); await expect(previewArena.getByRole('img', { name: /P1, 50 health/ })).toBeVisible(); await page.getByRole('button', { name: 'Local players' }).click();
+  await page.getByRole('button', { name: 'Play against AI' }).click(); await page.getByRole('button', { name: 'AI goes first' }).click(); await expect(previewArena.getByRole('img', { name: /AI, 47 health/ })).toBeVisible(); await expect(previewArena.getByRole('img', { name: /P1, 50 health/ })).toBeVisible();
+  const difficultyResults = [
+    { difficulty: 'Easy', text: '11 games playedHuman 4AI 7' },
+    { difficulty: 'Normal', text: '22 games playedHuman 12AI 10' },
+    { difficulty: 'Hard', text: '33 games playedHuman 18AI 15' },
+    { difficulty: 'Expert', text: '0 games playedHuman 0AI 0' }
+  ];
+  for (const result of difficultyResults) {
+    await page.getByRole('button', { name: result.difficulty }).click();
+    const panel = page.getByRole('region', { name: `${result.difficulty.toLowerCase()} sitewide results` });
+    await expect(panel).toHaveText(`Sitewide results${result.text}`);
+    await expect(page.locator('.setup-statistics')).toHaveCount(1);
+  }
+  await page.getByRole('button', { name: 'Local players' }).click(); await expect(page.locator('.setup-statistics')).toHaveCount(0);
   await expect(page.locator('[data-market-card="Step"]')).toBeVisible(); await expect(page.locator('[data-market-card="Focus"]')).toBeVisible(); await expect(page.locator('[data-market-card="Scrap"]')).toBeVisible(); await expect(page.locator('[data-market-card]')).toHaveCount(16); await expect(page.locator('[data-market-card][aria-disabled="true"]')).toHaveCount(16); await expect(page.getByLabel('Starting draft')).not.toBeChecked();
   await expect(page.getByRole('heading', { name: 'Battlefield piles' })).toBeVisible(); await expect(page.locator('.pile-grid--fixed [data-market-card]')).toHaveCount(6); await expect(page.locator('.pile-grid--kingdom [data-market-card]')).toHaveCount(10); expect(await page.locator('.pile-grid--fixed [data-market-card]').evaluateAll((piles) => piles.map((pile) => pile.getAttribute('data-market-card')))).toEqual(['Copper','Silver','Gold','Step','Focus','Scrap']);
   expect(Number.parseFloat(await page.locator('.kingdom-pile__effect').first().evaluate((element) => getComputedStyle(element).fontSize))).toBeGreaterThanOrEqual(7);
@@ -99,7 +118,7 @@ test('DD-E2E-001: full-table preview refreshes, explains, and keeps both local b
   expect(compactLayout).toEqual({ headerHeight: 42, fixedRows: 3, fixedColumns: 2, kingdomRows: 2, kingdomColumns: 5, images: 16 });
   await page.locator('[data-market-card="Step"]').click({ button: 'right', force: true }); const cardPopup = page.getByRole('dialog', { name: 'Step details' }); await expect(cardPopup).toBeVisible(); await expect(cardPopup).toContainText('Move 1 space'); await expect(cardPopup.getByLabel('Cost 2')).toBeVisible(); expect(await cardPopup.evaluate((element) => element.matches(':modal'))).toBe(true); expect(Number.parseFloat(await cardPopup.locator('.card__rules').evaluate((element) => getComputedStyle(element).fontSize))).toBeGreaterThanOrEqual(7); await page.keyboard.press('Escape'); await expect(cardPopup).toHaveCount(0);
   const before = await page.locator('.pile-grid--kingdom [data-market-card]').allTextContents(); await page.getByRole('button', { name: 'Refresh market' }).click(); const after = await page.locator('.pile-grid--kingdom [data-market-card]').allTextContents(); expect(after).not.toEqual(before);
-  await page.setViewportSize({ width: 1280, height: 720 }); await expectTableWithinViewport(page); await expect(page.getByRole('button', { name: 'Start game' })).toBeVisible();
+  await page.setViewportSize({ width: 1280, height: 720 }); await page.getByRole('button', { name: 'Play against AI' }).click(); await expect(page.getByText('0 games played')).toBeVisible(); await expectTableWithinViewport(page); await expect(page.getByRole('button', { name: 'Start game' })).toBeVisible(); await page.getByRole('button', { name: 'Local players' }).click();
   for (const viewport of [{ width: 1690, height: 1550 }, { width: 1920, height: 1080 }, { width: 3840, height: 2160 }]) {
     await page.setViewportSize(viewport); await page.getByRole('button', { name: 'Card reference' }).click(); await expect(page.getByRole('dialog')).toBeVisible(); await expect(page.locator('.market-dialog .reference-card')).toHaveCount(16); await expect(page.locator('.market-dialog .card__image')).toHaveCount(16);
     const layout = await marketLayout(page); expect(layout.cardWidths).toEqual([120]); expect(layout.cardHeights).toEqual([220]); expect(layout.imageHeights).toEqual([96]); expect(layout.rows).toBe(3); expect(layout.columns).toBe(6); expect(layout.surface.width).toBeLessThanOrEqual(840); expect(layout.surface.height).toBe(772); expect(layout.surface.left).toBeGreaterThanOrEqual(0); expect(layout.surface.top).toBeGreaterThanOrEqual(0); expect(layout.surface.right).toBeLessThanOrEqual(layout.viewport.width); expect(layout.surface.bottom).toBeLessThanOrEqual(layout.viewport.height); expect(layout.centeredInTable).toBe(true); expect(layout.clearOfRail).toBe(true); expect(layout.overflow).toEqual({ horizontal: 0, vertical: 0 }); expect(layout.gridOverflow).toEqual({ horizontal: 0, vertical: 0 }); await page.getByRole('button', { name: 'Close market' }).click();
@@ -707,6 +726,31 @@ test('DD-E2E-065: New game ignores late action successes and errors', async ({ p
     await expect(page.getByRole('button', { name: 'Start game' })).toBeVisible(); await expect(page.getByRole('alert')).toHaveCount(0); await page.unroute('**/actions');
   };
   await interrupt(200); await interrupt(500);
+
+  await openGame(page); let statisticsRequests = 0;
+  await page.route('**/api/stats', async (route) => {
+    statisticsRequests += 1;
+    if (statisticsRequests === 1) {
+      await new Promise((resolve) => setTimeout(resolve, 700));
+      await route.fulfill({ json: { difficulties: [
+        { difficulty: 'easy', gamesPlayed: 0, humanWins: 0, aiWins: 0 }, { difficulty: 'normal', gamesPlayed: 0, humanWins: 0, aiWins: 0 },
+        { difficulty: 'hard', gamesPlayed: 0, humanWins: 0, aiWins: 0 }, { difficulty: 'expert', gamesPlayed: 99, humanWins: 99, aiWins: 0 }
+      ] } });
+      return;
+    }
+    await route.fulfill({ json: { difficulties: [
+      { difficulty: 'easy', gamesPlayed: 0, humanWins: 0, aiWins: 0 }, { difficulty: 'normal', gamesPlayed: 0, humanWins: 0, aiWins: 0 },
+      { difficulty: 'hard', gamesPlayed: 0, humanWins: 0, aiWins: 0 }, { difficulty: 'expert', gamesPlayed: 3, humanWins: 1, aiWins: 2 }
+    ] } });
+  });
+  await page.getByRole('button', { name: 'New game' }).click(); await expect(page.getByRole('button', { name: 'Start game' })).toBeEnabled();
+  await page.getByRole('button', { name: 'Start game' }).click(); await expect(page.getByText(/Turn 1 · Player 1 action/)).toBeVisible();
+  await page.getByRole('button', { name: 'New game' }).click(); await page.getByRole('button', { name: 'Play against AI' }).click();
+  const refreshed = page.getByRole('region', { name: 'expert sitewide results' }); await expect(refreshed).toContainText('3 games played');
+  await page.waitForTimeout(800); await expect(refreshed).toContainText('3 games played'); await expect(refreshed).not.toContainText('99 games played');
+  await page.unroute('**/api/stats'); await page.route('**/api/stats', (route) => route.fulfill({ status: 500, contentType: 'application/json', body: JSON.stringify({ error: 'Internal server error.' }) }));
+  const failedStatistics = page.waitForResponse('**/api/stats'); await page.reload(); await failedStatistics;
+  await page.getByRole('button', { name: 'Play against AI' }).click(); await expect(page.locator('.setup-statistics')).toHaveCount(0); await expect(page.getByRole('button', { name: 'Start game' })).toBeEnabled();
 });
 
 test('DD-E2E-066: centered hands and zone piles do not overflow at supported desktop sizes', async ({ page, openGame }) => {
@@ -792,7 +836,7 @@ test('DD-E2E-058: a long played row fans cards without clipping its final card a
   expect(stackedCard).not.toBeNull(); expect(badge).not.toBeNull(); expect(badge!.height / stackedCard!.height).toBeLessThan(.16);
 });
 
-test('DD-E2E-070: text controls confirm and reset the same game while Cancel preserves progress', async ({ page, baseUrl }) => {
+test('DD-E2E-070: text controls confirm and start a fresh attempt while Cancel preserves progress', async ({ page, baseUrl }) => {
   await page.setViewportSize({ width: 1920, height: 1080 }); await page.goto(baseUrl); await page.getByRole('button', { name: 'Start game' }).click();
   const controls = page.getByRole('navigation', { name: 'Game controls' });
   await expect(controls.locator('button')).toHaveText(['Undo', 'Reset', 'New game', 'View all cards']);
@@ -802,11 +846,12 @@ test('DD-E2E-070: text controls confirm and reset the same game while Cancel pre
   const openingHand = await page.locator('[data-testid="hand-grid"] [data-card-name]').evaluateAll((cards) => cards.map((card) => ({ name: card.getAttribute('data-card-name'), count: card.getAttribute('data-card-count') })));
   await page.getByRole('button', { name: 'End Action phase' }).click(); await expect(page.getByText(/Turn 1 · Player 1 buy/)).toBeVisible();
   await controls.getByRole('button', { name: 'Reset' }).click(); const confirmation = page.getByRole('dialog', { name: 'Reset this game?' });
-  await expect(confirmation).toContainText('same game and market'); await expect(confirmation.getByRole('button')).toHaveText(['Yes, reset', 'Cancel']);
+  await expect(confirmation).toContainText('fresh attempt with the same market'); await expect(confirmation.getByRole('button')).toHaveText(['Yes, reset', 'Cancel']);
   await confirmation.getByRole('button', { name: 'Cancel' }).click(); await expect(confirmation).toHaveCount(0); await expect(page.getByText(/Turn 1 · Player 1 buy/)).toBeVisible(); await expect(controls.locator('button').first()).toBeEnabled();
   await controls.getByRole('button', { name: 'Reset' }).click(); await page.getByRole('button', { name: 'Yes, reset' }).click();
   await expect(page.getByText(/Turn 1 · Player 1 action/)).toBeVisible(); await expect(controls.locator('button').first()).toBeDisabled();
-  expect(await page.evaluate(() => localStorage.getItem('hexdeck.activeGameId'))).toBe(gameId);
+  const resetGameId = await page.evaluate(() => localStorage.getItem('hexdeck.activeGameId'));
+  expect(resetGameId).not.toBe(gameId);
   expect(await page.locator('.pile-grid--kingdom [data-market-card]').allTextContents()).toEqual(kingdom);
   expect(await page.locator('[data-testid="hand-grid"] [data-card-name]').evaluateAll((cards) => cards.map((card) => ({ name: card.getAttribute('data-card-name'), count: card.getAttribute('data-card-count') })))).toEqual(openingHand);
 });
@@ -819,8 +864,9 @@ test('DD-E2E-072: Reset interrupts AI playback and reuses the existing trained g
   await expect(playbackStatus).toHaveAttribute('role', 'status'); await expect(playbackStatus).toHaveAttribute('aria-live', 'polite'); await expect(playbackStatus).toHaveAttribute('aria-atomic', 'true');
   const gameId = await page.evaluate(() => localStorage.getItem('hexdeck.activeGameId'));
   await page.getByRole('button', { name: 'Reset' }).click(); await expect(page.getByRole('dialog', { name: 'Reset this game?' })).toBeVisible(); await expect(page.getByText('Playing AI turn…')).toHaveCount(0); await expect(page.locator('[data-flying-card]')).toHaveCount(0);
-  const response = page.waitForResponse('**/api/games/*/reset'); await page.getByRole('button', { name: 'Yes, reset' }).click(); expect((await response).status()).toBe(200);
-  await expect(page.getByText(/Turn 2 · P1 action/)).toBeVisible(); expect(createRequests).toBe(1); expect(await page.evaluate(() => localStorage.getItem('hexdeck.activeGameId'))).toBe(gameId); await expect(page.getByRole('navigation', { name: 'Game controls' }).locator('button').first()).toBeDisabled();
+  const response = page.waitForResponse('**/api/games/*/reset'); await page.getByRole('button', { name: 'Yes, reset' }).click(); const resetResponse = await response; expect(resetResponse.status()).toBe(200);
+  const child = await resetResponse.json() as GameView; await expect.poll(() => page.evaluate(() => localStorage.getItem('hexdeck.activeGameId'))).toBe(child.id);
+  expect(child.id).not.toBe(gameId); await page.reload(); await expect(page.getByText(/Turn 2 · P1 action/)).toBeVisible(); expect(createRequests).toBe(1); expect(await page.evaluate(() => localStorage.getItem('hexdeck.activeGameId'))).toBe(child.id); await expect(page.getByRole('navigation', { name: 'Game controls' }).locator('button').first()).toBeDisabled();
 });
 
 test('DD-E2E-071: unavailable warning stays inside the card and stacks above rules and cost', async ({ page, openGame }) => {

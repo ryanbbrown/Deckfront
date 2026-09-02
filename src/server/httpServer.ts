@@ -7,6 +7,7 @@ import { GameService, AiAdvanceError, BadBuildError, ConflictError, ForbiddenAct
 import { AiTrainingError } from './aiTrainer';
 import { pretrainedVariableCardSets } from './pretrainedCatalog';
 import type { AiTrainer } from './aiTrainer';
+import type { GameStatisticsRepository } from './types';
 import { GameNotFoundError, FileGameRepository, UnsupportedSchemaError } from './persistence';
 import { actionRequestSchema, buildRequestSchema, createGameRequestSchema, revisionRequestSchema } from './schemas';
 
@@ -18,19 +19,24 @@ const MIME_TYPES: Record<string, string> = {
   '.jpg': 'image/jpeg', '.jpeg': 'image/jpeg'
 };
 export function createHexdeckServer(options: ServerOptions): HexdeckServer {
-  const service = new GameService(new FileGameRepository(options.dataDirectory), options.aiTrainer);
+  const repository = new FileGameRepository(options.dataDirectory);
+  const service = new GameService(repository, options.aiTrainer);
   const server = createServer(async (request, response) => {
     try {
-      if (await handleApi(request, response, service)) return;
+      if (await handleApi(request, response, service, repository)) return;
       await serveClient(request, response, options.distDirectory);
     } catch (error) { handleError(response, error); }
   });
   return { server, service };
 }
-async function handleApi(request: IncomingMessage, response: ServerResponse, service: GameService): Promise<boolean> {
+async function handleApi(request: IncomingMessage, response: ServerResponse, service: GameService, statistics: GameStatisticsRepository): Promise<boolean> {
   const url = new URL(request.url ?? '/', 'http://localhost');
   if (!url.pathname.startsWith('/api/')) return false;
   if (request.method === 'GET' && url.pathname === '/api/health') { sendJson(response, 200, { ok: true }); return true; }
+  if (request.method === 'GET' && url.pathname === '/api/stats') {
+    sendJson(response, 200, await statistics.statistics());
+    return true;
+  }
   if (request.method === 'GET' && url.pathname === '/api/setup') {
     sendJson(response, 200, {
       cards: CARDS, fixedCardIds: [...TREASURE_IDS, ...ALWAYS_AVAILABLE_ACTION_IDS],

@@ -35,7 +35,7 @@ export const test = base.extend<Fixtures>({
     await use(async (page, mutate) => {
       const response = await fetch(new URL('/api/games', baseUrl), { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ seed: 7, mode: 'local', variableCardIds: VARIABLE_ACTION_IDS.slice(0, 10), startingDraftEnabled: true }) });
       if (!response.ok) throw new Error(await response.text()); const created = await response.json() as { id: string }; const record = await repository.load(created.id);
-      expect(record.schemaVersion).toBe(15); expect(record.startingDraftEnabled).toBe(true);
+      expect(record).toMatchObject({ schemaVersion: 16, seriesId: created.id, attemptNumber: 1, previousAttemptId: null, nextAttemptId: null, startingDraftEnabled: true });
       completeSetup(record); mutate?.(record); resetRecord(record); await repository.save(record);
       await page.goto(baseUrl); await page.evaluate((id) => { localStorage.setItem('hexdeck.activeGameId', id); localStorage.setItem('deckfront.animateAiTurns', 'false'); }, created.id); await page.reload();
       const actorName = record.mode === 'ai' ? record.state.activePlayerId === record.humanPlayerId ? 'P1' : 'AI' : record.state.activePlayerId === 'ochre' ? 'Player 1' : 'Player 2';

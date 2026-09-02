@@ -36,8 +36,10 @@ test('public routes show the approved landing page, durable content, and working
   await page.goto(`${origin}/about`);
   await expect(page.getByRole('heading', { name: 'Deck-building meets tactical combat' })).toBeVisible();
   await expect(page.getByRole('heading', { name: 'Initial public playtest' })).toBeVisible();
+  await expect(page.getByText('sitewide aggregate results for each difficulty')).toBeVisible();
   await expect(page.getByRole('heading', { name: 'AI and balance' })).toBeVisible();
-  await expect(page.getByRole('heading', { name: 'What is coming' })).toBeVisible();
+  const coming = page.getByRole('heading', { name: 'What is coming' }).locator('..'); await expect(coming).toBeVisible();
+  await expect(coming).toContainText('Player accounts and profiles.'); await expect(coming).not.toContainText('public statistics');
   await expect(page.getByRole('link', { name: 'Deckfront home' })).toHaveAttribute('href', '/');
   expect(apiRequests).toEqual([]);
 

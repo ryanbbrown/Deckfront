@@ -1,5 +1,5 @@
 import type { PlayerId } from '../game';
-import type { AiDifficulty, GameMode, GameUpdateView, GameView, SetupCatalog } from '../shared/api';
+import type { AiDifficulty, GameMode, GameStatistics, GameUpdateView, GameView, SetupCatalog } from '../shared/api';
 
 async function request<T>(url: string, options?: RequestInit): Promise<T> {
   const response = await fetch(url, { ...options, headers: { 'content-type': 'application/json', ...options?.headers } });
@@ -8,6 +8,7 @@ async function request<T>(url: string, options?: RequestInit): Promise<T> {
   return body;
 }
 export function loadSetup(): Promise<SetupCatalog> { return request('/api/setup'); }
+export function loadStatistics(): Promise<GameStatistics> { return request('/api/stats'); }
 export function createGame(input: {
   seed?: number | undefined; mode: GameMode; humanPlayerId?: PlayerId | undefined;
   aiDifficulty?: AiDifficulty | undefined; variableCardIds: string[]; startingDraftEnabled: boolean;

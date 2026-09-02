@@ -82,7 +82,7 @@ Available now:
 
 - One player against an AI opponent.
 - Two local players sharing one computer.
-- Four AI difficulty levels.
+- Four AI difficulty levels with sitewide aggregate results for the selected difficulty.
 - 46 card types and 160 selected markets.
 - Optional starting drafts for local games.
 - Persistent game saves and multi-step undo.
@@ -90,7 +90,7 @@ Available now:
 Coming soon:
 
 - Online multiplayer.
-- Player accounts, profiles, or public statistics.
+- Player accounts and profiles.
 - On-demand AI training for arbitrary new markets.
 - Mobile layouts. The table supports desktop screens from 1280×720 through 1920×1080.
 

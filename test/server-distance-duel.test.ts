@@ -1,21 +1,22 @@
-import { mkdtemp, rm, writeFile } from 'node:fs/promises';
+import { mkdtemp, readFile, readdir, rm, writeFile } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import path from 'node:path';
 import { afterEach, describe, expect, it } from 'vitest';
 import {
   createCard, kingdomOf, kingdomSupply, registerKingdom, resetKingdoms
 } from '../src/game';
-import { GameService } from '../src/server/gameService';
+import { ConflictError, GameService } from '../src/server/gameService';
 import { gameStateSchema } from '../src/server/schemas';
 import { FileGameRepository, UnsupportedSchemaError } from '../src/server/persistence';
 import type { GameView } from '../src/shared/api';
 import type { GameRecord, GameRepository } from '../src/server/types';
 
 class MemoryRepository implements GameRepository {
-  record: GameRecord | null = null;
-  async create(record: GameRecord) { this.record = structuredClone(record); }
-  async load(_id: string) { if (!this.record) throw new Error('missing'); return structuredClone(this.record); }
-  async save(record: GameRecord) { this.record = structuredClone(record); }
+  readonly records = new Map<string, GameRecord>();
+  get record(): GameRecord | null { return [...this.records.values()].at(-1) ?? null; }
+  async create(record: GameRecord) { if (this.records.has(record.id)) throw new Error(`duplicate ${record.id}`); this.records.set(record.id, structuredClone(record)); }
+  async load(id: string) { const record = this.records.get(id); if (!record) throw new Error('missing'); return structuredClone(record); }
+  async save(record: GameRecord) { if (!this.records.has(record.id)) throw new Error('missing'); this.records.set(record.id, structuredClone(record)); }
   async withLock<T>(_id: string, work: () => Promise<T>) { return work(); }
 }
 const TEST_MARKET = ['cull','footwork','feint','drive','aim','volley','prism','reclaim','muster','starfire'];
@@ -157,19 +158,84 @@ describe('local GameService', () => {
     const record = await service.getRecord(view.id); expect(record.startingDraftEnabled).toBe(false); expect(record.state.players.ochre.startingBuild).toBeNull();
     await expect(service.updateBuild(view.id,view.revision,[],true)).rejects.toThrow('already complete');
   });
-  it('resets a draft-off game to its exact persisted initial state and clears progress metadata', async () => {
+  it('preserves a progressed parent and creates a fresh linked reset attempt', async () => {
     const repository = new MemoryRepository(); const service = new GameService(repository);
     const created = await service.create({ seed: 23, variableCardIds: TEST_MARKET, startingDraftEnabled: false });
-    const initial = structuredClone((await service.getRecord(created.id)).initialState);
-    const buy = await service.commitAction(created.id, created.revision, phaseAction(created, 'endAction'));
-    const progressed = await service.commitAction(created.id, buy.revision, buy.actions.buys.find((action) => action.definitionId === 'copper')!.id);
-    repository.record!.finishedAt = '2026-01-01T00:00:00.000Z'; repository.record!.durationSeconds = 9; repository.record!.buildProposal = ['aim'];
+    const prepared = await service.getRecord(created.id); seedPlayerHand(prepared, ['volley']);
+    prepared.state.fighters.ochre.position = 1; prepared.state.fighters.indigo.position = 5; prepared.state.fighters.indigo.health = 3;
+    resetReplay(prepared); await repository.save(prepared);
+    const ready = await service.get(created.id); const volley = projectedHandCard(ready, prepared, 'volley');
+    const progressed = await service.commitAction(created.id, ready.revision, volley.actionId!);
+    const beforeReset = await service.getRecord(created.id); beforeReset.buildProposal = ['aim']; await repository.save(beforeReset);
+    expect(beforeReset.state.winner).toBe('ochre'); expect(beforeReset.finishedAt).not.toBeNull();
+    const initial = structuredClone(beforeReset.initialState);
 
     const reset = await service.resetGame(created.id, progressed.revision);
-    const saved = await service.getRecord(created.id);
-    expect(saved.state).toEqual(initial); expect(saved.committedCommands).toEqual([]); expect(saved.undoHistory).toEqual([]);
-    expect(saved).toMatchObject({ completedActions: 0, finishedAt: null, durationSeconds: null, buildProposal: [], startingDraftEnabled: false });
-    expect(reset).toMatchObject({ id: created.id, revision: progressed.revision + 1, phase: 'action', turn: 1, canUndo: false, completedActions: 0, presentation: { frames: [] } });
+    const parent = await service.getRecord(created.id); const child = await service.getRecord(reset.id);
+    expect(parent.state).toEqual(beforeReset.state); expect(parent.committedCommands).toEqual(beforeReset.committedCommands);
+    expect(parent.undoHistory).toEqual(beforeReset.undoHistory); expect(parent.finishedAt).toBe(beforeReset.finishedAt);
+    expect(parent.durationSeconds).toBe(beforeReset.durationSeconds); expect(parent.buildProposal).toEqual(beforeReset.buildProposal);
+    expect(parent).toMatchObject({ id: created.id, seriesId: created.id, attemptNumber: 1, previousAttemptId: null, nextAttemptId: reset.id, revision: progressed.revision + 1 });
+    expect(child.state).toEqual(initial); expect(child.committedCommands).toEqual([]); expect(child.undoHistory).toEqual([]);
+    expect(child).toMatchObject({ id: reset.id, seriesId: created.id, attemptNumber: 2, previousAttemptId: created.id, nextAttemptId: null, revision: 0, completedActions: 0, finishedAt: null, durationSeconds: null, buildProposal: [], startingDraftEnabled: false });
+    expect(reset).toMatchObject({ id: child.id, seriesId: created.id, attemptNumber: 2, revision: 0, phase: 'action', turn: 1, canUndo: false, completedActions: 0, presentation: { frames: [] } });
+  });
+  it('reuses a completed local draft setup in the fresh child record', async () => {
+    const repository = new MemoryRepository(); const service = new GameService(repository);
+    const created = await service.create({ seed: 27, variableCardIds: TEST_MARKET, startingDraftEnabled: true });
+    const ochre = await service.updateBuild(created.id, created.revision, ['footwork'], true);
+    const ready = await service.updateBuild(created.id, ochre.revision, ['aim', 'volley'], true);
+    const parentBefore = await service.getRecord(created.id); await new Promise((resolve) => setTimeout(resolve, 2));
+    const reset = await service.resetGame(created.id, ready.revision); const child = await service.getRecord(reset.id);
+    expect(child.id).not.toBe(created.id); expect(child.createdAt).not.toBe(parentBefore.createdAt); expect(child.updatedAt).toBe(child.createdAt);
+    expect(child.kingdom).toEqual(parentBefore.kingdom); expect(child.initialState).toEqual(parentBefore.initialState);
+    expect(child.state).toEqual(parentBefore.state); expect(child.committedCommands).toEqual([
+      { type: 'submitStartingBuild', playerId: 'ochre', definitionIds: ['footwork'] },
+      { type: 'submitStartingBuild', playerId: 'indigo', definitionIds: ['aim', 'volley'] }
+    ]);
+    expect(child).toMatchObject({ revision: 0, completedActions: 0, finishedAt: null, durationSeconds: null, buildProposal: [], undoHistory: [] });
+  });
+  it('keeps five complete records in one ordered series after four resets', async () => {
+    const repository = new MemoryRepository(); const service = new GameService(repository);
+    let current = await service.create({ seed: 29, variableCardIds: TEST_MARKET, startingDraftEnabled: false });
+    for (let attempt = 2; attempt <= 5; attempt += 1) current = await service.resetGame(current.id, current.revision);
+    expect(repository.records.size).toBe(5);
+    const records = [...repository.records.values()];
+    expect(records.map((record) => ({ id: record.id, seriesId: record.seriesId, attemptNumber: record.attemptNumber,
+      previousAttemptId: record.previousAttemptId, nextAttemptId: record.nextAttemptId }))).toEqual(records.map((record, index) => ({
+      id: record.id, seriesId: records[0]!.id, attemptNumber: index + 1,
+      previousAttemptId: index === 0 ? null : records[index - 1]!.id,
+      nextAttemptId: index === records.length - 1 ? null : records[index + 1]!.id
+    })));
+  });
+  it('rejects actions and resets on a superseded attempt without changing its gameplay', async () => {
+    const repository = new MemoryRepository(); const service = new GameService(repository);
+    const created = await service.create({ seed: 31, variableCardIds: TEST_MARKET, startingDraftEnabled: false });
+    const child = await service.resetGame(created.id, created.revision);
+    const parent = await service.getRecord(created.id); const gameplay = structuredClone({
+      state: parent.state, committedCommands: parent.committedCommands, undoHistory: parent.undoHistory,
+      finishedAt: parent.finishedAt, durationSeconds: parent.durationSeconds, buildProposal: parent.buildProposal
+    });
+    await expect(service.commitAction(created.id, parent.revision, phaseAction(created, 'endAction'))).rejects.toThrow('already been reset');
+    await expect(service.resetGame(created.id, parent.revision)).rejects.toThrow('already been reset');
+    expect(await service.getRecord(created.id)).toMatchObject(gameplay);
+    expect(await service.getRecord(child.id)).toMatchObject({ previousAttemptId: created.id, attemptNumber: 2 });
+  });
+  it('serializes concurrent resets and creates one successor', async () => {
+    const directory = await mkdtemp(path.join(tmpdir(), 'hexdeck-reset-lock-'));
+    try {
+      const repository = new FileGameRepository(directory); const service = new GameService(repository);
+      const created = await service.create({ seed: 37, variableCardIds: TEST_MARKET, startingDraftEnabled: false });
+      const results = await Promise.allSettled([
+        service.resetGame(created.id, created.revision), service.resetGame(created.id, created.revision)
+      ]);
+      expect(results.filter((result) => result.status === 'fulfilled')).toHaveLength(1);
+      const rejected = results.find((result) => result.status === 'rejected') as PromiseRejectedResult;
+      expect(rejected.reason).toBeInstanceOf(ConflictError);
+      const parent = await repository.load(created.id); expect(parent.nextAttemptId).not.toBeNull();
+      expect((await repository.load(parent.nextAttemptId!)).previousAttemptId).toBe(created.id);
+      expect((await readdir(directory)).filter((name) => name.endsWith('.json'))).toHaveLength(2);
+    } finally { await rm(directory, { recursive: true, force: true }); }
   });
   it('projects disabled reasons and renderable movement choices without engine commands', async () => {
     const { repository, service, game } = await setup(); await completeBuilds(service, game.id, game.revision);
@@ -309,9 +375,9 @@ describe('local GameService', () => {
     expect(restored).toMatchObject({ phase: 'action', turn: 1, completedBuilds: { ochre: [], indigo: [] }, canUndo: false });
     await expect(service.undoAction(game.id, restored.revision)).rejects.toThrow('There is no action to undo.');
   });
-  it('exports the current local game view with schema 15', async () => {
+  it('exports the current local game view with schema 16', async () => {
     const { service, game } = await setup(); const exported = await service.exportGame(game.id);
-    expect(exported).toMatchObject({ schemaVersion: 15, game: { schemaVersion: 15, id: game.id } });
+    expect(exported).toMatchObject({ schemaVersion: 16, game: { schemaVersion: 16, id: game.id, seriesId: game.id, attemptNumber: 1, previousAttemptId: null, nextAttemptId: null } });
     expect(JSON.stringify(exported)).not.toMatch(/committedCommands|"command"/);
   });
 });
@@ -369,17 +435,28 @@ describe('persistence schema', () => {
       undone = await restarted.undoAction(created.id, undone.revision); expect((await restarted.getRecord(created.id)).state).toEqual(states[0]); expect(undone.canUndo).toBe(false);
     } finally { await rm(directory, { recursive: true, force: true }); }
   });
-  it('serializes concurrent file writes and leaves valid schema 15 state', async () => {
+  it('serializes concurrent file writes and leaves valid schema 16 state', async () => {
     const directory = await mkdtemp(path.join(tmpdir(), 'hexdeck-lock-'));
     try {
       const repository = new FileGameRepository(directory); const service = new GameService(repository); const created = await service.create({ seed: 8, startingDraftEnabled: true });
       await Promise.all([1, 2].map((marker) => repository.withLock(created.id, async () => { const record = await repository.load(created.id); await new Promise((resolve) => setTimeout(resolve, marker === 1 ? 5 : 0)); record.revision += 1; await repository.save(record); })));
-      const saved = await repository.load(created.id); expect(saved.revision).toBe(2); expect(saved.schemaVersion).toBe(15);
+      const saved = await repository.load(created.id); expect(saved.revision).toBe(2); expect(saved.schemaVersion).toBe(16);
     } finally { await rm(directory, { recursive: true, force: true }); }
   });
-  it('rejects an older save with a specific message', async () => {
-    const directory = await mkdtemp(path.join(tmpdir(), 'hexdeck-old-')); const id = '11111111-1111-4111-8111-111111111111';
-    try { await writeFile(path.join(directory, `${id}.json`), JSON.stringify({ schemaVersion: 14 })); await expect(new FileGameRepository(directory).load(id)).rejects.toBeInstanceOf(UnsupportedSchemaError); await expect(new FileGameRepository(directory).load(id)).rejects.toThrow('schema 14 is not supported'); }
-    finally { await rm(directory, { recursive: true, force: true }); }
+  it('leaves schema 14 and 15 saves untouched and unavailable', async () => {
+    const directory = await mkdtemp(path.join(tmpdir(), 'hexdeck-old-'));
+    const records = [
+      { id: '11111111-1111-4111-8111-111111111111', value: '{"schemaVersion":14,"marker":"keep"}' },
+      { id: '22222222-2222-4222-8222-222222222222', value: '{"schemaVersion":15,"marker":"keep"}' }
+    ];
+    try {
+      for (const record of records) await writeFile(path.join(directory, `${record.id}.json`), record.value);
+      const repository = new FileGameRepository(directory);
+      for (const record of records) {
+        await expect(repository.load(record.id)).rejects.toBeInstanceOf(UnsupportedSchemaError);
+        await expect(repository.load(record.id)).rejects.toThrow(`schema ${JSON.parse(record.value).schemaVersion as number} is not supported`);
+        expect(await readFile(path.join(directory, `${record.id}.json`), 'utf8')).toBe(record.value);
+      }
+    } finally { await rm(directory, { recursive: true, force: true }); }
   });
 });

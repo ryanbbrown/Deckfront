@@ -5,6 +5,13 @@ import type {
 export type GameMode = 'local' | 'ai';
 export const AI_DIFFICULTIES = ['easy', 'normal', 'hard', 'expert'] as const;
 export type AiDifficulty = (typeof AI_DIFFICULTIES)[number];
+export interface DifficultyStatistics {
+  difficulty: AiDifficulty;
+  gamesPlayed: number;
+  humanWins: number;
+  aiWins: number;
+}
+export interface GameStatistics { difficulties: DifficultyStatistics[] }
 export interface TrainingSummary { elapsedMs: number; matches: number; strategyId: string }
 export interface SetupCatalog {
   cards: Record<string, CardDefinition>;
@@ -89,8 +96,9 @@ export interface PresentationFrame {
 export interface PresentationSequence { frames: PresentationFrame[] }
 
 export interface GameView {
-  schemaVersion: 15;
-  id: string; revision: number; createdAt: string; updatedAt: string; elapsedSeconds: number;
+  schemaVersion: 16;
+  id: string; seriesId: string; attemptNumber: number; previousAttemptId: string | null; nextAttemptId: string | null;
+  revision: number; createdAt: string; updatedAt: string; elapsedSeconds: number;
   completedActions: number; durationSeconds: number | null;
   activePlayerId: PlayerId; selectedFirstPlayerId: PlayerId; phase: Phase; turn: number; winner: PlayerId | null;
   startingDraftEnabled: boolean;
@@ -104,4 +112,4 @@ export interface GameView {
   buildProposal: string[]; completedBuilds: Record<PlayerId, string[]> | null;
 }
 export type GameUpdateView = GameView & { presentation: PresentationSequence };
-export interface GameExport { schemaVersion: 15; exportedAt: string; game: GameView }
+export interface GameExport { schemaVersion: 16; exportedAt: string; game: GameView }

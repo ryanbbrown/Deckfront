@@ -1,5 +1,5 @@
 import type { GameCommand, GameState, Kingdom, PlayerId } from '../game/types';
-import type { AiDifficulty, GameMode, TrainingSummary } from '../shared/api';
+import type { AiDifficulty, GameMode, GameStatistics, TrainingSummary } from '../shared/api';
 import type { Strategy } from '../sim/strategy';
 
 export interface UndoHistoryEntry {
@@ -9,8 +9,9 @@ export interface UndoHistoryEntry {
   durationSeconds: number | null;
 }
 export interface GameRecord {
-  schemaVersion: 15;
-  id: string; revision: number; createdAt: string; updatedAt: string; finishedAt: string | null;
+  schemaVersion: 16;
+  id: string; seriesId: string; attemptNumber: number; previousAttemptId: string | null; nextAttemptId: string | null;
+  revision: number; createdAt: string; updatedAt: string; finishedAt: string | null;
   completedActions: number; durationSeconds: number | null;
   buildProposal: string[];
   kingdom: Kingdom; startingDraftEnabled: boolean; mode: GameMode; humanPlayerId: PlayerId | null; aiDifficulty: AiDifficulty | null;
@@ -22,3 +23,4 @@ export interface GameRepository {
   create(record: GameRecord): Promise<void>; load(id: string): Promise<GameRecord>; save(record: GameRecord): Promise<void>;
   withLock<T>(id: string, work: () => Promise<T>): Promise<T>;
 }
+export interface GameStatisticsRepository { statistics(): Promise<GameStatistics> }

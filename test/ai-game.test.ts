@@ -12,10 +12,11 @@ import type { GameView } from '../src/shared/api';
 import { fixedBuyPlan, identify } from '../src/sim/strategy';
 
 class MemoryRepository implements GameRepository {
-  record: GameRecord | null = null;
-  async create(record: GameRecord) { this.record = structuredClone(record); }
-  async load() { if (!this.record) throw new Error('missing'); return structuredClone(this.record); }
-  async save(record: GameRecord) { this.record = structuredClone(record); }
+  readonly records = new Map<string, GameRecord>();
+  get record(): GameRecord | null { return [...this.records.values()].at(-1) ?? null; }
+  async create(record: GameRecord) { if (this.records.has(record.id)) throw new Error(`duplicate ${record.id}`); this.records.set(record.id, structuredClone(record)); }
+  async load(id: string) { const record = this.records.get(id); if (!record) throw new Error('missing'); return structuredClone(record); }
+  async save(record: GameRecord) { if (!this.records.has(record.id)) throw new Error('missing'); this.records.set(record.id, structuredClone(record)); }
   async withLock<T>(_id: string, work: () => Promise<T>) { return work(); }
 }
 const strategy = identify({ id: '', startingBuild: [], buyPlan: fixedBuyPlan([
@@ -78,7 +79,7 @@ describe('AI games', () => {
     expect(view.players.ochre.deckCounts).toMatchObject({ copper: 7, scrap: 3 });
   });
 
-  it('resets an AI-first game to the same human boundary without selecting again', async () => {
+  it('creates a linked AI-first reset attempt at the same human boundary without selecting again', async () => {
     let trainingCalls = 0;
     const recordingTrainer: AiTrainer = { train: async () => {
       trainingCalls += 1;
@@ -89,18 +90,24 @@ describe('AI games', () => {
     const boundary = structuredClone(repository.record!);
     const buy = await service.commitAction(created.id, created.revision, phaseAction(created, 'endAction'));
     const progressed = await service.commitAction(created.id, buy.revision, phaseAction(buy, 'endBuy'));
-    repository.record!.finishedAt = '2026-01-01T00:00:00.000Z'; repository.record!.durationSeconds = 12;
+    const progressedRecord = await repository.load(created.id);
+    progressedRecord.finishedAt = '2026-01-01T00:00:00.000Z'; progressedRecord.durationSeconds = 12;
+    await repository.save(progressedRecord);
 
     const reset = await service.resetGame(created.id, progressed.revision);
-    const saved = repository.record!;
+    const parent = await repository.load(created.id); const child = await repository.load(reset.id);
     expect(trainingCalls).toBe(1);
-    expect(saved.state).toEqual(boundary.state);
-    expect(saved.committedCommands).toEqual(boundary.committedCommands);
-    expect(saved.completedActions).toBe(boundary.completedActions);
-    expect(saved.undoHistory).toEqual([]); expect(saved.finishedAt).toBeNull(); expect(saved.durationSeconds).toBeNull(); expect(saved.buildProposal).toEqual([]);
-    expect(saved).toMatchObject({ id: boundary.id, createdAt: boundary.createdAt, kingdom: boundary.kingdom, mode: 'ai', humanPlayerId: 'indigo', aiDifficulty: 'hard', aiStrategy: boundary.aiStrategy, training: boundary.training, initialState: boundary.initialState });
-    expect(reset).toMatchObject({ id: created.id, activePlayerId: 'indigo', phase: 'action', turn: 2, canUndo: false, completedBuilds: null });
-    expect(reset.revision).toBe(progressed.revision + 1);
+    expect(parent.state).toEqual(progressedRecord.state); expect(parent.committedCommands).toEqual(progressedRecord.committedCommands);
+    expect(parent.finishedAt).toBe(progressedRecord.finishedAt); expect(parent.durationSeconds).toBe(progressedRecord.durationSeconds);
+    expect(parent).toMatchObject({ id: created.id, nextAttemptId: child.id, revision: progressed.revision + 1 });
+    expect(child.state).toEqual(boundary.state);
+    expect(child.committedCommands).toEqual(boundary.committedCommands);
+    expect(child.completedActions).toBe(boundary.completedActions);
+    expect(child.undoHistory).toEqual([]); expect(child.finishedAt).toBeNull(); expect(child.durationSeconds).toBeNull(); expect(child.buildProposal).toEqual([]);
+    expect(child).toMatchObject({ seriesId: created.id, attemptNumber: 2, previousAttemptId: created.id, nextAttemptId: null,
+      revision: 0, kingdom: boundary.kingdom, mode: 'ai', humanPlayerId: 'indigo', aiDifficulty: 'hard', aiStrategy: boundary.aiStrategy, training: boundary.training, initialState: boundary.initialState });
+    expect(child.createdAt).not.toBe(''); expect(child.updatedAt).toBe(child.createdAt);
+    expect(reset).toMatchObject({ id: child.id, seriesId: created.id, attemptNumber: 2, revision: 0, activePlayerId: 'indigo', phase: 'action', turn: 2, canUndo: false, completedBuilds: null });
     expect(reset.presentation.frames.some((frame) => frame.commandType === 'aiTurnStart')).toBe(true);
   });
 

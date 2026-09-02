@@ -11,7 +11,7 @@ import { INFINITE_COUNT, fixedBuyPlan, identify } from '../src/sim/strategy';
 const execute = promisify(execFile);
 
 describe('playable-game seed script', () => {
-  it('writes a schema-14 draft record that passes repository validation', async () => {
+  it('writes a schema 16 draft record that passes repository validation', async () => {
     const directory = await mkdtemp(path.join(tmpdir(), 'hexdeck-seed-script-'));
     try {
       const games = path.join(directory, 'games');
@@ -31,7 +31,7 @@ describe('playable-game seed script', () => {
       expect(files).toHaveLength(1);
       const id = files[0]!.replace(/\.json$/, '');
       const record = await new FileGameRepository(games).load(id);
-      expect(record.schemaVersion).toBe(15);
+      expect(record).toMatchObject({ schemaVersion: 16, seriesId: id, attemptNumber: 1, previousAttemptId: null, nextAttemptId: null });
       expect(record.startingDraftEnabled).toBe(true);
       expect(record.initialState.startingDraftEnabled).toBe(true);
       expect(record.state.startingDraftEnabled).toBe(true);

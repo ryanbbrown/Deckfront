@@ -2,7 +2,7 @@ import { useCallback, useEffect, useRef, useState } from 'react';
 import { STARTING_BUDGET, firstBuyCarry, playerStartingHealth } from '../game';
 import type { CardDefinition, CardInstance, PlayerId } from '../game';
 import { AI_DIFFICULTIES } from '../shared/api';
-import type { AiDifficulty, BrowserAction, GameMode, GameUpdateView, GameView, PresentationFrame, PresentationSequence, PublicGameEvent, SelectionActionPresentation, SetupCatalog } from '../shared/api';
+import type { AiDifficulty, BrowserAction, GameMode, GameStatistics, GameUpdateView, GameView, PresentationFrame, PresentationSequence, PublicGameEvent, SelectionActionPresentation, SetupCatalog } from '../shared/api';
 import { resetGame, takeAction, undoAction, updateBuild } from './api';
 import { Board, FighterCounter } from './Board';
 import { groupCardCatalog } from './cardCatalog';
@@ -10,14 +10,15 @@ import { AI_SETTLE_MS, DRAW_DURATION_MS, DRAW_STAGGER_MS, FlyingCards, HUMAN_SET
 import type { Flight, PurchaseReveal } from './playback';
 import { playerLabel, playerShortLabel } from './playerLabel';
 
-interface GameProps { game: GameView; initialPresentation: PresentationSequence | null; error: string | null; animateAi: boolean; onAnimateAi: (enabled: boolean) => void; onGame: (game: GameView) => void; onError: (value: string | null) => void; onNew: () => void }
+interface GameProps { game: GameView; initialPresentation: PresentationSequence | null; error: string | null; animateAi: boolean; onAnimateAi: (enabled: boolean) => void; onGameId: (id: string) => void; onGame: (game: GameView) => void; onError: (value: string | null) => void; onNew: () => void }
 interface CardGroup { definitionId: string; instances: CardInstance[] }
 interface AnimationDestination { kind: 'handToPlayed' | 'drawToHand'; definitionId: string }
 interface DamageFeedback { id: string; targetId: PlayerId; amount: number }
 type PlayedGroup = CardGroup;
 
-export function PreviewTable({ catalog, market, error, animateAi, onAnimateAi, onRefresh, onStart }: {
-  catalog: SetupCatalog; market: string[]; error: string | null; animateAi: boolean; onAnimateAi: (enabled: boolean) => void; onRefresh: () => void;
+export function PreviewTable({ catalog, market, error, animateAi, statistics, statisticsLoading, onAnimateAi, onRefresh, onStart }: {
+  catalog: SetupCatalog; market: string[]; error: string | null; animateAi: boolean; statistics: GameStatistics | null; statisticsLoading: boolean;
+  onAnimateAi: (enabled: boolean) => void; onRefresh: () => void;
   onStart: (mode: GameMode, startingDraftEnabled: boolean, humanPlayerId?: PlayerId, aiDifficulty?: AiDifficulty) => Promise<void>;
 }) {
   const [mode, setMode] = useState<GameMode>('local');
@@ -35,14 +36,14 @@ export function PreviewTable({ catalog, market, error, animateAi, onAnimateAi, o
     <CompactMarket cards={cards} fixedIds={catalog.fixedCardIds} variableIds={market} onView={() => setMarketOpen(true)} />
     <EmptyPlayed />
     <section className="hand-panel table-zone"><div className="zone-title"><h2>Your hand</h2><span>Your opening hand appears here.</span></div><div className="hand-row"><p className="empty-row">Start the game to draw five cards.</p></div></section>
-    <SetupRail mode={mode} startingDraftEnabled={startingDraftEnabled} animateAi={animateAi} human={human} difficulty={difficulty} onMode={setMode} onStartingDraft={setStartingDraftEnabled} onAnimateAi={onAnimateAi} onHuman={setHuman} onDifficulty={setDifficulty} onRefresh={onRefresh} onCatalog={() => setCatalogOpen(true)} onStart={() => void onStart(mode, startingDraftEnabled, mode === 'ai' ? human : undefined, mode === 'ai' ? difficulty : undefined)} />
+    <SetupRail mode={mode} startingDraftEnabled={startingDraftEnabled} animateAi={animateAi} human={human} difficulty={difficulty} statistics={statistics} statisticsLoading={statisticsLoading} onMode={setMode} onStartingDraft={setStartingDraftEnabled} onAnimateAi={onAnimateAi} onHuman={setHuman} onDifficulty={setDifficulty} onRefresh={onRefresh} onCatalog={() => setCatalogOpen(true)} onStart={() => void onStart(mode, startingDraftEnabled, mode === 'ai' ? human : undefined, mode === 'ai' ? difficulty : undefined)} />
     {marketOpen ? <MarketDialog cards={cards} fixedIds={catalog.fixedCardIds} variableIds={market} onClose={() => setMarketOpen(false)} /> : null}
     {catalogOpen ? <CardCatalogDialog cards={catalog.cards} onClose={() => setCatalogOpen(false)} /> : null}
     {inspectedCardId && cards[inspectedCardId] ? <CardInspectDialog card={cards[inspectedCardId]} onClose={() => setInspectedCardId(null)} /> : null}
   </main>;
 }
 
-export function Game({ game, initialPresentation, error, animateAi, onAnimateAi, onGame, onError, onNew }: GameProps) {
+export function Game({ game, initialPresentation, error, animateAi, onAnimateAi, onGameId, onGame, onError, onNew }: GameProps) {
   const [busy, setBusy] = useState(false);
   const [targetedCard, setTargetedCard] = useState<string | null>(null);
   const [movementCard, setMovementCard] = useState<string | null>(null);
@@ -205,7 +206,7 @@ export function Game({ game, initialPresentation, error, animateAi, onAnimateAi,
   }
   async function reset() {
     setResetOpen(false); setBusy(true); onError(null);
-    try { const update = await resetGame(finalGame.current); await present(update, 0); clearChoice(); }
+    try { const update = await resetGame(finalGame.current); onGameId(update.id); await present(update, 0); clearChoice(); }
     catch (cause) { onError(cause instanceof Error ? cause.message : 'Reset failed.'); }
     finally { setBusy(false); }
   }
@@ -319,14 +320,16 @@ function PreviewArena({ mode, human }: { mode: GameMode; human: PlayerId }) {
   return <section className="arena-zone table-zone"><div className="range-label">Tactical map · Near · 1 space</div><div className="arena battlefield" role="group" aria-label="Six space line arena">{[1,2,3,4,5,6].map((space) => <div className="arena-space" key={space}><span className="arena-space__number">{space}</span><div className="arena-space__fighters">{space === 3 ? <FighterCounter playerId="ochre" health={playerStartingHealth(50, true)} position={space} label={playerLabel(labels, 'ochre')} shortLabel={playerShortLabel(labels, 'ochre')} /> : null}{space === 4 ? <FighterCounter playerId="indigo" health={50} position={space} label={playerLabel(labels, 'indigo')} shortLabel={playerShortLabel(labels, 'indigo')} /> : null}</div></div>)}</div></section>;
 }
 function EmptyPlayed() { return <section className="played-panel table-zone"><div className="zone-title"><h2>Played this turn</h2></div><div className="played-row"><p className="empty-row">Cards move here from your hand.</p></div></section>; }
-function SetupRail({ mode, startingDraftEnabled, animateAi, human, difficulty, onMode, onStartingDraft, onAnimateAi, onHuman, onDifficulty, onRefresh, onCatalog, onStart }: {
+function SetupRail({ mode, startingDraftEnabled, animateAi, human, difficulty, statistics, statisticsLoading, onMode, onStartingDraft, onAnimateAi, onHuman, onDifficulty, onRefresh, onCatalog, onStart }: {
   mode: GameMode; startingDraftEnabled: boolean; animateAi: boolean; human: PlayerId; difficulty: AiDifficulty;
+  statistics: GameStatistics | null; statisticsLoading: boolean;
   onMode: (mode: GameMode) => void; onStartingDraft: (enabled: boolean) => void; onAnimateAi: (enabled: boolean) => void; onHuman: (playerId: PlayerId) => void;
   onDifficulty: (difficulty: AiDifficulty) => void; onRefresh: () => void; onCatalog: () => void; onStart: () => void;
 }) {
+  const selectedStatistics = statistics?.difficulties.find((entry) => entry.difficulty === difficulty);
   return <aside className="setup-rail" aria-label="Game setup"><header><span>Game setup</span><h2>New match</h2></header><div className="setup-rail__body">
     <fieldset className="setup-group"><legend>Opponent</legend><div className="setup-options"><button type="button" aria-pressed={mode === 'local'} onClick={() => onMode('local')}>Local players</button><button type="button" aria-pressed={mode === 'ai'} onClick={() => onMode('ai')}>Play against AI</button></div></fieldset>
-    {mode === 'ai' ? <><fieldset className="setup-group"><legend>Turn order</legend><div className="setup-options"><button type="button" aria-pressed={human === 'ochre'} onClick={() => onHuman('ochre')}>I go first</button><button type="button" aria-pressed={human === 'indigo'} onClick={() => onHuman('indigo')}>AI goes first</button></div></fieldset><fieldset className="setup-group"><legend>AI strength</legend><div className="setup-options setup-options--four">{AI_DIFFICULTIES.map((value) => <button type="button" key={value} aria-pressed={difficulty === value} onClick={() => onDifficulty(value)}>{value[0]!.toUpperCase() + value.slice(1)}</button>)}</div></fieldset><label className="setup-switch"><span><strong>Animate AI turns</strong><small>{animateAi ? 'Watch the AI play each card.' : 'Show the final result immediately.'}</small></span><input aria-label="Animate AI turns" type="checkbox" checked={animateAi} onChange={(event) => onAnimateAi(event.target.checked)} /><i aria-hidden="true" /></label></> : null}
+    {mode === 'ai' ? <><fieldset className="setup-group"><legend>Turn order</legend><div className="setup-options"><button type="button" aria-pressed={human === 'ochre'} onClick={() => onHuman('ochre')}>I go first</button><button type="button" aria-pressed={human === 'indigo'} onClick={() => onHuman('indigo')}>AI goes first</button></div></fieldset><fieldset className="setup-group"><legend>AI strength</legend><div className="setup-options setup-options--four">{AI_DIFFICULTIES.map((value) => <button type="button" key={value} aria-pressed={difficulty === value} onClick={() => onDifficulty(value)}>{value[0]!.toUpperCase() + value.slice(1)}</button>)}</div></fieldset>{statisticsLoading ? <section className="setup-statistics" aria-label="Sitewide results"><span>Sitewide results</span><p role="status">Loading results…</p></section> : selectedStatistics ? <section className="setup-statistics" aria-label={`${difficulty} sitewide results`}><span>Sitewide results</span><strong>{selectedStatistics.gamesPlayed} {selectedStatistics.gamesPlayed === 1 ? 'game' : 'games'} played</strong><div><span>Human {selectedStatistics.humanWins}</span><span>AI {selectedStatistics.aiWins}</span></div></section> : null}<label className="setup-switch"><span><strong>Animate AI turns</strong><small>{animateAi ? 'Watch the AI play each card.' : 'Show the final result immediately.'}</small></span><input aria-label="Animate AI turns" type="checkbox" checked={animateAi} onChange={(event) => onAnimateAi(event.target.checked)} /><i aria-hidden="true" /></label></> : null}
     {mode === 'local' ? <label className="setup-switch"><span><strong>Starting draft</strong><small>{startingDraftEnabled ? 'Build a custom opening deck.' : 'Start with 7 Copper and 3 Scrap.'}</small></span><input type="checkbox" checked={startingDraftEnabled} onChange={(event) => onStartingDraft(event.target.checked)} /><i aria-hidden="true" /></label> : null}
     <div className="setup-market-actions"><button className="control-button" onClick={onRefresh}>Refresh market</button><button className="control-button" onClick={onCatalog}>View all cards</button></div>
   </div><button className="control-button primary setup-start" onClick={onStart}>Start game</button></aside>;
@@ -473,7 +476,7 @@ function ResetDialog({ onAccept, onCancel }: { onAccept: () => void; onCancel: (
   const ref = useRef<HTMLDialogElement>(null);
   useEffect(() => { const dialog = ref.current; if (dialog && !dialog.open) dialog.showModal(); }, []);
   return <dialog ref={ref} className="reset-dialog" aria-labelledby="reset-title" onCancel={(event) => { event.preventDefault(); onCancel(); }}>
-    <div><h2 id="reset-title">Reset this game?</h2><p>This returns the same game and market to its starting point. Your progress will be lost.</p><footer><button className="control-button primary" onClick={onAccept}>Yes, reset</button><button className="control-button" onClick={onCancel}>Cancel</button></footer></div>
+    <div><h2 id="reset-title">Reset this game?</h2><p>This starts a fresh attempt with the same market. Your current attempt will close.</p><footer><button className="control-button primary" onClick={onAccept}>Yes, reset</button><button className="control-button" onClick={onCancel}>Cancel</button></footer></div>
   </dialog>;
 }
 function ActionRail({ game, busy, playbackActive, onUndo, onReset, onNew, onCatalog }: { game: GameView; busy: boolean; playbackActive: boolean; onUndo: () => void; onReset: () => void; onNew: () => void; onCatalog: () => void }) {

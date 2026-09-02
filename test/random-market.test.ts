@@ -41,7 +41,7 @@ describe('random markets', () => {
       expect(loaded.variableCardIds).toEqual(VARIABLE_ACTION_IDS.slice(0, 10));
       expect(loaded.fixedCardIds).toEqual(['copper', 'silver', 'gold', 'step', 'focus', 'scrap']);
       const exported = await restarted.exportGame(created.id);
-      expect(exported).toMatchObject({ schemaVersion: 15, game: { id: created.id, variableCardIds: VARIABLE_ACTION_IDS.slice(0, 10) } });
+      expect(exported).toMatchObject({ schemaVersion: 16, game: { id: created.id, seriesId: created.id, attemptNumber: 1, variableCardIds: VARIABLE_ACTION_IDS.slice(0, 10) } });
     } finally { await rm(directory, { recursive: true, force: true }); }
   });
 });

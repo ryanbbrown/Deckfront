@@ -1,9 +1,10 @@
+import { randomUUID } from 'node:crypto';
 import { mkdir, mkdtemp, readdir, rm, writeFile } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { afterEach, describe, expect, it } from 'vitest';
-import { VARIABLE_ACTION_IDS } from '../src/game';
+import { VARIABLE_ACTION_IDS, kingdomOf, resetKingdoms } from '../src/game';
 import type { AiTrainer } from '../src/server/aiTrainer';
 import { createHexdeckServer } from '../src/server/httpServer';
 import type { GameUpdateView, GameView } from '../src/shared/api';
@@ -11,7 +12,7 @@ import rawBalanceSuite from '../src/sim/balance-suite-manifest.json' with { type
 import { fixedBuyPlan } from '../src/sim/strategy';
 const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
 const cleanups: Array<() => Promise<void>> = [];
-afterEach(async () => { while (cleanups.length) await cleanups.pop()?.(); });
+afterEach(async () => { while (cleanups.length) await cleanups.pop()?.(); resetKingdoms(); });
 async function server(aiTrainer?: AiTrainer) {
   const directory = await mkdtemp(path.join(tmpdir(), 'hexdeck-http-')); const games = path.join(directory, 'games');
   const app = createHexdeckServer({ dataDirectory: games, distDirectory: path.join(root, 'dist'), aiTrainer });
@@ -20,6 +21,24 @@ async function server(aiTrainer?: AiTrainer) {
   return { base: `http://127.0.0.1:${address.port}`, games };
 }
 const TEST_MARKET = ['cull','footwork','feint','drive','aim','volley','muster','prism','reclaim','starfire'];
+async function writeStatisticsRecord(games: string, input: {
+  id?: string; seriesId?: string; attemptNumber?: number; previousAttemptId?: string | null; nextAttemptId?: string | null;
+  schemaVersion?: number; mode?: 'local' | 'ai'; aiDifficulty?: unknown; humanPlayerId?: 'ochre' | 'indigo' | null;
+  finishedAt?: string | null; winner?: 'ochre' | 'indigo' | null; fileName?: string;
+} = {}): Promise<string> {
+  const id = input.id ?? randomUUID(); const attemptNumber = input.attemptNumber ?? 1;
+  await mkdir(games, { recursive: true });
+  await writeFile(path.join(games, input.fileName ?? `${id}.json`), JSON.stringify({
+    schemaVersion: input.schemaVersion ?? 16, id, seriesId: input.seriesId ?? id, attemptNumber,
+    previousAttemptId: input.previousAttemptId ?? (attemptNumber === 1 ? null : randomUUID()), nextAttemptId: input.nextAttemptId ?? null,
+    mode: input.mode ?? 'ai', aiDifficulty: input.aiDifficulty === undefined ? 'expert' : input.aiDifficulty,
+    humanPlayerId: input.humanPlayerId === undefined ? 'ochre' : input.humanPlayerId,
+    finishedAt: input.finishedAt === undefined ? '2026-01-01T00:00:00.000Z' : input.finishedAt,
+    state: { winner: input.winner === undefined ? 'ochre' : input.winner },
+    kingdom: { id: 'statistics-must-not-register', name: 'Statistics only', startingHealth: 50, actionPiles: [] }
+  }));
+  return id;
+}
 async function create(base: string, body: Record<string, unknown> = {}) {
   return fetch(`${base}/api/games`, { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ seed: 2, mode: 'local', variableCardIds: TEST_MARKET, startingDraftEnabled: true, ...body }) });
 }
@@ -56,7 +75,7 @@ describe('local game HTTP interface', () => {
   it('creates a game and accepts both sequential builds', async () => {
     const { base } = await server(); const createdResponse = await create(base); expect(createdResponse.status).toBe(201);
     const created = await createdResponse.json() as GameUpdateView;
-    expect(created).toMatchObject({ schemaVersion: 15, activePlayerId: 'ochre', aiDifficulty: null, presentation: { frames: [] } });
+    expect(created).toMatchObject({ schemaVersion: 16, seriesId: created.id, attemptNumber: 1, previousAttemptId: null, nextAttemptId: null, activePlayerId: 'ochre', aiDifficulty: null, presentation: { frames: [] } });
     const playerOne = await fetch(`${base}/api/games/${created.id}/build`, { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ expectedRevision: created.revision, definitionIds: ['footwork'], complete: true }) }).then((response) => response.json()) as { revision: number; activePlayerId: string; phase: string };
     expect(playerOne).toMatchObject({ activePlayerId: 'indigo', phase: 'startingBuild' });
     const playerTwo = await fetch(`${base}/api/games/${created.id}/build`, { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ expectedRevision: playerOne.revision, definitionIds: ['aim'], complete: true }) }).then((response) => response.json()) as { phase: string; completedBuilds: Record<string, string[]> };
@@ -135,14 +154,70 @@ describe('local game HTTP interface', () => {
     const { base } = await server(); const created = await (await create(base)).json() as { id: string; revision: number };
     const edit = await fetch(`${base}/api/games/${created.id}/build`, { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ expectedRevision: created.revision, definitionIds: ['feint'], complete: false }) }); expect(edit.status).toBe(200);
     const stale = await fetch(`${base}/api/games/${created.id}/build`, { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ expectedRevision: created.revision, definitionIds: [], complete: false }) }); expect(stale.status).toBe(409);
-    const exported = await fetch(`${base}/api/games/${created.id}/export`).then((response) => response.json()) as Record<string, unknown>; expect(exported.schemaVersion).toBe(15); expect(JSON.stringify(exported)).not.toMatch(/committedCommands|"command"/);
+    const exported = await fetch(`${base}/api/games/${created.id}/export`).then((response) => response.json()) as Record<string, unknown>; expect(exported.schemaVersion).toBe(16); expect(JSON.stringify(exported)).not.toMatch(/committedCommands|"command"/);
   });
-  it('exposes a revision-locked reset endpoint for the persisted game', async () => {
-    const { base } = await server(); const created = await (await create(base, { startingDraftEnabled: false })).json() as GameView;
+  it('returns exact ordered aggregate statistics and no game metadata', async () => {
+    const { base, games } = await server();
+    await writeStatisticsRecord(games, { aiDifficulty: 'easy', humanPlayerId: 'ochre', winner: 'ochre' });
+    await writeStatisticsRecord(games, { aiDifficulty: 'normal', humanPlayerId: 'indigo', winner: 'ochre' });
+    await writeStatisticsRecord(games, { aiDifficulty: 'hard', finishedAt: null, winner: null });
+    await writeStatisticsRecord(games, { aiDifficulty: 'hard', winner: null });
+    await writeStatisticsRecord(games, { mode: 'local', aiDifficulty: null, humanPlayerId: null });
+    await writeStatisticsRecord(games, { schemaVersion: 14 });
+    await writeStatisticsRecord(games, { schemaVersion: 15 });
+    const response = await fetch(`${base}/api/stats`); expect(response.status).toBe(200);
+    const body = await response.json();
+    expect(body).toEqual({ difficulties: [
+      { difficulty: 'easy', gamesPlayed: 1, humanWins: 1, aiWins: 0 },
+      { difficulty: 'normal', gamesPlayed: 1, humanWins: 0, aiWins: 1 },
+      { difficulty: 'hard', gamesPlayed: 0, humanWins: 0, aiWins: 0 },
+      { difficulty: 'expert', gamesPlayed: 0, humanWins: 0, aiWins: 0 }
+    ] });
+    expect(JSON.stringify(body)).not.toMatch(/"(?:id|seriesId|attemptNumber|createdAt|updatedAt|finishedAt|kingdom|market|players|state)"/);
+  });
+  it('counts only the unique latest attempt in each series', async () => {
+    const { base, games } = await server();
+    const unfinishedSeries = randomUUID(); const unfinishedChild = randomUUID();
+    await writeStatisticsRecord(games, { id: unfinishedSeries, seriesId: unfinishedSeries, nextAttemptId: unfinishedChild, aiDifficulty: 'easy' });
+    await writeStatisticsRecord(games, { id: unfinishedChild, seriesId: unfinishedSeries, attemptNumber: 2, previousAttemptId: unfinishedSeries, finishedAt: null, winner: null, aiDifficulty: 'easy' });
+    const completedSeries = randomUUID(); const second = randomUUID(); const third = randomUUID();
+    await writeStatisticsRecord(games, { id: completedSeries, seriesId: completedSeries, nextAttemptId: second, aiDifficulty: 'expert', winner: 'ochre' });
+    await writeStatisticsRecord(games, { id: second, seriesId: completedSeries, attemptNumber: 2, previousAttemptId: completedSeries, nextAttemptId: third, aiDifficulty: 'expert', winner: 'ochre' });
+    await writeStatisticsRecord(games, { id: third, seriesId: completedSeries, attemptNumber: 3, previousAttemptId: second, aiDifficulty: 'expert', winner: 'indigo' });
+    expect(await fetch(`${base}/api/stats`).then((response) => response.json())).toEqual({ difficulties: [
+      { difficulty: 'easy', gamesPlayed: 0, humanWins: 0, aiWins: 0 },
+      { difficulty: 'normal', gamesPlayed: 0, humanWins: 0, aiWins: 0 },
+      { difficulty: 'hard', gamesPlayed: 0, humanWins: 0, aiWins: 0 },
+      { difficulty: 'expert', gamesPlayed: 1, humanWins: 0, aiWins: 1 }
+    ] });
+  });
+  it('rescans metadata-only files and fails malformed schema 16 data without affecting other routes', async () => {
+    const { base, games } = await server();
+    const empty = await fetch(`${base}/api/stats`).then((response) => response.json());
+    expect(empty.difficulties.every((entry: { gamesPlayed: number }) => entry.gamesPlayed === 0)).toBe(true);
+    await mkdir(games, { recursive: true });
+    await writeFile(path.join(games, 'notes.json'), '{not json');
+    await writeFile(path.join(games, `${randomUUID()}.json.tmp`), '{not json');
+    await writeStatisticsRecord(games, { aiDifficulty: 'hard', humanPlayerId: 'indigo', winner: 'indigo' });
+    resetKingdoms();
+    const current = await fetch(`${base}/api/stats`).then((response) => response.json());
+    expect(current.difficulties[2]).toEqual({ difficulty: 'hard', gamesPlayed: 1, humanWins: 1, aiWins: 0 });
+    expect(() => kingdomOf('statistics-must-not-register')).toThrow();
+    await writeStatisticsRecord(games, { aiDifficulty: 'invalid' });
+    const malformed = await fetch(`${base}/api/stats`); expect(malformed.status).toBe(500);
+    expect(await malformed.json()).toEqual({ error: 'Internal server error.' });
+    expect((await fetch(`${base}/api/health`)).status).toBe(200);
+  });
+  it('exposes a revision-locked reset endpoint that returns a linked child game', async () => {
+    const { base, games } = await server(); const created = await (await create(base, { startingDraftEnabled: false })).json() as GameView;
     const buy = await fetch(`${base}/api/games/${created.id}/actions`, { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ expectedRevision: created.revision, actionId: created.actions.phases.find((action) => action.kind === 'endAction')!.id }) }).then((response) => response.json()) as GameView;
     const response = await fetch(`${base}/api/games/${created.id}/reset`, { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ expectedRevision: buy.revision }) });
-    expect(response.status).toBe(200); expect(await response.json()).toMatchObject({ id: created.id, revision: buy.revision + 1, turn: 1, phase: 'action', completedActions: 0, canUndo: false });
-    const stale = await fetch(`${base}/api/games/${created.id}/reset`, { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ expectedRevision: buy.revision }) });
-    expect(stale.status).toBe(409);
+    expect(response.status).toBe(200); const child = await response.json() as GameView;
+    expect(child).toMatchObject({ seriesId: created.id, attemptNumber: 2, previousAttemptId: created.id, nextAttemptId: null, revision: 0, turn: 1, phase: 'action', completedActions: 0, canUndo: false });
+    expect(child.id).not.toBe(created.id); expect((await readdir(games)).filter((name) => name.endsWith('.json'))).toHaveLength(2);
+    const parent = await fetch(`${base}/api/games/${created.id}`).then((loaded) => loaded.json()) as GameView;
+    expect(parent).toMatchObject({ id: created.id, nextAttemptId: child.id, revision: buy.revision + 1, phase: 'buy' });
+    const repeated = await fetch(`${base}/api/games/${created.id}/reset`, { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ expectedRevision: parent.revision }) });
+    expect(repeated.status).toBe(409); expect(await repeated.json()).toEqual({ error: 'This game has already been reset.' });
   });
 });

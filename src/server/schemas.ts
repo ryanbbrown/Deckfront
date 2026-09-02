@@ -145,8 +145,12 @@ const trainingSchema = z.object({
 });
 
 export const gameRecordSchema = z.object({
-  schemaVersion: z.literal(15),
+  schemaVersion: z.literal(16),
   id: z.string().uuid(),
+  seriesId: z.string().uuid(),
+  attemptNumber: z.number().int().positive(),
+  previousAttemptId: z.string().uuid().nullable(),
+  nextAttemptId: z.string().uuid().nullable(),
   revision: z.number().int().nonnegative(),
   createdAt: z.string().datetime(),
   updatedAt: z.string().datetime(),
@@ -166,6 +170,12 @@ export const gameRecordSchema = z.object({
   undoHistory: z.array(undoHistoryEntry),
   state: gameStateSchema
 }).superRefine((record, context) => {
+  if ((record.attemptNumber === 1 && (record.seriesId !== record.id || record.previousAttemptId !== null))
+    || (record.attemptNumber > 1 && (record.seriesId === record.id || record.previousAttemptId === null))
+    || record.previousAttemptId === record.id
+    || (record.nextAttemptId !== null && (record.nextAttemptId === record.id || record.nextAttemptId === record.previousAttemptId))) {
+    context.addIssue({ code: 'custom', message: 'Game attempt lineage is inconsistent.' });
+  }
   const metadata = [record.humanPlayerId, record.aiDifficulty, record.aiStrategy, record.training];
   if ((record.mode === 'ai' && metadata.some((value) => value === null))
     || (record.mode === 'local' && metadata.some((value) => value !== null))) {
@@ -181,6 +191,31 @@ export const gameRecordSchema = z.object({
   }
   if (record.aiStrategy && record.training?.strategyId !== record.aiStrategy.id) {
     context.addIssue({ code: 'custom', message: 'Training metadata does not match the selected strategy.' });
+  }
+});
+
+export const gameStatisticsMetadataSchema = z.object({
+  schemaVersion: z.literal(16),
+  id: z.string().uuid(),
+  seriesId: z.string().uuid(),
+  attemptNumber: z.number().int().positive(),
+  previousAttemptId: z.string().uuid().nullable(),
+  nextAttemptId: z.string().uuid().nullable(),
+  mode: z.enum(['local', 'ai']),
+  aiDifficulty: z.enum(AI_DIFFICULTIES).nullable(),
+  humanPlayerId: playerId.nullable(),
+  finishedAt: z.string().datetime().nullable(),
+  state: z.object({ winner: playerId.nullable() })
+}).superRefine((record, context) => {
+  if ((record.attemptNumber === 1 && (record.seriesId !== record.id || record.previousAttemptId !== null))
+    || (record.attemptNumber > 1 && (record.seriesId === record.id || record.previousAttemptId === null))
+    || record.previousAttemptId === record.id
+    || (record.nextAttemptId !== null && (record.nextAttemptId === record.id || record.nextAttemptId === record.previousAttemptId))) {
+    context.addIssue({ code: 'custom', message: 'Game attempt lineage is inconsistent.' });
+  }
+  if ((record.mode === 'ai' && (record.aiDifficulty === null || record.humanPlayerId === null))
+    || (record.mode === 'local' && (record.aiDifficulty !== null || record.humanPlayerId !== null))) {
+    context.addIssue({ code: 'custom', message: 'Game mode metadata is inconsistent.' });
   }
 });
 
