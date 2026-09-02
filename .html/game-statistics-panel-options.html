@@ -59,9 +59,8 @@ legend { margin-bottom: 8px; }
 
 /* Option 2: score tiles */
 .record-tiles { display: grid; gap: 8px; }
-.record-tiles .summary { display: flex; align-items: baseline; justify-content: space-between; padding-inline: 1px; }
+.record-tiles .summary { padding-inline: 1px; }
 .record-tiles .summary strong { font-size: 13px; }
-.record-tiles .summary span { color: var(--gold-soft); font-size: 9px; font-weight: 900; letter-spacing: .08em; text-transform: uppercase; }
 .tile-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 6px; }
 .tile { display: grid; grid-template-columns: 1fr auto; align-items: center; padding: 9px 10px; border: 1px solid var(--line-soft); border-radius: 6px; background: #06171388; }
 .tile span { color: var(--muted); font-size: 10px; font-weight: 800; }
@@ -115,11 +114,11 @@ legend { margin-bottom: 8px; }
         <header class="rail-title"><span class="rail-kicker">Game setup</span><h2>New match</h2></header>
         <div class="rail-body">
           <fieldset><legend>AI strength</legend><div class="buttons"><span class="button">Easy</span><span class="button selected">Normal</span><span class="button">Hard</span><span class="button">Expert</span></div></fieldset>
-          <section class="record record-tiles"><header class="summary"><strong>0 games played</strong><span>Normal</span></header><div class="tile-grid"><div class="tile"><span>Human wins</span><strong>0</strong></div><div class="tile"><span>AI wins</span><strong>0</strong></div></div></section>
+          <section class="record record-tiles"><header class="record-header"><span>Across Deckfront</span><span>Normal</span></header><div class="summary"><strong>0 games played</strong></div><div class="tile-grid"><div class="tile"><span>Human wins</span><strong>0</strong></div><div class="tile"><span>AI wins</span><strong>0</strong></div></div></section>
           <div class="switch"><span class="switch-copy"><strong>Animate AI turns</strong><small>Watch the AI play each card.</small></span><i class="toggle"></i></div>
         </div>
       </div>
-      <p class="note">Makes the score easiest to scan, but adds two more card-like surfaces.</p>
+      <p class="note">Makes the score easiest to scan. “Across Deckfront” states that these are sitewide results.</p>
     </article>
 
     <article class="option">
