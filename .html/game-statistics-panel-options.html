@@ -1,0 +1,153 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Deckfront game statistics panel options</title>
+<style>
+:root {
+  color-scheme: dark;
+  --page: #071713;
+  --rail: #0a201b;
+  --surface: #102a24;
+  --surface-soft: #ffffff0a;
+  --line: #ffffff2e;
+  --line-soft: #ffffff20;
+  --text: #e9efec;
+  --muted: #afc0ba;
+  --label: #b8cbc4;
+  --gold: #e8c45c;
+  --gold-soft: #f1d06e;
+  --ink: #10201b;
+}
+* { box-sizing: border-box; }
+body { margin: 0; min-width: 320px; background: radial-gradient(circle at 50% -10%, #173e33 0, var(--page) 42%); color: var(--text); font-family: Inter, ui-sans-serif, system-ui, sans-serif; }
+main { width: min(1500px, calc(100% - 40px)); margin: 0 auto; padding: 42px 0 64px; }
+.intro { max-width: 720px; margin-bottom: 28px; }
+.eyebrow, .option-label, legend, .rail-kicker, .record-header { color: var(--label); font-size: 10px; font-weight: 900; letter-spacing: .1em; text-transform: uppercase; }
+h1, h2, p { margin: 0; }
+h1 { margin-top: 5px; font-family: Georgia, "Times New Roman", serif; font-size: clamp(30px, 4vw, 48px); }
+.intro p { margin-top: 10px; color: var(--muted); font-size: 14px; line-height: 1.55; }
+.options { display: grid; grid-template-columns: repeat(4, minmax(255px, 1fr)); gap: 18px; align-items: start; }
+.option { min-width: 0; }
+.option-label { display: flex; min-height: 28px; align-items: center; justify-content: space-between; margin: 0 3px 8px; }
+.recommended { padding: 3px 6px; border: 1px solid #e8c45c66; border-radius: 999px; color: var(--gold-soft); font-size: 8px; letter-spacing: .08em; }
+.rail { min-height: 570px; padding: 18px; border: 1px solid #ffffff2b; background: var(--rail); box-shadow: 0 20px 50px #0007; }
+.rail-title { padding-bottom: 16px; border-bottom: 1px solid #ffffff25; }
+.rail-title h2 { margin-top: 2px; font-family: Georgia, "Times New Roman", serif; font-size: 24px; }
+.rail-body { display: grid; gap: 20px; padding: 20px 0; }
+fieldset { min-width: 0; margin: 0; padding: 0; border: 0; }
+legend { margin-bottom: 8px; }
+.buttons { display: grid; grid-template-columns: 1fr 1fr; gap: 6px; }
+.button { display: grid; min-height: 40px; place-items: center; padding: 6px 8px; border: 1px solid #ffffff35; border-radius: 6px; background: #ffffff0d; color: var(--text); font-size: 11px; font-weight: 800; }
+.button.selected { border-color: var(--gold-soft); background: var(--gold); color: var(--ink); box-shadow: inset 0 0 0 1px #fff4bb; }
+.switch { display: flex; min-height: 58px; align-items: center; justify-content: space-between; gap: 12px; padding: 10px 12px; border: 1px solid var(--line); border-radius: 7px; background: var(--surface-soft); }
+.switch-copy { display: grid; gap: 3px; }
+.switch-copy strong { font-size: 12px; }
+.switch-copy small { color: var(--muted); font-size: 9px; }
+.toggle { position: relative; width: 42px; height: 24px; flex: 0 0 42px; border: 1px solid #ffffff55; border-radius: 20px; background: #d0a832; }
+.toggle::after { position: absolute; top: 3px; right: 3px; width: 16px; height: 16px; border-radius: 50%; background: #fff; content: ""; }
+.note { min-height: 62px; padding: 11px 3px 0; color: var(--muted); font-size: 12px; line-height: 1.45; }
+.record { font-variant-numeric: tabular-nums; }
+.record-header { display: flex; align-items: center; justify-content: space-between; gap: 8px; }
+.record-header span:last-child { color: var(--gold-soft); }
+
+/* Option 1: quiet card */
+.record-card { display: grid; gap: 6px; padding: 11px 12px; border: 1px solid var(--line); border-radius: 7px; background: var(--surface-soft); }
+.record-card .games { font-size: 13px; font-weight: 800; }
+.record-card .wins { display: flex; justify-content: space-between; gap: 10px; color: #dbe5e1; font-size: 10px; font-weight: 800; }
+
+/* Option 2: score tiles */
+.record-tiles { display: grid; gap: 8px; }
+.record-tiles .summary { display: flex; align-items: baseline; justify-content: space-between; padding-inline: 1px; }
+.record-tiles .summary strong { font-size: 13px; }
+.record-tiles .summary span { color: var(--gold-soft); font-size: 9px; font-weight: 900; letter-spacing: .08em; text-transform: uppercase; }
+.tile-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 6px; }
+.tile { display: grid; grid-template-columns: 1fr auto; align-items: center; padding: 9px 10px; border: 1px solid var(--line-soft); border-radius: 6px; background: #06171388; }
+.tile span { color: var(--muted); font-size: 10px; font-weight: 800; }
+.tile strong { color: var(--gold-soft); font-size: 16px; }
+
+/* Option 3: duel score */
+.record-duel { display: grid; gap: 7px; padding: 11px 12px; border-block: 1px solid var(--line-soft); background: linear-gradient(90deg, transparent, #ffffff08 50%, transparent); }
+.duel-score { display: grid; grid-template-columns: 1fr auto 1fr; align-items: baseline; gap: 8px; }
+.duel-side { display: flex; align-items: baseline; justify-content: space-between; gap: 7px; color: #dbe5e1; font-size: 10px; font-weight: 800; }
+.duel-side:last-child { flex-direction: row-reverse; }
+.duel-side strong { color: var(--text); font-size: 18px; }
+.duel-dash { color: #78958b; font-size: 12px; }
+.record-duel .games { color: var(--muted); font-size: 10px; text-align: center; }
+
+/* Option 4: integrated rule */
+.record-rule { position: relative; display: grid; gap: 7px; padding: 12px 2px 2px 12px; border-top: 1px solid #ffffff2b; }
+.record-rule::before { position: absolute; top: -1px; left: 0; width: 44px; height: 2px; background: var(--gold); content: ""; }
+.record-rule .record-header { font-size: 9px; }
+.rule-score { display: flex; align-items: center; justify-content: space-between; gap: 12px; }
+.rule-score > strong { font-size: 12px; }
+.rule-wins { display: flex; gap: 12px; color: #cad8d3; font-size: 10px; font-weight: 800; }
+
+@media (max-width: 1180px) { .options { grid-template-columns: repeat(2, minmax(255px, 1fr)); } }
+@media (max-width: 620px) { main { width: min(360px, calc(100% - 24px)); padding-top: 24px; } .options { grid-template-columns: 1fr; } }
+</style>
+</head>
+<body>
+<main>
+  <section class="intro">
+    <span class="eyebrow">Deckfront · setup rail study</span>
+    <h1>Sitewide record panel</h1>
+    <p>Four ways to show that the result follows the selected AI strength. Each option is shown in the same setup context.</p>
+  </section>
+  <section class="options" aria-label="Statistics panel design options">
+    <article class="option">
+      <div class="option-label"><span>01 · Quiet card</span></div>
+      <div class="rail">
+        <header class="rail-title"><span class="rail-kicker">Game setup</span><h2>New match</h2></header>
+        <div class="rail-body">
+          <fieldset><legend>AI strength</legend><div class="buttons"><span class="button">Easy</span><span class="button selected">Normal</span><span class="button">Hard</span><span class="button">Expert</span></div></fieldset>
+          <section class="record record-card"><header class="record-header"><span>Sitewide results</span><span>Normal</span></header><strong class="games">0 games played</strong><div class="wins"><span>Human - 0 wins</span><span>AI - 0 wins</span></div></section>
+          <div class="switch"><span class="switch-copy"><strong>Animate AI turns</strong><small>Watch the AI play each card.</small></span><i class="toggle"></i></div>
+        </div>
+      </div>
+      <p class="note">Closest to the current design, with quieter type and cleaner spacing.</p>
+    </article>
+
+    <article class="option">
+      <div class="option-label"><span>02 · Score tiles</span></div>
+      <div class="rail">
+        <header class="rail-title"><span class="rail-kicker">Game setup</span><h2>New match</h2></header>
+        <div class="rail-body">
+          <fieldset><legend>AI strength</legend><div class="buttons"><span class="button">Easy</span><span class="button selected">Normal</span><span class="button">Hard</span><span class="button">Expert</span></div></fieldset>
+          <section class="record record-tiles"><header class="summary"><strong>0 games played</strong><span>Normal</span></header><div class="tile-grid"><div class="tile"><span>Human wins</span><strong>0</strong></div><div class="tile"><span>AI wins</span><strong>0</strong></div></div></section>
+          <div class="switch"><span class="switch-copy"><strong>Animate AI turns</strong><small>Watch the AI play each card.</small></span><i class="toggle"></i></div>
+        </div>
+      </div>
+      <p class="note">Makes the score easiest to scan, but adds two more card-like surfaces.</p>
+    </article>
+
+    <article class="option">
+      <div class="option-label"><span>03 · Duel score</span></div>
+      <div class="rail">
+        <header class="rail-title"><span class="rail-kicker">Game setup</span><h2>New match</h2></header>
+        <div class="rail-body">
+          <fieldset><legend>AI strength</legend><div class="buttons"><span class="button">Easy</span><span class="button selected">Normal</span><span class="button">Hard</span><span class="button">Expert</span></div></fieldset>
+          <section class="record record-duel"><header class="record-header"><span>Sitewide record</span><span>Normal</span></header><div class="duel-score"><span class="duel-side"><span>Human</span><strong>0</strong></span><span class="duel-dash">—</span><span class="duel-side"><span>AI</span><strong>0</strong></span></div><p class="games">0 games played</p></section>
+          <div class="switch"><span class="switch-copy"><strong>Animate AI turns</strong><small>Watch the AI play each card.</small></span><i class="toggle"></i></div>
+        </div>
+      </div>
+      <p class="note">Feels more like a head-to-head game record and gives both sides equal weight.</p>
+    </article>
+
+    <article class="option">
+      <div class="option-label"><span>04 · Integrated rule</span><span class="recommended">Recommended</span></div>
+      <div class="rail">
+        <header class="rail-title"><span class="rail-kicker">Game setup</span><h2>New match</h2></header>
+        <div class="rail-body">
+          <fieldset><legend>AI strength</legend><div class="buttons"><span class="button">Easy</span><span class="button selected">Normal</span><span class="button">Hard</span><span class="button">Expert</span></div></fieldset>
+          <section class="record record-rule"><header class="record-header"><span>Sitewide results</span><span>Normal</span></header><div class="rule-score"><strong>0 games played</strong><div class="rule-wins"><span>Human - 0</span><span>AI - 0</span></div></div></section>
+          <div class="switch"><span class="switch-copy"><strong>Animate AI turns</strong><small>Watch the AI play each card.</small></span><i class="toggle"></i></div>
+        </div>
+      </div>
+      <p class="note">Removes the extra box. The gold rule connects the result to the selected strength without looking like another control.</p>
+    </article>
+  </section>
+</main>
+</body>
+</html>
