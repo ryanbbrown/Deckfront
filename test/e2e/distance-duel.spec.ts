@@ -719,13 +719,19 @@ test('DD-E2E-064: AI playback batches consecutive card copies and Undo or visibi
   await expect(page.getByText(/Turn 3 · P1 action/)).toBeVisible(); await expect(page.locator('[data-flying-card]')).toHaveCount(0);
 });
 
-test('DD-E2E-065: New game ignores late action successes and errors', async ({ page, openGame }) => {
+test('DD-E2E-065: New game ignores late game responses and statistics', async ({ page, openGame }) => {
   const interrupt = async (status: number) => {
     await openGame(page); await page.route('**/actions', async (route) => { await new Promise((resolve) => setTimeout(resolve, 300)); if (status === 200) await route.continue(); else await route.fulfill({ status, contentType: 'application/json', body: JSON.stringify({ error: 'late old-game failure' }) }); });
     await page.getByRole('button', { name: 'End Action phase' }).click(); await page.getByRole('button', { name: 'New game' }).click(); await expect(page.getByRole('button', { name: 'Start game' })).toBeVisible(); await page.waitForTimeout(450);
     await expect(page.getByRole('button', { name: 'Start game' })).toBeVisible(); await expect(page.getByRole('alert')).toHaveCount(0); await page.unroute('**/actions');
   };
   await interrupt(200); await interrupt(500);
+
+  await page.getByRole('button', { name: 'Start game' }).click(); await expect(page.getByText(/Turn 1 · Player 1 action/)).toBeVisible();
+  await page.route('**/reset', async (route) => { await new Promise((resolve) => setTimeout(resolve, 300)); await route.continue(); });
+  await page.getByRole('button', { name: 'Reset' }).click(); const lateReset = page.waitForResponse('**/reset');
+  await page.getByRole('button', { name: 'Yes, reset' }).click(); await page.getByRole('button', { name: 'New game' }).click(); expect((await lateReset).status()).toBe(200); await page.waitForTimeout(100);
+  await expect(page.getByRole('button', { name: 'Start game' })).toBeVisible(); expect(await page.evaluate(() => localStorage.getItem('hexdeck.activeGameId'))).toBeNull(); await page.unroute('**/reset');
 
   await openGame(page); let statisticsRequests = 0;
   await page.route('**/api/stats', async (route) => {
@@ -865,7 +871,8 @@ test('DD-E2E-072: Reset interrupts AI playback and reuses the existing trained g
   const gameId = await page.evaluate(() => localStorage.getItem('hexdeck.activeGameId'));
   await page.getByRole('button', { name: 'Reset' }).click(); await expect(page.getByRole('dialog', { name: 'Reset this game?' })).toBeVisible(); await expect(page.getByText('Playing AI turn…')).toHaveCount(0); await expect(page.locator('[data-flying-card]')).toHaveCount(0);
   const response = page.waitForResponse('**/api/games/*/reset'); await page.getByRole('button', { name: 'Yes, reset' }).click(); const resetResponse = await response; expect(resetResponse.status()).toBe(200);
-  const child = await resetResponse.json() as GameView; await expect.poll(() => page.evaluate(() => localStorage.getItem('hexdeck.activeGameId'))).toBe(child.id);
+  const child = await resetResponse.json() as GameView;
+  await expect.poll(() => page.evaluate(() => ({ activeGameId: localStorage.getItem('hexdeck.activeGameId'), playback: document.querySelector('.playback-label')?.textContent ?? null }))).toEqual({ activeGameId: child.id, playback: 'Playing AI turn…' });
   expect(child.id).not.toBe(gameId); await page.reload(); await expect(page.getByText(/Turn 2 · P1 action/)).toBeVisible(); expect(createRequests).toBe(1); expect(await page.evaluate(() => localStorage.getItem('hexdeck.activeGameId'))).toBe(child.id); await expect(page.getByRole('navigation', { name: 'Game controls' }).locator('button').first()).toBeDisabled();
 });
 

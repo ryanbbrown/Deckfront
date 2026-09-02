@@ -397,7 +397,7 @@ export class GameService {
       schemaVersion: 16, id: record.id, seriesId: record.seriesId, attemptNumber: record.attemptNumber,
       previousAttemptId: record.previousAttemptId, nextAttemptId: record.nextAttemptId,
       revision: record.revision, createdAt: record.createdAt, updatedAt: record.updatedAt,
-      elapsedSeconds: Math.max(0, Math.floor((Date.parse(record.updatedAt) - Date.parse(record.createdAt)) / 1000)),
+      elapsedSeconds: Math.max(0, Math.floor((Date.parse(record.finishedAt ?? record.updatedAt) - Date.parse(record.createdAt)) / 1000)),
       completedActions: record.completedActions, durationSeconds: record.durationSeconds,
       activePlayerId: state.activePlayerId, selectedFirstPlayerId: state.selectedFirstPlayerId, phase: state.phase,
       turn: state.turn, winner: state.winner, startingDraftEnabled: state.startingDraftEnabled,

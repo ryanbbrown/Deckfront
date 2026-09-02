@@ -166,8 +166,10 @@ describe('local GameService', () => {
     resetReplay(prepared); await repository.save(prepared);
     const ready = await service.get(created.id); const volley = projectedHandCard(ready, prepared, 'volley');
     const progressed = await service.commitAction(created.id, ready.revision, volley.actionId!);
-    const beforeReset = await service.getRecord(created.id); beforeReset.buildProposal = ['aim']; await repository.save(beforeReset);
-    expect(beforeReset.state.winner).toBe('ochre'); expect(beforeReset.finishedAt).not.toBeNull();
+    const beforeReset = await service.getRecord(created.id); beforeReset.buildProposal = ['aim'];
+    beforeReset.createdAt = '2026-01-01T00:00:00.000Z'; beforeReset.updatedAt = '2026-01-01T00:00:07.900Z';
+    beforeReset.finishedAt = beforeReset.updatedAt; beforeReset.durationSeconds = 7.9; await repository.save(beforeReset);
+    expect(beforeReset.state.winner).toBe('ochre'); expect((await service.get(created.id)).elapsedSeconds).toBe(7);
     const initial = structuredClone(beforeReset.initialState);
 
     const reset = await service.resetGame(created.id, progressed.revision);
@@ -176,6 +178,7 @@ describe('local GameService', () => {
     expect(parent.undoHistory).toEqual(beforeReset.undoHistory); expect(parent.finishedAt).toBe(beforeReset.finishedAt);
     expect(parent.durationSeconds).toBe(beforeReset.durationSeconds); expect(parent.buildProposal).toEqual(beforeReset.buildProposal);
     expect(parent).toMatchObject({ id: created.id, seriesId: created.id, attemptNumber: 1, previousAttemptId: null, nextAttemptId: reset.id, revision: progressed.revision + 1 });
+    expect((await service.get(created.id)).elapsedSeconds).toBe(7);
     expect(child.state).toEqual(initial); expect(child.committedCommands).toEqual([]); expect(child.undoHistory).toEqual([]);
     expect(child).toMatchObject({ id: reset.id, seriesId: created.id, attemptNumber: 2, previousAttemptId: created.id, nextAttemptId: null, revision: 0, completedActions: 0, finishedAt: null, durationSeconds: null, buildProposal: [], startingDraftEnabled: false });
     expect(reset).toMatchObject({ id: child.id, seriesId: created.id, attemptNumber: 2, revision: 0, phase: 'action', turn: 1, canUndo: false, completedActions: 0, presentation: { frames: [] } });
@@ -216,7 +219,9 @@ describe('local GameService', () => {
       state: parent.state, committedCommands: parent.committedCommands, undoHistory: parent.undoHistory,
       finishedAt: parent.finishedAt, durationSeconds: parent.durationSeconds, buildProposal: parent.buildProposal
     });
+    await expect(service.updateBuild(created.id, parent.revision, [], false)).rejects.toThrow('already been reset');
     await expect(service.commitAction(created.id, parent.revision, phaseAction(created, 'endAction'))).rejects.toThrow('already been reset');
+    await expect(service.undoAction(created.id, parent.revision)).rejects.toThrow('already been reset');
     await expect(service.resetGame(created.id, parent.revision)).rejects.toThrow('already been reset');
     expect(await service.getRecord(created.id)).toMatchObject(gameplay);
     expect(await service.getRecord(child.id)).toMatchObject({ previousAttemptId: created.id, attemptNumber: 2 });
