@@ -76,6 +76,7 @@ export function Game({ game, initialPresentation, error, animateAi, onAnimateAi,
   const playedDestinationCards = destinations.filter((item) => item.kind === 'handToPlayed').map((item, index) => ({ id: `played-destination-${index}`, definitionId: item.definitionId }));
   const playedDestinationIds = new Set(playedDestinationCards.map((card) => card.id));
   const playedGroups = groupPlayedCards([...actor.played, ...playedDestinationCards], game.cards);
+  const victory = view.winner ? victoryMessage(view, view.winner) : null;
   const proposalCost = game.buildProposal.reduce((sum, id) => sum + (game.cards[id]?.cost ?? 0), 0);
 
   const finishPlayback = useCallback(() => {
@@ -288,7 +289,7 @@ export function Game({ game, initialPresentation, error, animateAi, onAnimateAi,
   return <main className="table-shell" onContextMenuCapture={(event) => inspectCard(event, game.cards, setInspectedCardId)} onKeyDownCapture={(event) => inspectCardFromKeyboard(event, game.cards, setInspectedCardId)}>
     <TableHeader title={turnText} controls={<div className="phase-controls">{game.phase === 'startingBuild' ? <><strong data-testid="build-budget">{proposalCost} / {STARTING_BUDGET} · {firstBuyCarry(proposalCost)} carries</strong><button className="control-button primary" disabled={!interactive || proposalCost > STARTING_BUDGET} onClick={() => void saveBuild(game.buildProposal, true)}>Finish starting build</button></> : null}{game.mode === 'ai' ? <label className="animation-toggle"><input type="checkbox" checked={animateAi} onChange={(event) => onAnimateAi(event.target.checked)} /> Animate AI turns</label> : null}</div>} />
     {error ? <p role="alert" className="error">{error}</p> : null}
-    <section className="arena-zone table-zone"><div className="range-label" data-testid="range">{view.range} · {Math.abs(view.fighters.ochre.position - view.fighters.indigo.position)} {Math.abs(view.fighters.ochre.position - view.fighters.indigo.position) === 1 ? 'space' : 'spaces'}{movementCard && !playbackActive ? <button className="movement-cancel" onClick={clearChoice}>Cancel movement</button> : null}</div><Board game={view} movementChoices={playbackActive ? [] : movementChoices} busy={!interactive} damageFeedback={damageFeedback} onMovement={(choice) => void act(choice)} /></section>
+    <section className="arena-zone table-zone" data-winner={view.winner ?? undefined}><div className="range-label" data-testid="range">{view.range} · {Math.abs(view.fighters.ochre.position - view.fighters.indigo.position)} {Math.abs(view.fighters.ochre.position - view.fighters.indigo.position) === 1 ? 'space' : 'spaces'}{movementCard && !playbackActive ? <button className="movement-cancel" onClick={clearChoice}>Cancel movement</button> : null}</div><Board game={view} movementChoices={playbackActive ? [] : movementChoices} busy={!interactive} damageFeedback={damageFeedback} onMovement={(choice) => void act(choice)} />{victory ? <div className="victory-sweep" role="status" aria-live="polite" aria-atomic="true"><div className="victory-sweep__result"><span>{victory.kicker}</span><strong>{victory.title}</strong><small>{victory.detail}</small></div></div> : null}</section>
     {game.phase === 'startingBuild' ? <div className="build-strip"><strong>{actorName} selected</strong><div>{game.buildProposal.map((id, index) => <button key={`${id}-${index}`} aria-label={`Remove ${game.cards[id]?.name}`} onClick={() => void saveBuild(game.buildProposal.filter((_, position) => position !== index))}>{game.cards[id]?.name} ×</button>)}</div><span>{game.buildProposal.length ? 'Click a selected card to remove it.' : 'Click market piles to add cards.'}</span></div> : null}
     <CompactMarket cards={game.cards} fixedIds={game.fixedCardIds} variableIds={game.variableCardIds} supply={view.supply} onView={() => setMarketOpen(true)} onCard={marketAction} enabled={(id) => !playbackActive && (game.phase === 'startingBuild' ? !busy : Boolean(buys.get(id)) && !busy)} />
     <section className="played-panel table-zone"><div className="zone-title"><h2>Played this turn</h2><div className="played-summary"><div className="played-resources"><strong data-testid="zone-money">{actorName} money: {actor.money}</strong><strong className="mana-counter" data-testid="zone-mana">Mana: {actor.mana}</strong></div><span>Each Treasure type shares one stack. Other cards stack only when consecutive.</span></div></div><div className="played-row" data-testid="played-row">{playedGroups.map((group) => {
@@ -527,6 +528,12 @@ function groupPlayedCards(cards: CardInstance[], definitions: Record<string, Car
     previous = card;
   }
   return groups;
+}
+function victoryMessage(game: GameView, winner: PlayerId): { kicker: string; title: string; detail: string } {
+  if (game.mode === 'ai') return winner === game.aiPlayerId
+    ? { kicker: 'AI victory', title: 'AI wins!', detail: 'The AI controls the battlefield.' }
+    : { kicker: 'Human victory', title: 'You win!', detail: 'The battlefield is yours.' };
+  return { kicker: 'Match complete', title: `${playerLabel(game, winner)} wins!`, detail: 'The battlefield is theirs.' };
 }
 function cardWord(count: number): string { return count === 1 ? 'card' : 'cards'; }
 function eventPlayerName(game: GameView, value: unknown): string { return value === 'ochre' || value === 'indigo' ? playerLabel(game, value) : 'Unknown player'; }

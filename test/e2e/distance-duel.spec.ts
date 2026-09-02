@@ -279,8 +279,10 @@ test('DD-E2E-011: ranged escape uses two Footwork cards then Aim and Volley for 
 
 test('DD-E2E-012: winning Volley can be undone and a repeated win persists across refresh', async ({ page, openGame }) => {
   await openGame(page, (record) => { seedHand(record, ['volley', 'scour']); record.state.fighters.ochre.position = 1; record.state.fighters.indigo.position = 5; record.state.fighters.indigo.health = 3; });
-  await page.locator('[data-card-name="Volley"]').click(); await expect(page.getByText('Player 1 wins')).toBeVisible(); await expect(page.locator('[data-card-name="Scour"] em')).toHaveCount(0); await page.getByRole('button', { name: 'Undo last action' }).click(); await expect(page.getByText(/Turn 1 · Player 1 action/)).toBeVisible(); await expect(page.locator('[data-player-score="indigo"]')).toContainText('3 HP');
-  await page.locator('[data-card-name="Volley"]').click(); await expect(page.getByText('Player 1 wins')).toBeVisible(); await page.reload(); await expect(page.getByText('Player 1 wins')).toBeVisible(); await page.getByRole('button', { name: 'New game' }).click(); await expect(page.getByRole('button', { name: 'Start game' })).toBeVisible();
+  await page.locator('[data-card-name="Volley"]').click(); await expect(page.getByText('Player 1 wins', { exact: true })).toBeVisible();
+  const victory = page.locator('.victory-sweep'); await expect(victory).toContainText('Match completePlayer 1 wins!The battlefield is theirs.'); await expect(page.locator('.arena-zone')).toHaveAttribute('data-winner', 'ochre');
+  await expect(page.locator('[data-card-name="Scour"] em')).toHaveCount(0); await page.getByRole('button', { name: 'Undo last action' }).click(); await expect(page.getByText(/Turn 1 · Player 1 action/)).toBeVisible(); await expect(victory).toHaveCount(0); await expect(page.locator('[data-player-score="indigo"]')).toContainText('3 HP');
+  await page.locator('[data-card-name="Volley"]').click(); await expect(page.getByText('Player 1 wins', { exact: true })).toBeVisible(); await expect(victory).toBeVisible(); await page.reload(); await expect(page.getByText('Player 1 wins', { exact: true })).toBeVisible(); await expect(victory).toBeVisible(); await page.getByRole('button', { name: 'New game' }).click(); await expect(page.getByRole('button', { name: 'Start game' })).toBeVisible();
 });
 
 test('DD-E2E-013: wall-blocked direction is absent and Close blocks Aim and Volley', async ({ page, openGame }) => {
@@ -912,10 +914,10 @@ test('DD-E2E-071: unavailable warning stays inside the card and stacks above rul
     const cardBox = box(card); const warningBox = box(warning); const costBox = box(cost);
     const overlaps = (left: ReturnType<typeof box>, right: ReturnType<typeof box>) => left.left < right.right && left.right > right.left && left.top < right.bottom && left.bottom > right.top;
     const top = document.elementFromPoint((costBox.left + costBox.right) / 2, (costBox.top + costBox.bottom) / 2);
-    return { cardBox, warningBox, warningZ: Number(getComputedStyle(warning).zIndex), rulesZ: Number(getComputedStyle(rules).zIndex), costZ: Number(getComputedStyle(cost).zIndex), warningFits: warning.scrollHeight <= warning.clientHeight, overlapsCost: overlaps(warningBox, costBox), warningAtCost: top === warning || warning.contains(top) };
+    return { cardBox, warningBox, cardOpacity: getComputedStyle(card).opacity, disabledWash: getComputedStyle(card, '::after').backgroundColor, warningZ: Number(getComputedStyle(warning).zIndex), rulesZ: Number(getComputedStyle(rules).zIndex), costZ: Number(getComputedStyle(cost).zIndex), warningFits: warning.scrollHeight <= warning.clientHeight, overlapsCost: overlaps(warningBox, costBox), warningAtCost: top === warning || warning.contains(top) };
   });
   expect(geometry.warningBox.left).toBeGreaterThanOrEqual(geometry.cardBox.left); expect(geometry.warningBox.top).toBeGreaterThanOrEqual(geometry.cardBox.top); expect(geometry.warningBox.right).toBeLessThanOrEqual(geometry.cardBox.right); expect(geometry.warningBox.bottom).toBeLessThanOrEqual(geometry.cardBox.bottom);
-  expect(geometry).toMatchObject({ warningFits: true, overlapsCost: true, warningAtCost: true }); expect(geometry.warningZ).toBeGreaterThan(geometry.rulesZ); expect(geometry.warningZ).toBeGreaterThan(geometry.costZ);
+  expect(geometry).toMatchObject({ cardOpacity: '1', disabledWash: 'rgba(16, 42, 36, 0.28)', warningFits: true, overlapsCost: true, warningAtCost: true }); expect(geometry.warningZ).toBeGreaterThan(geometry.rulesZ); expect(geometry.warningZ).toBeGreaterThan(geometry.costZ);
 });
 
 test('DD-E2E-048: kingdom piles wrap before the action rail at a narrower desktop width', async ({ page, openGame }) => {

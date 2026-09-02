@@ -1,0 +1,169 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Deckfront victory animation options</title>
+<style>
+:root { color-scheme: dark; --page:#061713; --rail:#092019; --surface:#0d2a23; --text:#ebe5d4; --muted:#afc0ba; --gold:#e8c45c; --gold-soft:#f6df96; --line:#ffffff2d; --ochre:#c58b32; --indigo:#6f53af; }
+* { box-sizing:border-box; }
+body { margin:0; min-width:320px; background:radial-gradient(circle at 50% -12%,#1a483a 0,var(--page) 42%); color:var(--text); font-family:Inter,ui-sans-serif,system-ui,sans-serif; -webkit-font-smoothing:antialiased; }
+button { font:inherit; }
+main { width:min(1260px,calc(100% - 40px)); margin:auto; padding:40px 0 64px; }
+h1,h2,p { margin:0; }
+.eyebrow,.option-label,.turn,.result small { font-size:10px; font-weight:900; letter-spacing:.11em; text-transform:uppercase; }
+.eyebrow { color:#b8cbc4; }
+h1 { margin-top:4px; font:700 clamp(32px,5vw,52px)/1.02 Georgia,serif; text-wrap:balance; }
+.intro p { max-width:660px; margin-top:10px; color:var(--muted); font-size:14px; line-height:1.55; }
+.options { display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); gap:22px; margin-top:28px; }
+.option { min-width:0; }
+.option-heading { display:flex; min-height:32px; align-items:center; justify-content:space-between; padding-inline:3px; }
+.option-label { color:#cad6d2; }
+.badge { padding:4px 7px; border:1px solid #e8c45c77; border-radius:999px; color:var(--gold-soft); font-size:8px; font-weight:900; letter-spacing:.08em; text-transform:uppercase; }
+.stage { position:relative; min-height:350px; overflow:hidden; border:1px solid var(--line); background:#0b251f; box-shadow:0 18px 40px #0007; isolation:isolate; }
+.top { display:grid; grid-template-columns:1fr auto 1fr; align-items:center; height:48px; padding:0 12px; border-bottom:1px solid var(--line); background:var(--rail); }
+.logo { font:800 17px Georgia,serif; }
+.turn { min-width:150px; padding:6px 11px; border-radius:5px; background:#ffffff0b; color:#dfe8e5; text-align:center; }
+.turn .won { display:none; }
+.stage.run .turn .playing { display:none; }
+.stage.run .turn .won { display:inline; }
+.arena-wrap { padding:14px 14px 10px; }
+.range { margin-bottom:5px; font:700 13px Georgia,serif; text-align:center; }
+.arena { position:relative; display:grid; grid-template-columns:repeat(6,1fr); height:98px; overflow:hidden; border:1px solid #a99772; background-color:#d7cfb3; background-image:linear-gradient(#756b5326 1px,transparent 1px),linear-gradient(90deg,#756b5326 1px,transparent 1px),repeating-radial-gradient(ellipse at 20% 30%,transparent 0 14px,#746b5420 15px 16px,transparent 17px 24px); background-size:16px 16px,16px 16px,120px 70px; }
+.space { position:relative; border-inline-end:1px dashed #665e4b66; }
+.space:last-child { border:0; }
+.space span { position:absolute; inset:4px auto auto 6px; color:#514a3d; font-size:9px; }
+.fighter { position:absolute; z-index:2; bottom:11px; display:grid; width:52px; height:58px; place-items:center; border:3px solid #f4e8c3; border-radius:50% 50% 44% 44%; color:#fff; font-size:23px; box-shadow:0 3px 8px #0008; transform:translateX(-50%); }
+.fighter::before { content:"♜"; }
+.fighter::after { position:absolute; inset:auto -12px -7px auto; min-width:34px; padding:3px 5px; border:2px solid #f4e8c3; border-radius:12px; background:#172923; font-size:9px; font-weight:900; text-align:center; content:attr(data-health) " HP"; }
+.you { left:41.5%; background:var(--ochre); }
+.ai { left:58.5%; background:var(--indigo); }
+.stage.run .ai { animation:loser 3.2s both; }
+.lower { display:grid; grid-template-columns:1fr 130px; gap:9px; padding:0 14px 14px; }
+.played,.controls { min-height:160px; border:1px solid #ffffff1c; background:#ffffff07; }
+.played { padding:11px; }
+.played h2 { font:700 15px Georgia,serif; }
+.cards { display:flex; gap:7px; margin-top:14px; }
+.card { width:60px; height:88px; border:2px solid #d2b95f; border-radius:4px; background:linear-gradient(#4c5f54 0 28%,#263d35 28%); box-shadow:0 4px 10px #0005; }
+.card:nth-child(2) { background:linear-gradient(#5e496f 0 28%,#332c42 28%); }
+.card:nth-child(3) { background:linear-gradient(#6e4b32 0 28%,#3e2f24 28%); }
+.controls { display:grid; align-content:start; gap:7px; padding:10px; }
+.controls span { min-height:28px; padding:7px; border:1px solid #ffffff1c; border-radius:4px; color:#b9c8c3; font-size:9px; font-weight:800; text-align:center; }
+.effect { position:absolute; z-index:10; pointer-events:none; }
+.result { display:grid; gap:4px; text-align:center; }
+.result small { color:var(--gold-soft); }
+.result strong { font:700 30px/1 Georgia,serif; }
+.result span { color:#d1ddd8; font-size:10px; }
+.note { min-height:62px; padding:11px 3px 0; color:var(--muted); font-size:12px; line-height:1.45; }
+.replay { min-height:40px; margin-top:10px; padding:8px 14px; border:1px solid #ffffff38; border-radius:6px; background:#ffffff0b; color:var(--text); cursor:pointer; font-size:11px; font-weight:850; }
+.replay:focus-visible { outline:3px solid var(--gold-soft); outline-offset:3px; }
+@media (hover:hover) { .replay:hover { border-color:var(--gold-soft); background:#ffffff14; } }
+
+/* 1: Arena sweep */
+.sweep { inset:48px 0 auto; height:122px; overflow:hidden; }
+.sweep::before { position:absolute; inset:14px -45%; background:linear-gradient(90deg,transparent 20%,#f0cc6170 43%,#fff2baaa 50%,#f0cc6170 57%,transparent 80%); opacity:0; transform:translateX(-55%); content:""; }
+.sweep .result { position:absolute; inset:30px 18px auto; padding:14px; border-block:1px solid #f4d87699; background:#081d18eb; opacity:0; transform:translateY(12px); }
+.stage.run .sweep::before { animation:sweep-light 3.2s ease-out both; }
+.stage.run .sweep .result { animation:rise 3.2s ease-out both; }
+
+/* 2: Victory crest */
+.crest { inset:65px 0 auto; display:grid; place-items:center; }
+.rings { position:absolute; width:158px; height:158px; border:1px solid #f5d97888; border-radius:50%; opacity:0; }
+.rings::before,.rings::after { position:absolute; inset:14px; border:1px solid #f5d97855; border-radius:inherit; content:""; }
+.rings::after { inset:29px; }
+.shield { display:grid; width:112px; min-height:132px; place-items:center; padding:14px 8px; border:2px solid #f4df9e; border-radius:50% 50% 42% 42%; background:linear-gradient(145deg,#b87d29,#62441f); box-shadow:0 14px 30px #000a,inset 0 0 20px #fff2a833; opacity:0; transform:scale(.55) rotate(-6deg); }
+.shield::before { color:#fff0bb; font-size:26px; content:"♜"; }
+.shield .result strong { font-size:24px; }
+.stage.run .rings { animation:rings 3.2s ease-out both; }
+.stage.run .shield { animation:crest-in 3.2s cubic-bezier(.2,.8,.2,1) both; }
+
+/* 3: Final blow */
+.impact { inset:48px 0 auto; height:122px; }
+.impact-ring { position:absolute; top:47px; left:58.5%; width:24px; height:24px; border:4px solid #fff3c2; border-radius:50%; opacity:0; transform:translate(-50%,-50%) scale(.2); }
+.impact .result { position:absolute; top:23px; left:50%; width:230px; padding:15px 18px; border:1px solid #f0cf7188; border-radius:7px; background:#0b241ef2; box-shadow:0 15px 35px #000a; opacity:0; transform:translate(-50%,8px) scale(.94); }
+.stage.run .impact-ring { animation:impact 3.2s ease-out both; }
+.stage.run .impact .result { animation:impact-result 3.2s ease-out both; }
+
+/* 4: Result ribbon */
+.ribbon-wrap { inset:48px 0 auto; }
+.ribbon { display:grid; grid-template-columns:1fr auto 1fr; align-items:center; min-height:66px; padding:10px 22px; border-block:1px solid #f0cf7180; background:linear-gradient(90deg,#6f4b20ee,#0b251ff5 32%,#0b251ff5 68%,#6f4b20ee); box-shadow:0 10px 25px #0008; opacity:0; transform:translateY(-100%); }
+.ribbon > span { color:#f0d98f; font-size:10px; font-weight:900; letter-spacing:.08em; text-transform:uppercase; }
+.ribbon > span:last-child { text-align:end; }
+.ribbon .result strong { font-size:25px; }
+.stage.run .ribbon { animation:ribbon-drop 3.2s cubic-bezier(.2,.8,.2,1) both; }
+
+@keyframes loser { 0%,8% { filter:none; opacity:1; transform:translateX(-50%); } 12% { filter:brightness(2) saturate(1.4); transform:translateX(calc(-50% - 7px)); } 16% { transform:translateX(calc(-50% + 6px)); } 24%,100% { filter:grayscale(.8) brightness(.55); opacity:.65; transform:translateX(-50%); } }
+@keyframes sweep-light { 0%,12% { opacity:0; transform:translateX(-55%); } 18% { opacity:1; } 38% { opacity:.3; transform:translateX(55%); } 46%,100% { opacity:0; transform:translateX(55%); } }
+@keyframes rise { 0%,27% { opacity:0; transform:translateY(12px); } 39%,100% { opacity:.95; transform:translateY(0); } }
+@keyframes rings { 0%,17% { opacity:0; transform:scale(.45); } 35% { opacity:.8; } 68%,100% { opacity:.25; transform:scale(1.15); } }
+@keyframes crest-in { 0%,18% { opacity:0; transform:scale(.55) rotate(-6deg); } 35% { opacity:1; transform:scale(1.06) rotate(1deg); } 45%,100% { opacity:.96; transform:scale(1) rotate(0); } }
+@keyframes impact { 0%,9% { opacity:0; transform:translate(-50%,-50%) scale(.2); } 14% { opacity:1; } 31%,100% { opacity:0; transform:translate(-50%,-50%) scale(5.5); } }
+@keyframes impact-result { 0%,27% { opacity:0; transform:translate(-50%,8px) scale(.94); } 40% { opacity:1; transform:translate(-50%,0) scale(1.03); } 49%,100% { opacity:.96; transform:translate(-50%,0) scale(1); } }
+@keyframes ribbon-drop { 0%,18% { opacity:0; transform:translateY(-100%); } 34% { opacity:1; transform:translateY(5px); } 42%,100% { opacity:.96; transform:translateY(0); } }
+@media (max-width:850px) { .options { grid-template-columns:1fr; } }
+@media (max-width:520px) { main { width:min(390px,calc(100% - 24px)); padding-top:24px; } .lower { grid-template-columns:1fr 100px; } }
+@media (prefers-reduced-motion:reduce) { .stage.run * { animation-duration:1ms!important; animation-delay:0ms!important; } }
+</style>
+</head>
+<body>
+<main>
+  <header class="intro"><span class="eyebrow">Deckfront · victory study</span><h1>Make the final blow feel final</h1><p>Four short victory treatments in the current table style. Each leaves the final board visible and keeps the result on screen.</p></header>
+  <section class="options" aria-label="Victory animation options">
+
+    <article class="option">
+      <div class="option-heading"><span class="option-label">01 · Arena sweep</span><span class="badge">Selected</span></div>
+      <div class="stage run">
+        <div class="top"><span class="logo">Deckfront</span><span class="turn"><span class="playing">Your turn</span><span class="won">You win</span></span><span></span></div>
+        <div class="arena-wrap"><div class="range">Near · 1 space</div><div class="arena"><span class="space"><span>1</span></span><span class="space"><span>2</span></span><span class="space"><span>3</span></span><span class="space"><span>4</span></span><span class="space"><span>5</span></span><span class="space"><span>6</span></span><i class="fighter you" data-health="18"></i><i class="fighter ai" data-health="0"></i></div></div>
+        <div class="lower"><div class="played"><h2>Played this turn</h2><div class="cards"><i class="card"></i><i class="card"></i><i class="card"></i></div></div><div class="controls"><span>Undo</span><span>Reset</span><span>New game</span></div></div>
+        <div class="effect sweep"><div class="result"><small>Human victory</small><strong>You win</strong><span>The battlefield is yours.</span></div></div>
+      </div>
+      <p class="note">A fast gold sweep ties the victory directly to the arena, then leaves a clear centered result.</p><button class="replay" type="button">Replay animation</button>
+    </article>
+
+    <article class="option">
+      <div class="option-heading"><span class="option-label">02 · Victory crest</span></div>
+      <div class="stage run">
+        <div class="top"><span class="logo">Deckfront</span><span class="turn"><span class="playing">Your turn</span><span class="won">You win</span></span><span></span></div>
+        <div class="arena-wrap"><div class="range">Near · 1 space</div><div class="arena"><span class="space"><span>1</span></span><span class="space"><span>2</span></span><span class="space"><span>3</span></span><span class="space"><span>4</span></span><span class="space"><span>5</span></span><span class="space"><span>6</span></span><i class="fighter you" data-health="18"></i><i class="fighter ai" data-health="0"></i></div></div>
+        <div class="lower"><div class="played"><h2>Played this turn</h2><div class="cards"><i class="card"></i><i class="card"></i><i class="card"></i></div></div><div class="controls"><span>Undo</span><span>Reset</span><span>New game</span></div></div>
+        <div class="effect crest"><i class="rings"></i><div class="shield"><div class="result"><small>Victory</small><strong>You win</strong></div></div></div>
+      </div>
+      <p class="note">The boldest option. A shield seal gives the win a collectible-card-game ceremony.</p><button class="replay" type="button">Replay animation</button>
+    </article>
+
+    <article class="option">
+      <div class="option-heading"><span class="option-label">03 · Final blow</span></div>
+      <div class="stage run">
+        <div class="top"><span class="logo">Deckfront</span><span class="turn"><span class="playing">Your turn</span><span class="won">You win</span></span><span></span></div>
+        <div class="arena-wrap"><div class="range">Near · 1 space</div><div class="arena"><span class="space"><span>1</span></span><span class="space"><span>2</span></span><span class="space"><span>3</span></span><span class="space"><span>4</span></span><span class="space"><span>5</span></span><span class="space"><span>6</span></span><i class="fighter you" data-health="18"></i><i class="fighter ai" data-health="0"></i></div></div>
+        <div class="lower"><div class="played"><h2>Played this turn</h2><div class="cards"><i class="card"></i><i class="card"></i><i class="card"></i></div></div><div class="controls"><span>Undo</span><span>Reset</span><span>New game</span></div></div>
+        <div class="effect impact"><i class="impact-ring"></i><div class="result"><small>Final blow</small><strong>You win</strong><span>AI defeated</span></div></div>
+      </div>
+      <p class="note">A shockwave starts at the defeated fighter before the result appears. Most connected to the lethal hit.</p><button class="replay" type="button">Replay animation</button>
+    </article>
+
+    <article class="option">
+      <div class="option-heading"><span class="option-label">04 · Result ribbon</span></div>
+      <div class="stage run">
+        <div class="top"><span class="logo">Deckfront</span><span class="turn"><span class="playing">Your turn</span><span class="won">You win</span></span><span></span></div>
+        <div class="arena-wrap"><div class="range">Near · 1 space</div><div class="arena"><span class="space"><span>1</span></span><span class="space"><span>2</span></span><span class="space"><span>3</span></span><span class="space"><span>4</span></span><span class="space"><span>5</span></span><span class="space"><span>6</span></span><i class="fighter you" data-health="18"></i><i class="fighter ai" data-health="0"></i></div></div>
+        <div class="lower"><div class="played"><h2>Played this turn</h2><div class="cards"><i class="card"></i><i class="card"></i><i class="card"></i></div></div><div class="controls"><span>Undo</span><span>Reset</span><span>New game</span></div></div>
+        <div class="effect ribbon-wrap"><div class="ribbon"><span>Human</span><div class="result"><small>Victory</small><strong>You win</strong></div><span>AI defeated</span></div></div>
+      </div>
+      <p class="note">The least obstructive option. A persistent result ribbon drops below the header and leaves the arena readable.</p><button class="replay" type="button">Replay animation</button>
+    </article>
+  </section>
+</main>
+<script>
+for (const button of document.querySelectorAll('.replay')) {
+  button.addEventListener('click', () => {
+    const stage = button.closest('.option').querySelector('.stage');
+    stage.classList.remove('run');
+    void stage.offsetWidth;
+    stage.classList.add('run');
+  });
+}
+</script>
+</body>
+</html>
