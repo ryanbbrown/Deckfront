@@ -22,7 +22,7 @@ Show sitewide completed AI-game results for the selected difficulty on the match
 - The statistics reader parses metadata only: schema and lineage, mode, difficulty, human player, finish time, and winner. It does not register kingdoms, parse full game state, or run game invariants. It accepts only UUID `.json` filenames, ignores older schemas and temporary or unrelated files, and fails the optional request on malformed schema 16 data. Results are scanned on each request and are not cached.
 - A reset after a win intentionally removes that earlier result from public totals until the latest attempt finishes. A completed latest attempt counts even if the AI won before the human acted. Undo behavior remains unchanged.
 - Load statistics independently when setup first appears and refresh them whenever New game returns to setup. Ignore stale responses from older refreshes. Loading or failure must not block or report an error through required setup or Start game behavior.
-- In AI mode, place one compact sitewide result panel below the difficulty selector. Label the selected strength by name in the panel header, use the normal interface font for the smaller games-played line, and always show numeric values, including `0 games played`, `Human - 0 wins`, and `AI - 0 wins`.
+- In AI mode, place one compact sitewide record below the difficulty selector. Label the selected strength by name in the header, show the human and AI wins as an equal-weight head-to-head score, and show the smaller games-played line in the normal interface font. Always show numeric values, including `Human 0 — 0 AI` and `0 games played`.
 
 ## Changes
 
@@ -65,10 +65,10 @@ Show sitewide completed AI-game results for the selected difficulty on the match
 ### 4. Show fresh selected-difficulty results without blocking setup
 
 - **Files**: `src/client/App.tsx`, `src/client/Game.tsx`, `src/client/styles.css`, `test/e2e/distance-duel.spec.ts`
-- **Change**: Fetch statistics independently whenever setup becomes active, keep only the newest response, and render the selected difficulty in a compact panel below AI strength. Label the active strength by name in the panel header and use the normal interface font for the games-played line. Use tabular numerals. Show a concise loading state; omit the panel after failure rather than reusing the setup error or disabling Start game.
+- **Change**: Fetch statistics independently whenever setup becomes active, keep only the newest response, and render the selected difficulty in a compact head-to-head record below AI strength. Label the active strength by name in the header, show human and AI wins as an equal-weight score, and use the normal interface font for the smaller centered games-played line. Use tabular numerals. Show a concise loading state; omit the record after failure rather than reusing the setup error or disabling Start game.
 - **Tests**:
-  - Selecting each AI difficulty changes both the panel's strength label and its games-played, human-win, and AI-win values without showing other difficulty results.
-  - A zero-count difficulty explicitly shows `0 games played`, `Human - 0 wins`, and `AI - 0 wins`.
+  - Selecting each AI difficulty changes both the record's strength label and its games-played, human-win, and AI-win values without showing other difficulty results.
+  - A zero-count difficulty explicitly shows `Human 0 — 0 AI` and `0 games played`.
   - Returning through New game refreshes statistics, and a delayed older response cannot replace the refreshed values.
   - Failed and pending statistics requests leave setup and Start game usable.
   - The setup rail remains inside the supported 1280×720 viewport with the statistics panel present.

@@ -98,15 +98,17 @@ test('DD-E2E-001: full-table preview refreshes, explains, and keeps both local b
   await expect(page.getByRole('heading', { name: 'Deckfront' })).toBeVisible(); await expect(page.getByText('Set up a match')).toBeVisible(); await expect(page.getByLabel('Game setup')).toBeVisible(); const previewArena = page.getByRole('group', { name: 'Six space line arena' }); await expect(previewArena.locator('.arena-space')).toHaveCount(6); await expect(previewArena.getByRole('img', { name: /Player 1, 47 health/ })).toBeVisible(); await expect(previewArena.locator('.fighter__figure svg')).toHaveCount(2); await expect(page.getByText('I go first', { exact: true })).toHaveCount(0); await expect(page.getByText('AI goes first', { exact: true })).toHaveCount(0); await expect(page.getByRole('group', { name: 'AI strength' })).toHaveCount(0);
   await page.getByRole('button', { name: 'Play against AI' }).click(); await page.getByRole('button', { name: 'AI goes first' }).click(); await expect(previewArena.getByRole('img', { name: /AI, 47 health/ })).toBeVisible(); await expect(previewArena.getByRole('img', { name: /P1, 50 health/ })).toBeVisible();
   const difficultyResults = [
-    { difficulty: 'Easy', text: '11 games playedHuman - 4 winsAI - 7 wins' },
-    { difficulty: 'Normal', text: '22 games playedHuman - 12 winsAI - 10 wins' },
-    { difficulty: 'Hard', text: '33 games playedHuman - 18 winsAI - 15 wins' },
-    { difficulty: 'Expert', text: '0 games playedHuman - 0 winsAI - 0 wins' }
+    { difficulty: 'Easy', games: 11, human: 4, ai: 7 },
+    { difficulty: 'Normal', games: 22, human: 12, ai: 10 },
+    { difficulty: 'Hard', games: 33, human: 18, ai: 15 },
+    { difficulty: 'Expert', games: 0, human: 0, ai: 0 }
   ];
   for (const result of difficultyResults) {
     await page.getByRole('button', { name: result.difficulty }).click();
     const panel = page.getByRole('region', { name: `${result.difficulty.toLowerCase()} sitewide results` });
-    await expect(panel).toHaveText(`Sitewide results${result.difficulty}${result.text}`);
+    await expect(panel.locator('.setup-statistics__header')).toHaveText(`Sitewide record${result.difficulty}`);
+    await expect(panel.locator('.setup-statistics__side')).toHaveText([`Human${result.human}`, `AI${result.ai}`]);
+    await expect(panel.locator('.setup-statistics__games')).toHaveText(`${result.games} ${result.games === 1 ? 'game' : 'games'} played`);
     await expect(page.locator('.setup-statistics')).toHaveCount(1);
   }
   await page.getByRole('button', { name: 'Local players' }).click(); await expect(page.locator('.setup-statistics')).toHaveCount(0);
