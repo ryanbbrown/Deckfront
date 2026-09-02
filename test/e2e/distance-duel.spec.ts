@@ -98,10 +98,10 @@ test('DD-E2E-001: full-table preview refreshes, explains, and keeps both local b
   await expect(page.getByRole('heading', { name: 'Deckfront' })).toBeVisible(); await expect(page.getByText('Set up a match')).toBeVisible(); await expect(page.getByLabel('Game setup')).toBeVisible(); const previewArena = page.getByRole('group', { name: 'Six space line arena' }); await expect(previewArena.locator('.arena-space')).toHaveCount(6); await expect(previewArena.getByRole('img', { name: /Player 1, 47 health/ })).toBeVisible(); await expect(previewArena.locator('.fighter__figure svg')).toHaveCount(2); await expect(page.getByText('I go first', { exact: true })).toHaveCount(0); await expect(page.getByText('AI goes first', { exact: true })).toHaveCount(0); await expect(page.getByRole('group', { name: 'AI strength' })).toHaveCount(0);
   await page.getByRole('button', { name: 'Play against AI' }).click(); await page.getByRole('button', { name: 'AI goes first' }).click(); await expect(previewArena.getByRole('img', { name: /AI, 47 health/ })).toBeVisible(); await expect(previewArena.getByRole('img', { name: /P1, 50 health/ })).toBeVisible();
   const difficultyResults = [
-    { difficulty: 'Easy', text: '11 games playedHuman 4AI 7' },
-    { difficulty: 'Normal', text: '22 games playedHuman 12AI 10' },
-    { difficulty: 'Hard', text: '33 games playedHuman 18AI 15' },
-    { difficulty: 'Expert', text: '0 games playedHuman 0AI 0' }
+    { difficulty: 'Easy', text: '11 games playedHuman - 4 winsAI - 7 wins' },
+    { difficulty: 'Normal', text: '22 games playedHuman - 12 winsAI - 10 wins' },
+    { difficulty: 'Hard', text: '33 games playedHuman - 18 winsAI - 15 wins' },
+    { difficulty: 'Expert', text: '0 games playedHuman - 0 winsAI - 0 wins' }
   ];
   for (const result of difficultyResults) {
     await page.getByRole('button', { name: result.difficulty }).click();
