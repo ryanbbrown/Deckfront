@@ -106,7 +106,7 @@ test('DD-E2E-001: full-table preview refreshes, explains, and keeps both local b
   for (const result of difficultyResults) {
     await page.getByRole('button', { name: result.difficulty }).click();
     const panel = page.getByRole('region', { name: `${result.difficulty.toLowerCase()} sitewide results` });
-    await expect(panel).toHaveText(`Sitewide results${result.text}`);
+    await expect(panel).toHaveText(`Sitewide results${result.difficulty} difficulty${result.text}`);
     await expect(page.locator('.setup-statistics')).toHaveCount(1);
   }
   await page.getByRole('button', { name: 'Local players' }).click(); await expect(page.locator('.setup-statistics')).toHaveCount(0);
