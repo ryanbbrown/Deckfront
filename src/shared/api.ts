@@ -13,11 +13,15 @@ export interface DifficultyStatistics {
 }
 export interface GameStatistics { difficulties: DifficultyStatistics[] }
 export interface TrainingSummary { elapsedMs: number; matches: number; strategyId: string }
+export interface SetupBattlefield {
+  number: number;
+  variableCardIds: string[];
+}
 export interface SetupCatalog {
   cards: Record<string, CardDefinition>;
   fixedCardIds: string[];
   variableCardIds: string[];
-  trainedVariableCardSets: string[][];
+  battlefields: SetupBattlefield[];
 }
 
 export interface GamePlayerView {

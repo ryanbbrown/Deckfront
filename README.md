@@ -27,7 +27,7 @@ The strongest Dominion influence is the market. Ten variable cards define each g
 
 Both players buy from the same 16 market piles: 6 fixed cards and 10 cards selected from a pool of 40. Deckfront has 46 unique cards.
 
-The initial public playtest chooses from [160 fixed markets selected for broad card and interaction coverage](docs/representative-markets.md). Each one has AI strategies computed in advance. It does not yet generate a new market from all 847,660,528 possible ten-card combinations.
+The initial public playtest uses [160 numbered battlefields selected for broad card and interaction coverage](docs/representative-markets.md). Each battlefield identifies the 10 variable market piles used with the six-space arena, and each one has AI strategies computed in advance. The playtest does not yet generate a new battlefield from all 847,660,528 possible ten-card combinations.
 
 ## How a match works
 
@@ -66,13 +66,13 @@ Deckfront keeps that constraint. The goal was not to build the strongest possibl
 - **Repeatable:** rerunning the search on the same market should recover the same strategies, card choices, or behaviorally equivalent plans.
 - **Scalable:** the same search process can cover many markets quickly enough to support repeated card changes.
 
-The browser opponent combines a saved purchase plan with one shared tactical policy for playing cards and moving on the battlefield. Easy, Normal, Hard, and Expert select different saved plans. The current website chooses one of the 160 covered markets and loads its saved strategies; opening a game does not start a training job.
+The browser opponent combines a saved purchase plan with one shared tactical policy for playing cards and moving on the battlefield. Easy, Normal, Hard, and Expert select different saved plans. The current website chooses one of the 160 numbered battlefields and loads its saved strategies; opening a game does not start a training job.
 
 For balance work, repeatability means more than finding an opponent with a similar win rate. A fresh run on the same market needs to recover the same cards and strategy families, or plans that behave the same in real games. If two runs reach similar strength through unrelated cards, their card-usage results are not stable enough to guide balance changes.
 
-The same simulation system was used to balance the cards across the [160 selected markets](docs/representative-markets.md). Repeated search and card changes made Melee, Ranged, and Mage strategies competitive and made each card worth buying in at least some strategies. Some cards are still stronger than others, but very few, if any, should go unbought across the full set of markets.
+The same simulation system was used to balance the cards across the [160 numbered battlefields](docs/representative-markets.md). Repeated search and card changes made Melee, Ranged, and Mage strategies competitive and made each card worth buying in at least some strategies. Some cards are still stronger than others, but very few, if any, should go unbought across the full set of battlefields.
 
-A future version will generate markets outside the fixed 160 and train a matching opponent during setup.
+A future version will generate battlefields outside the fixed 160 and train a matching opponent during setup.
 
 ## Current version
 
@@ -83,7 +83,7 @@ Available now:
 - One player against an AI opponent.
 - Two local players sharing one computer.
 - Four AI difficulty levels with sitewide aggregate results for the selected difficulty.
-- 46 card types and 160 selected markets.
+- 46 card types and 160 numbered battlefields.
 - Optional starting drafts for local games.
 - Persistent game saves and multi-step undo.
 

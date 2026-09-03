@@ -77,7 +77,7 @@ describe('local game HTTP interface', () => {
   });
   it('serves every public route and the play route through the client app', async () => {
     const { base } = await server();
-    for (const route of ['/', '/rules', '/about', '/play']) {
+    for (const route of ['/', '/rules', '/about', '/play', '/play/42']) {
       const response = await fetch(`${base}${route}`);
       expect(response.status, route).toBe(200);
       expect(response.headers.get('content-type'), route).toBe('text/html; charset=utf-8');
@@ -107,18 +107,20 @@ describe('local game HTTP interface', () => {
   });
   it('serves the setup catalog with fixed and variable cards separated', async () => {
     const { base } = await server(); const response = await fetch(`${base}/api/setup`);
-    const setup = await response.json() as { fixedCardIds: string[]; variableCardIds: string[]; trainedVariableCardSets: string[][]; cards: Record<string, unknown> };
+    const setup = await response.json() as { fixedCardIds: string[]; variableCardIds: string[]; battlefields: Array<{ number: number; variableCardIds: string[] }>; cards: Record<string, unknown> };
     expect(response.status).toBe(200);
     expect(setup.fixedCardIds).toEqual(['copper', 'silver', 'gold', 'step', 'focus', 'scrap']);
     expect(setup.variableCardIds).toContain('footwork'); expect(setup.variableCardIds).not.toContain('step');
     expect(Object.keys(setup.cards)).toContain('starfire');
-    expect(setup.trainedVariableCardSets.map((cards) => [...cards].sort().join('|'))).toEqual(
+    expect(setup.battlefields.map((battlefield) => battlefield.number)).toEqual(Array.from({ length: 160 }, (_, index) => index + 1));
+    expect(setup.battlefields.map((battlefield) => [...battlefield.variableCardIds].sort().join('|'))).toEqual(
       rawBalanceSuite.kingdoms.map((kingdom) => kingdom.actionPiles.map((pile) => pile.cardId).sort().join('|'))
     );
-    expect(setup.trainedVariableCardSets).toHaveLength(160);
-    expect(new Set(setup.trainedVariableCardSets.map((cards) => [...cards].sort().join('|'))).size).toBe(160);
-    expect(setup.trainedVariableCardSets.every((cards) => cards.length === 10 && new Set(cards).size === 10
-      && cards.every((cardId) => setup.variableCardIds.includes(cardId)))).toBe(true);
+    expect(setup.battlefields).toHaveLength(160);
+    expect(new Set(setup.battlefields.map((battlefield) => [...battlefield.variableCardIds].sort().join('|'))).size).toBe(160);
+    expect(setup.battlefields.every((battlefield) => battlefield.variableCardIds.length === 10
+      && new Set(battlefield.variableCardIds).size === 10
+      && battlefield.variableCardIds.every((cardId) => setup.variableCardIds.includes(cardId)))).toBe(true);
   });
   it('creates a game and accepts both sequential builds', async () => {
     const { base } = await server(); const createdResponse = await create(base); expect(createdResponse.status).toBe(201);

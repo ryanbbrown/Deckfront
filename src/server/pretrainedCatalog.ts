@@ -33,14 +33,43 @@ export interface PretrainedPlan {
 }
 export interface PretrainedKingdom {
   id: string;
+  battlefieldNumber: number;
   variableCardIds: readonly string[];
   plans: readonly PretrainedPlan[];
+}
+export interface PretrainedBattlefield {
+  number: number;
+  variableCardIds: string[];
 }
 
 function signature(cardIds: readonly string[]): string { return [...cardIds].sort().join('|'); }
 
+export function publicBattlefieldNumber(kingdomId: string): number {
+  const match = /^(balance-tuning|balance-validation)-(\d{3})$/u.exec(kingdomId);
+  if (!match) throw new Error(`Pretrained kingdom ${kingdomId} has an unrecognized public id.`);
+  const sequence = Number(match[2]);
+  const number = match[1] === 'balance-tuning' ? sequence : 128 + sequence;
+  const maximum = match[1] === 'balance-tuning' ? 128 : 160;
+  const minimum = match[1] === 'balance-tuning' ? 1 : 129;
+  if (number < minimum || number > maximum) {
+    throw new Error(`Pretrained kingdom ${kingdomId} has an out-of-range public number.`);
+  }
+  return number;
+}
+
+export function publicBattlefieldNumbers(kingdomIds: readonly string[]): number[] {
+  const seen = new Set<number>();
+  return kingdomIds.map((kingdomId) => {
+    const number = publicBattlefieldNumber(kingdomId);
+    if (seen.has(number)) throw new Error(`Public battlefield number ${number} is duplicated.`);
+    seen.add(number);
+    return number;
+  });
+}
+
 function loadCatalog(value: unknown): readonly PretrainedKingdom[] {
   const parsed = rawCatalogSchema.parse(value);
+  const battlefieldNumbers = publicBattlefieldNumbers(parsed.kingdoms.map((kingdom) => kingdom.id));
   const catalogHash = createHash('sha256').update(JSON.stringify(parsed)).digest('hex');
   if (catalogHash !== EXPECTED_CATALOG_HASH) throw new Error('Pretrained catalog does not match the approved evidence.');
 
@@ -49,7 +78,7 @@ function loadCatalog(value: unknown): readonly PretrainedKingdom[] {
   let planCount = 0;
   let positiveWeightCount = 0;
   const fixedBuyCards = new Set([...TREASURE_IDS, ...ALWAYS_AVAILABLE_ACTION_IDS]);
-  const kingdoms = parsed.kingdoms.map((rawKingdom): PretrainedKingdom => {
+  const kingdoms = parsed.kingdoms.map((rawKingdom, kingdomIndex): PretrainedKingdom => {
     const heldSignature = signature(rawKingdom.cards);
     if (seenKingdomIds.has(rawKingdom.id) || seenSignatures.has(heldSignature)
       || new Set(rawKingdom.cards).size !== RANDOM_KINGDOM_SIZE
@@ -81,7 +110,7 @@ function loadCatalog(value: unknown): readonly PretrainedKingdom[] {
     if (Math.abs(totalWeight - 1) > 1e-12 || !plans.some((plan) => plan.equilibriumWeight > 0)) {
       throw new Error(`Pretrained kingdom ${rawKingdom.id} has invalid equilibrium weights.`);
     }
-    return Object.freeze({ id: rawKingdom.id, variableCardIds: Object.freeze([...rawKingdom.cards]), plans: Object.freeze(plans) });
+    return Object.freeze({ id: rawKingdom.id, battlefieldNumber: battlefieldNumbers[kingdomIndex]!, variableCardIds: Object.freeze([...rawKingdom.cards]), plans: Object.freeze(plans) });
   });
   if (seenKingdomIds.size !== EXPECTED_KINGDOM_COUNT || planCount !== EXPECTED_PLAN_COUNT
     || positiveWeightCount !== EXPECTED_POSITIVE_WEIGHT_COUNT) throw new Error('Pretrained catalog is incomplete.');
@@ -93,6 +122,11 @@ const BY_SIGNATURE = new Map(CATALOG.map((kingdom) => [signature(kingdom.variabl
 
 export function pretrainedVariableCardSets(): string[][] {
   return CATALOG.map((kingdom) => [...kingdom.variableCardIds]);
+}
+
+export function pretrainedBattlefields(): PretrainedBattlefield[] {
+  return CATALOG.map((kingdom) => ({ number: kingdom.battlefieldNumber, variableCardIds: [...kingdom.variableCardIds] }))
+    .sort((left, right) => left.number - right.number);
 }
 
 export function findPretrainedKingdom(variableCardIds: readonly string[]): PretrainedKingdom | null {
