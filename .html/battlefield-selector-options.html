@@ -1,0 +1,156 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Battlefield selector options</title>
+  <style>
+    :root {
+      color: #ecefe9;
+      background: #0a1e19;
+      font-family: Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+      --ink: #18201d;
+      --panel: #0a201b;
+      --panel-2: #102b24;
+      --field: #061712;
+      --line: #ffffff2b;
+      --line-strong: #ffffff52;
+      --muted: #aab9b3;
+      --gold: #e8c45c;
+      --gold-light: #ffe39b;
+      --green: #7fc5a8;
+    }
+    * { box-sizing: border-box; }
+    body { min-width: 320px; margin: 0; background: radial-gradient(circle at 50% 0, #235447, #0a1e19 58%); }
+    button, input { font: inherit; }
+    button { cursor: pointer; }
+    button:focus-visible, input:focus-visible, summary:focus-visible { outline: 3px solid #ffe087; outline-offset: 2px; }
+    main { width: min(1420px, calc(100% - 48px)); margin: 0 auto; padding: 44px 0 64px; }
+    .page-header { display: flex; align-items: end; justify-content: space-between; gap: 32px; margin-bottom: 28px; }
+    .kicker, .option-tag { color: #f0cf71; font-size: 11px; font-weight: 900; letter-spacing: .15em; text-transform: uppercase; }
+    h1, h2, h3, p { margin: 0; }
+    h1, h2, h3 { font-family: Georgia, "Times New Roman", serif; }
+    h1 { margin-top: 5px; font-size: clamp(34px, 4vw, 60px); line-height: 1; text-wrap: balance; }
+    .page-header p { max-width: 490px; color: #c1d1cb; font-size: 15px; line-height: 1.5; text-wrap: pretty; }
+    .options { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 20px; }
+    .option { min-width: 0; overflow: hidden; border: 1px solid var(--line); border-radius: 12px; background: #0d251f; box-shadow: 0 18px 42px #0005; }
+    .option__header { display: flex; align-items: start; justify-content: space-between; gap: 16px; min-height: 96px; padding: 19px 21px 16px; border-bottom: 1px solid var(--line); background: #0a1f1a; }
+    .option__header h2 { margin-top: 4px; font-size: 24px; }
+    .option__header p { max-width: 340px; margin-top: 7px; color: var(--muted); font-size: 12px; line-height: 1.4; }
+    .recommended { flex: 0 0 auto; padding: 5px 8px; border: 1px solid #d8b75066; border-radius: 99px; color: #f0cf71; font-size: 9px; font-weight: 850; letter-spacing: .06em; text-transform: uppercase; }
+    .demo { display: grid; grid-template-columns: minmax(0, 1fr) 304px; min-height: 390px; background: linear-gradient(135deg, #ffffff08, transparent 50%); }
+    .market { min-width: 0; padding: 18px; border-right: 1px solid var(--line); }
+    .market-title { display: flex; align-items: center; justify-content: space-between; height: 30px; }
+    .market-title h3 { font-size: 18px; }
+    .text-button { padding: 3px 7px; border: 1px solid #ffffff30; border-radius: 4px; background: transparent; color: #d7e3de; font-size: 9px; font-weight: 750; }
+    .battlefield { margin-top: 10px; padding: 9px; border: 1px solid #ffffff16; background: #061a1538; }
+    .battlefield h3 { display: flex; align-items: center; gap: 8px; color: #bdcbc6; font-family: inherit; font-size: 9px; font-weight: 900; letter-spacing: .1em; text-transform: uppercase; }
+    .battlefield h3::after { flex: 1; height: 1px; background: #ffffff1d; content: ""; }
+    .piles { display: grid; grid-template-columns: repeat(5, minmax(0, 1fr)); gap: 6px; margin-top: 9px; }
+    .pile { aspect-ratio: .7; border: 2px solid #4f9c69; border-radius: 5px; background: linear-gradient(145deg, #2f6b4c, #111c18 65%); box-shadow: 0 3px 7px #0006; }
+    .pile:nth-child(3n + 2) { border-color: #4f75bd; background: linear-gradient(145deg, #355d9c, #111c18 65%); }
+    .pile:nth-child(3n) { border-color: #b9554d; background: linear-gradient(145deg, #8a433d, #111c18 65%); }
+    .rail { display: flex; flex-direction: column; min-width: 0; padding: 19px; background: var(--panel); }
+    .rail > header { padding-bottom: 14px; border-bottom: 1px solid #ffffff25; }
+    .rail > header span { color: #9ec4b7; font-size: 9px; font-weight: 900; letter-spacing: .14em; text-transform: uppercase; }
+    .rail > header h3 { margin-top: 2px; font-size: 24px; }
+    .mock-setting { margin-top: 18px; }
+    .mock-setting > span, .field-label, .selector-label { display: block; margin-bottom: 7px; color: #b8cbc4; font-size: 9px; font-weight: 900; letter-spacing: .08em; text-transform: uppercase; }
+    .mock-toggle { display: grid; grid-template-columns: 1fr 1fr; overflow: hidden; border: 1px solid #ffffff30; border-radius: 5px; }
+    .mock-toggle span { padding: 9px 6px; color: #9fb0aa; font-size: 10px; font-weight: 800; text-align: center; }
+    .mock-toggle span:first-child { background: #f7f3e8; color: var(--ink); }
+    .selector { margin-top: 22px; }
+    .field, .number-field { width: 100%; min-width: 0; height: 38px; padding: 8px 10px; border: 1px solid #6e8b80; border-radius: 5px; background: var(--field); color: #fff; font-weight: 800; box-shadow: inset 0 1px 4px #0007; }
+    .field::placeholder, .number-field::placeholder { color: #7e938b; font-weight: 650; opacity: 1; }
+    input[type="number"] { appearance: textfield; }
+    input::-webkit-inner-spin-button, input::-webkit-outer-spin-button { margin: 0; appearance: none; }
+    .load, .go { min-height: 38px; padding: 7px 11px; border: 1px solid var(--gold-light); border-radius: 5px; background: var(--gold); color: var(--ink); font-size: 10px; font-weight: 900; white-space: nowrap; }
+    .secondary-actions { display: grid; grid-template-columns: 1fr 1fr; gap: 7px; margin-top: auto; padding-top: 20px; }
+    .secondary-actions button { min-height: 34px; padding: 5px 7px; border: 1px solid #ffffff42; border-radius: 5px; background: #f7f3e8; color: var(--ink); font-size: 9px; font-weight: 850; }
+    .option-a .selector-row { display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: 7px; }
+    .option-a .selector-hint { margin-top: 6px; color: #82978f; font-size: 9px; }
+    .option-b .selector-shell { display: grid; grid-template-columns: auto minmax(0, 1fr) auto; align-items: center; overflow: hidden; border: 1px solid #6e8b80; border-radius: 6px; background: var(--field); box-shadow: inset 0 1px 4px #0007; }
+    .option-b .selector-shell > span { padding-left: 10px; color: var(--green); font-family: Georgia, serif; font-size: 20px; font-weight: 900; }
+    .option-b .number-field { height: 40px; border: 0; border-radius: 0; box-shadow: none; }
+    .option-b .go { min-width: 48px; height: 32px; min-height: 0; margin-right: 4px; padding: 4px 9px; }
+    .visually-hidden { position: absolute; width: 1px; height: 1px; padding: 0; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; border: 0; }
+    .option-c .index-card { padding: 11px; border: 1px solid #8ba99d55; border-left: 3px solid var(--gold); border-radius: 4px; background: #0d2a22; }
+    .option-c .index-card__title { display: flex; align-items: center; justify-content: space-between; gap: 8px; margin-bottom: 8px; }
+    .option-c .index-card__title strong { font-family: Georgia, serif; font-size: 15px; }
+    .option-c .index-card__title span { color: #82978f; font-size: 9px; }
+    .option-c .index-row { display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: 7px; }
+    .option-c .number-field { border-color: #ffffff35; border-radius: 2px; background: #071b16; }
+    .option-c .load { border-radius: 2px; background: transparent; color: #f4d77f; }
+    .option-d details { position: relative; }
+    .option-d summary { display: flex; align-items: center; justify-content: space-between; min-height: 38px; padding: 8px 10px; border: 1px solid #5d796f; border-radius: 5px; background: #0d2a22; color: #e1ebe7; font-size: 10px; font-weight: 850; list-style: none; cursor: pointer; }
+    .option-d summary::-webkit-details-marker { display: none; }
+    .option-d summary::after { color: #f0cf71; content: "−"; font-size: 17px; }
+    .option-d details:not([open]) summary::after { content: "+"; }
+    .option-d .reveal { margin-top: 7px; padding: 10px; border: 1px solid #ffffff25; border-radius: 5px; background: #061712; }
+    .option-d .reveal label { display: block; margin-bottom: 7px; color: #9fb4ac; font-size: 9px; }
+    .option-d .reveal-row { display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: 7px; }
+    .option-d .number-field { height: 36px; }
+    .option-d .load { min-height: 36px; }
+    @media (max-width: 1050px) {
+      .options { grid-template-columns: 1fr; }
+    }
+    @media (max-width: 680px) {
+      main { width: min(100% - 24px, 560px); padding-top: 24px; }
+      .page-header { align-items: start; flex-direction: column; }
+      .demo { grid-template-columns: 1fr; }
+      .market { border-right: 0; border-bottom: 1px solid var(--line); }
+    }
+  </style>
+</head>
+<body>
+  <main>
+    <header class="page-header">
+      <div><span class="kicker">Deckfront · UI study</span><h1>Battlefield selector</h1></div>
+      <p>All four options keep the current identity in the market heading as “Battlefield 53.” The jump field starts blank because the current battlefield was not typed by the player.</p>
+    </header>
+
+    <section class="options" aria-label="Battlefield selector options">
+      <article class="option option-a">
+        <header class="option__header">
+          <div><span class="option-tag">Option 1</span><h2>Quiet dark field</h2><p>A clear form that belongs to the rail without looking like another white button.</p></div>
+          <span class="recommended">Recommended</span>
+        </header>
+        <div class="demo">
+          <section class="market"><div class="market-title"><h3>Market</h3><button class="text-button">Card reference</button></div><div class="battlefield"><h3>Battlefield 53</h3><div class="piles" aria-hidden="true"><i class="pile"></i><i class="pile"></i><i class="pile"></i><i class="pile"></i><i class="pile"></i><i class="pile"></i><i class="pile"></i><i class="pile"></i><i class="pile"></i><i class="pile"></i></div></div></section>
+          <aside class="rail"><header><span>Game setup</span><h3>New match</h3></header><div class="mock-setting"><span>Opponent</span><div class="mock-toggle"><span>Local players</span><span>Play against AI</span></div></div><form class="selector" onsubmit="return false"><label class="field-label" for="a-number">Go to battlefield</label><div class="selector-row"><input class="field" id="a-number" type="number" min="1" max="160" placeholder="Number"><button class="load">Load</button></div><p class="selector-hint">Enter a number from 1 to 160.</p></form><div class="secondary-actions"><button>Refresh market</button><button>View all cards</button></div></aside>
+        </div>
+      </article>
+
+      <article class="option option-b">
+        <header class="option__header">
+          <div><span class="option-tag">Option 2</span><h2>Compact jump bar</h2><p>The number sign makes the field feel like a destination, while the small Go button keeps it compact.</p></div>
+        </header>
+        <div class="demo">
+          <section class="market"><div class="market-title"><h3>Market</h3><button class="text-button">Card reference</button></div><div class="battlefield"><h3>Battlefield 53</h3><div class="piles" aria-hidden="true"><i class="pile"></i><i class="pile"></i><i class="pile"></i><i class="pile"></i><i class="pile"></i><i class="pile"></i><i class="pile"></i><i class="pile"></i><i class="pile"></i><i class="pile"></i></div></div></section>
+          <aside class="rail"><header><span>Game setup</span><h3>New match</h3></header><div class="mock-setting"><span>Opponent</span><div class="mock-toggle"><span>Local players</span><span>Play against AI</span></div></div><form class="selector" onsubmit="return false"><label class="selector-label" for="b-number">Jump to battlefield</label><div class="selector-shell"><span aria-hidden="true">#</span><input class="number-field" id="b-number" type="number" min="1" max="160" placeholder="Enter number"><button class="go">Go</button></div></form><div class="secondary-actions"><button>Refresh market</button><button>View all cards</button></div></aside>
+        </div>
+      </article>
+
+      <article class="option option-c">
+        <header class="option__header">
+          <div><span class="option-tag">Option 3</span><h2>Battlefield index card</h2><p>A small bordered object gives exact selection its own identity without making the text box bright.</p></div>
+        </header>
+        <div class="demo">
+          <section class="market"><div class="market-title"><h3>Market</h3><button class="text-button">Card reference</button></div><div class="battlefield"><h3>Battlefield 53</h3><div class="piles" aria-hidden="true"><i class="pile"></i><i class="pile"></i><i class="pile"></i><i class="pile"></i><i class="pile"></i><i class="pile"></i><i class="pile"></i><i class="pile"></i><i class="pile"></i><i class="pile"></i></div></div></section>
+          <aside class="rail"><header><span>Game setup</span><h3>New match</h3></header><div class="mock-setting"><span>Opponent</span><div class="mock-toggle"><span>Local players</span><span>Play against AI</span></div></div><div class="selector index-card"><div class="index-card__title"><strong>Find a battlefield</strong><span>1–160</span></div><form class="index-row" onsubmit="return false"><label class="visually-hidden" for="c-number">Battlefield number</label><input class="number-field" id="c-number" type="number" min="1" max="160" placeholder="Battlefield number"><button class="load">Load</button></form></div><div class="secondary-actions"><button>Refresh market</button><button>View all cards</button></div></aside>
+        </div>
+      </article>
+
+      <article class="option option-d">
+        <header class="option__header">
+          <div><span class="option-tag">Option 4</span><h2>Reveal when needed</h2><p>The rail stays quiet until the player chooses to enter a specific battlefield number.</p></div>
+        </header>
+        <div class="demo">
+          <section class="market"><div class="market-title"><h3>Market</h3><button class="text-button">Card reference</button></div><div class="battlefield"><h3>Battlefield 53</h3><div class="piles" aria-hidden="true"><i class="pile"></i><i class="pile"></i><i class="pile"></i><i class="pile"></i><i class="pile"></i><i class="pile"></i><i class="pile"></i><i class="pile"></i><i class="pile"></i><i class="pile"></i></div></div></section>
+          <aside class="rail"><header><span>Game setup</span><h3>New match</h3></header><div class="mock-setting"><span>Opponent</span><div class="mock-toggle"><span>Local players</span><span>Play against AI</span></div></div><div class="selector"><details open><summary>Choose a battlefield</summary><form class="reveal" onsubmit="return false"><label for="d-number">Enter a battlefield number</label><div class="reveal-row"><input class="number-field" id="d-number" type="number" min="1" max="160" placeholder="Number"><button class="load">Load</button></div></form></details></div><div class="secondary-actions"><button>Refresh market</button><button>View all cards</button></div></aside>
+        </div>
+      </article>
+    </section>
+  </main>
+</body>
+</html>
