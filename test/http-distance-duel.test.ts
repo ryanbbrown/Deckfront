@@ -13,9 +13,9 @@ import { fixedBuyPlan } from '../src/sim/strategy';
 const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
 const cleanups: Array<() => Promise<void>> = [];
 afterEach(async () => { while (cleanups.length) await cleanups.pop()?.(); resetKingdoms(); });
-async function server(aiTrainer?: AiTrainer) {
+async function server(aiTrainer?: AiTrainer, gameExportToken?: string) {
   const directory = await mkdtemp(path.join(tmpdir(), 'hexdeck-http-')); const games = path.join(directory, 'games');
-  const app = createHexdeckServer({ dataDirectory: games, distDirectory: path.join(root, 'dist'), aiTrainer });
+  const app = createHexdeckServer({ dataDirectory: games, distDirectory: path.join(root, 'dist'), aiTrainer, gameExportToken });
   await new Promise<void>((resolve) => app.server.listen(0, '127.0.0.1', resolve)); const address = app.server.address(); if (!address || typeof address === 'string') throw new Error('No address');
   cleanups.push(async () => { await new Promise<void>((resolve) => app.server.close(() => resolve())); await rm(directory, { recursive: true, force: true }); });
   return { base: `http://127.0.0.1:${address.port}`, games };
@@ -47,6 +47,33 @@ describe('local game HTTP interface', () => {
     const { base } = await server(); const response = await fetch(`${base}/api/health`);
     expect(response.status).toBe(200);
     expect(await response.json()).toEqual({ ok: true });
+  });
+  it('requires a bearer token and streams every raw saved record', async () => {
+    const disabled = await server();
+    expect((await fetch(`${disabled.base}/api/admin/games/export`)).status).toBe(404);
+
+    const token = 'test-game-export-token';
+    const { base, games } = await server(undefined, token);
+    const created = await (await create(base, { startingDraftEnabled: false })).json() as { id: string };
+    const legacyId = '11111111-1111-4111-8111-111111111111';
+    await writeFile(path.join(games, `${legacyId}.json`), JSON.stringify({ schemaVersion: 14, id: legacyId, legacy: true }));
+
+    for (const authorization of [undefined, 'Basic credentials', 'Bearer wrong-token']) {
+      const denied = await fetch(`${base}/api/admin/games/export`,
+        authorization ? { headers: { authorization } } : undefined);
+      expect(denied.status).toBe(401);
+      expect(denied.headers.get('www-authenticate')).toBe('Bearer');
+    }
+
+    const response = await fetch(`${base}/api/admin/games/export`, { headers: { authorization: `Bearer ${token}` } });
+    expect(response.status).toBe(200);
+    expect(response.headers.get('cache-control')).toBe('no-store');
+    expect(response.headers.get('content-type')).toBe('application/x-ndjson; charset=utf-8');
+    expect(response.headers.get('content-disposition')).toBe('attachment; filename="deckfront-game-records.ndjson"');
+    const records = (await response.text()).trim().split('\n').map((line) => JSON.parse(line) as Record<string, unknown>);
+    expect(records.map((record) => record.id)).toEqual([legacyId, created.id].sort());
+    expect(records.find((record) => record.id === legacyId)).toEqual({ schemaVersion: 14, id: legacyId, legacy: true });
+    expect(records.find((record) => record.id === created.id)).toHaveProperty('committedCommands');
   });
   it('serves every public route and the play route through the client app', async () => {
     const { base } = await server();

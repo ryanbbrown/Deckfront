@@ -66,6 +66,17 @@ export class FileGameRepository implements GameRepository, GameStatisticsReposit
     }
     return { difficulties };
   }
+  async *exportRecords(): AsyncGenerator<unknown> {
+    let fileNames: string[];
+    try { fileNames = await readdir(this.dataDirectory); }
+    catch (error) {
+      if (error instanceof Error && 'code' in error && error.code === 'ENOENT') return;
+      throw error;
+    }
+    for (const fileName of fileNames.filter((name) => GAME_FILE_NAME.test(name)).sort()) {
+      yield JSON.parse(await readFile(path.join(this.dataDirectory, fileName), 'utf8')) as unknown;
+    }
+  }
   async withLock<T>(id: string, work: () => Promise<T>): Promise<T> {
     const previous = this.locks.get(id) ?? Promise.resolve(); let release = (): void => undefined;
     const current = new Promise<void>((resolve) => { release = resolve; }); const queued = previous.then(() => current);

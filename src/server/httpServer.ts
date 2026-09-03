@@ -1,3 +1,5 @@
+import { timingSafeEqual } from 'node:crypto';
+import { once } from 'node:events';
 import { createServer, type IncomingMessage, type Server, type ServerResponse } from 'node:http';
 import { readFile, stat } from 'node:fs/promises';
 import path from 'node:path';
@@ -7,11 +9,12 @@ import { GameService, AiAdvanceError, BadBuildError, ConflictError, ForbiddenAct
 import { AiTrainingError } from './aiTrainer';
 import { pretrainedVariableCardSets } from './pretrainedCatalog';
 import type { AiTrainer } from './aiTrainer';
-import type { GameStatisticsRepository } from './types';
 import { GameNotFoundError, FileGameRepository, UnsupportedSchemaError } from './persistence';
 import { actionRequestSchema, buildRequestSchema, createGameRequestSchema, revisionRequestSchema } from './schemas';
 
-export interface ServerOptions { dataDirectory: string; distDirectory: string; aiTrainer?: AiTrainer | undefined }
+export interface ServerOptions {
+  dataDirectory: string; distDirectory: string; aiTrainer?: AiTrainer | undefined; gameExportToken?: string | undefined;
+}
 export interface HexdeckServer { server: Server; service: GameService }
 const MIME_TYPES: Record<string, string> = {
   '.css': 'text/css; charset=utf-8', '.html': 'text/html; charset=utf-8', '.js': 'text/javascript; charset=utf-8',
@@ -23,18 +26,21 @@ export function createHexdeckServer(options: ServerOptions): HexdeckServer {
   const service = new GameService(repository, options.aiTrainer);
   const server = createServer(async (request, response) => {
     try {
-      if (await handleApi(request, response, service, repository)) return;
+      if (await handleApi(request, response, service, repository, options.gameExportToken)) return;
       await serveClient(request, response, options.distDirectory);
     } catch (error) { handleError(response, error); }
   });
   return { server, service };
 }
-async function handleApi(request: IncomingMessage, response: ServerResponse, service: GameService, statistics: GameStatisticsRepository): Promise<boolean> {
+async function handleApi(
+  request: IncomingMessage, response: ServerResponse, service: GameService, repository: FileGameRepository,
+  gameExportToken: string | undefined
+): Promise<boolean> {
   const url = new URL(request.url ?? '/', 'http://localhost');
   if (!url.pathname.startsWith('/api/')) return false;
   if (request.method === 'GET' && url.pathname === '/api/health') { sendJson(response, 200, { ok: true }); return true; }
   if (request.method === 'GET' && url.pathname === '/api/stats') {
-    sendJson(response, 200, await statistics.statistics());
+    sendJson(response, 200, await repository.statistics());
     return true;
   }
   if (request.method === 'GET' && url.pathname === '/api/setup') {
@@ -46,6 +52,12 @@ async function handleApi(request: IncomingMessage, response: ServerResponse, ser
   }
   if (request.method === 'POST' && url.pathname === '/api/games') {
     sendJson(response, 201, await service.create(createGameRequestSchema.parse(await readJson(request))));
+    return true;
+  }
+  if (request.method === 'GET' && url.pathname === '/api/admin/games/export') {
+    if (!gameExportToken) throw new GameNotFoundError('API route not found.');
+    if (!hasBearerToken(request, gameExportToken)) throw new ExportAuthorizationError('Valid game export credentials are required.');
+    await sendGameRecords(response, repository.exportRecords());
     return true;
   }
   const match = url.pathname.match(/^\/api\/games\/([0-9a-f-]{36})(?:\/(build|actions|undo|reset|export))?$/i);
@@ -79,6 +91,23 @@ async function handleApi(request: IncomingMessage, response: ServerResponse, ser
     return true;
   }
   throw new GameNotFoundError('API route not found.');
+}
+function hasBearerToken(request: IncomingMessage, expectedToken: string): boolean {
+  const authorization = request.headers.authorization;
+  if (!authorization?.startsWith('Bearer ')) return false;
+  const supplied = Buffer.from(authorization.slice('Bearer '.length));
+  const expected = Buffer.from(expectedToken);
+  return supplied.length === expected.length && timingSafeEqual(supplied, expected);
+}
+async function sendGameRecords(response: ServerResponse, records: AsyncIterable<unknown>): Promise<void> {
+  response.statusCode = 200;
+  response.setHeader('cache-control', 'no-store');
+  response.setHeader('content-disposition', 'attachment; filename="deckfront-game-records.ndjson"');
+  response.setHeader('content-type', 'application/x-ndjson; charset=utf-8');
+  for await (const record of records) {
+    if (!response.write(`${JSON.stringify(record)}\n`)) await once(response, 'drain');
+  }
+  response.end();
 }
 async function readJson(request: IncomingMessage): Promise<unknown> {
   const chunks: Buffer[] = []; let size = 0;
@@ -120,11 +149,16 @@ function sendJson(response: ServerResponse, status: number, value: unknown): voi
   response.setHeader('content-type', 'application/json; charset=utf-8'); response.end(JSON.stringify(value));
 }
 function handleError(response: ServerResponse, error: unknown): void {
+  if (response.headersSent) { console.error(error); response.destroy(); return; }
   if (error instanceof ZodError || error instanceof BadRequestError || error instanceof BadBuildError) { sendJson(response, 400, { error: error instanceof ZodError ? 'Invalid request.' : error.message }); return; }
   if (error instanceof UnsupportedSchemaError || error instanceof ConflictError) { sendJson(response, 409, { error: error.message }); return; }
   if (error instanceof AiTrainingError || error instanceof AiAdvanceError) { sendJson(response, 503, { error: error.message }); return; }
   if (error instanceof GameNotFoundError) { sendJson(response, 404, { error: error.message }); return; }
+  if (error instanceof ExportAuthorizationError) {
+    response.setHeader('www-authenticate', 'Bearer'); sendJson(response, 401, { error: error.message }); return;
+  }
   if (error instanceof ForbiddenActionError) { sendJson(response, 403, { error: error.message }); return; }
   console.error(error); sendJson(response, 500, { error: 'Internal server error.' });
 }
 class BadRequestError extends Error {}
+class ExportAuthorizationError extends Error {}
