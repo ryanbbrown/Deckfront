@@ -351,7 +351,7 @@ function SetupRail({ mode, startingDraftEnabled, animateAi, human, difficulty, b
       battlefieldField.current?.focus();
       return;
     }
-    setBattlefieldError(null); onBattlefield(number);
+    setBattlefieldInput(String(number)); setBattlefieldError(null); onBattlefield(number);
   }
   function refreshBattlefield() { setBattlefieldError(null); onRefresh(); }
   return <aside className="setup-rail" aria-label="Game setup"><header><span>Game setup</span><h2>New match</h2></header><div className="setup-rail__body">
@@ -361,7 +361,7 @@ function SetupRail({ mode, startingDraftEnabled, animateAi, human, difficulty, b
     <form className="battlefield-selector" noValidate onSubmit={loadBattlefield}>
       <label htmlFor="battlefield-number">Battlefield number</label>
       <div><input ref={battlefieldField} id="battlefield-number" name="battlefield" type="number" inputMode="numeric" min={1} max={battlefieldCount} step={1} value={battlefieldInput} aria-invalid={battlefieldError ? true : undefined} aria-describedby={battlefieldError ? 'battlefield-number-error' : undefined} onChange={(event) => setBattlefieldInput(event.target.value)} /><button className="control-button" type="submit">Load battlefield</button></div>
-      {battlefieldError ? <p id="battlefield-number-error" className="field-error">{battlefieldError}</p> : null}
+      {battlefieldError ? <p id="battlefield-number-error" className="field-error" role="alert">{battlefieldError}</p> : null}
     </form>
     <div className="setup-market-actions"><button className="control-button" onClick={refreshBattlefield}>Refresh market</button><button className="control-button" onClick={onCatalog}>View all cards</button></div>
   </div><button className="control-button primary setup-start" onClick={onStart}>Start game</button></aside>;

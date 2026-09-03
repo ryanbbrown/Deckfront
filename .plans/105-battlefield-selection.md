@@ -22,7 +22,7 @@ The engine and strategy-search code use “kingdom” internally. Player-facing 
 2. `/play` resumes the one active browser game when it exists. A numbered active game changes the address to `/play/<number>`. An unnumbered local/API game resumes at `/play` without invented numbering.
 3. With no active game, `/play` chooses one of the 160 numbered battlefields and replaces the address with `/play/<number>`.
 4. `/play/<number>` selects that exact battlefield. Valid numbers come from the loaded catalog, currently 1 through 160.
-5. `/play/042`, `/play/42/`, and forms with both are accepted and normalized to `/play/42`. Signs, decimals, empty values, and extra path segments are invalid. Canonicalization preserves the current query string and hash.
+5. `/play/` is accepted as bare `/play`. `/play/042`, `/play/42/`, and forms with both are accepted and normalized to `/play/42`. Signs, decimals, `/play//`, and other empty or extra path segments are invalid. Canonicalization preserves the current query string and hash.
 6. A saved active game resumes when its numbered battlefield matches the explicit URL. If the URL names a different battlefield, the URL opens setup for the requested battlefield but keeps the old active-game pointer until the player starts another game.
 7. Starting a game replaces the browser’s active-game pointer only after game creation succeeds. The old server record remains, but the normal interface has no list for returning to it. No replacement warning is added.
 8. A malformed or out-of-range `/play/...` route stays in setup, chooses a random valid battlefield, replaces the address with its canonical URL, and shows a page-level error with the valid range. It never resumes the active game during that recovery, even if the random choice matches.
@@ -51,7 +51,7 @@ Assume the browser’s active-game pointer names an unfinished game on Battlefie
 
 ### D1. Use `/play/<number>` as the canonical route
 
-The route is short, bookmarkable, and shareable. `/play/42` identifies public Battlefield 42. Do not add a second `/play/battlefield/<number>` route. Normalize leading zeroes and a trailing slash while preserving query and hash values.
+The route is short, bookmarkable, and shareable. `/play/42` identifies public Battlefield 42. Do not add a second `/play/battlefield/<number>` route. Treat `/play/` as bare `/play`, but reject `/play//`. Normalize leading zeroes and a trailing slash on numbered routes while preserving query and hash values.
 
 ### D2. Make public numbers explicit catalog data
 

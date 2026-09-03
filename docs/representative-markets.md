@@ -6,6 +6,8 @@ The current website does not choose from that full space. It chooses one of 160 
 
 The 160 are a deterministic coverage suite, not a random sample. “Representative” means they give every card, important interaction, cost band, and broad strategy route repeated opportunities to matter. It does not mean results from the suite are a statistical estimate for all 847 million possible markets.
 
+The website calls each set of 10 variable market piles a numbered battlefield. Public numbers come from stable internal catalog IDs: `balance-tuning-001` through `balance-tuning-128` are Battlefields 1 through 128, and `balance-validation-001` through `balance-validation-032` are Battlefields 129 through 160. The array position does not define the public number.
+
 ## Why 160
 
 The suite has 128 tuning markets and 32 validation markets. Tuning markets can guide card changes. Validation markets are held back to check those changes.

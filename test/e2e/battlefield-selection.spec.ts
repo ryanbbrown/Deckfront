@@ -42,6 +42,11 @@ test('DD-E2E-076: bare play resumes numbered and unnumbered games without a temp
   await expect(page.getByRole('heading', { name: 'Battlefield 40 of 160' })).toBeVisible();
   expect(await page.evaluate(() => (window as typeof window & { replacedPlayUrls?: string[] }).replacedPlayUrls)).toEqual(['/play/40']);
 
+  await page.goto(playUrl(baseUrl, '/play/'));
+  await expect(page).toHaveURL(/\/play\/40$/u);
+  await expect(page.getByRole('heading', { name: 'Battlefield 40 of 160' })).toBeVisible();
+  expect(await page.evaluate(() => (window as typeof window & { replacedPlayUrls?: string[] }).replacedPlayUrls)).toEqual(['/play/40']);
+
   await openGame(page);
   await expect(page).toHaveURL(/\/play$/u);
   await expect(page.getByRole('heading', { name: 'Battlefield piles' })).toBeVisible();
@@ -79,7 +84,7 @@ test('DD-E2E-077: an explicit battlefield keeps a different saved game until suc
   expect(await page.evaluate(() => localStorage.getItem('hexdeck.activeGameId'))).toBe(replacementId);
 });
 
-test('DD-E2E-078: malformed routes recover in setup and valid numbered routes normalize', async ({ page, baseUrl, openGame }) => {
+test('DD-E2E-078: malformed and fallback routes recover with the required saved-game behavior', async ({ page, baseUrl, openGame }) => {
   const catalog = await setupCatalog(baseUrl);
   const battlefield40 = catalog.battlefields.find((battlefield) => battlefield.number === 40)!;
   const active = await openGame(page, undefined, battlefield40.variableCardIds);
@@ -100,6 +105,17 @@ test('DD-E2E-078: malformed routes recover in setup and valid numbered routes no
   await page.goto(playUrl(baseUrl, '/play/040/?source=shared#market'));
   await expect(page.getByRole('navigation', { name: 'Game controls' })).toBeVisible();
   await expect(page).toHaveURL(/\/play\/40\?source=shared#market$/u);
+
+  await page.goto(playUrl(baseUrl, '/unrelated/path?source=fallback#active'));
+  await expect(page.getByRole('navigation', { name: 'Game controls' })).toBeVisible();
+  await expect(page.getByRole('alert')).toHaveCount(0);
+  await expect(page).toHaveURL(/\/play\/40\?source=fallback#active$/u);
+
+  await page.evaluate(() => localStorage.removeItem('hexdeck.activeGameId'));
+  await page.goto(playUrl(baseUrl, '/unrelated/path?source=fallback#setup'));
+  await expect(page.getByRole('button', { name: 'Start game' })).toBeVisible();
+  await expect(page.getByRole('alert')).toHaveCount(0);
+  await expect(page).toHaveURL(/\/play\/\d+\?source=fallback#setup$/u);
 });
 
 test('DD-E2E-079: the battlefield selector validates, refreshes, replaces history, and fits supported desktops', async ({ page, baseUrl }) => {
@@ -113,11 +129,12 @@ test('DD-E2E-079: the battlefield selector validates, refreshes, replaces histor
   await selector.fill('0');
   await page.getByRole('button', { name: 'Load battlefield' }).click();
   await expect(selector).toHaveAttribute('aria-invalid', 'true');
-  await expect(page.getByText('Enter a battlefield number from 1 to 160.')).toBeVisible();
+  await expect(selector).toHaveAttribute('aria-describedby', 'battlefield-number-error');
+  await expect(page.getByRole('alert')).toHaveText('Enter a battlefield number from 1 to 160.');
   expect(await page.locator('.pile-grid--kingdom [data-market-card]').allTextContents()).toEqual(firstMarket);
   expect(page.url()).toBe(firstUrl);
 
-  await selector.fill('2');
+  await selector.fill('002');
   await selector.press('Enter');
   await expect(selector).toHaveValue('2');
   await expect(selector).not.toHaveAttribute('aria-invalid', 'true');

@@ -7,6 +7,7 @@ import { VARIABLE_ACTION_IDS, applyCommand, cloneGame, createCard } from '../../
 import type { PlayerId } from '../../src/game';
 import { createHexdeckServer } from '../../src/server/httpServer';
 import type { AiTrainer } from '../../src/server/aiTrainer';
+import { findPretrainedKingdom } from '../../src/server/pretrainedCatalog';
 import { INFINITE_COUNT, fixedBuyPlan, identify } from '../../src/sim/strategy';
 import { FileGameRepository } from '../../src/server/persistence';
 import type { GameRecord } from '../../src/server/types';
@@ -32,8 +33,10 @@ export const test = base.extend<Fixtures>({
   },
   repository: async ({ dataDirectory }, use) => { await use(new FileGameRepository(dataDirectory)); },
   openGame: async ({ baseUrl, repository }, use) => {
-    await use(async (page, mutate, variableCardIds = VARIABLE_ACTION_IDS.slice(0, 10)) => {
-      const response = await fetch(new URL('/api/games', baseUrl), { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ seed: 7, mode: 'local', variableCardIds, startingDraftEnabled: true }) });
+    await use(async (page, mutate, variableCardIds) => {
+      const selectedVariableCardIds = variableCardIds ?? VARIABLE_ACTION_IDS.slice(0, 10);
+      if (variableCardIds === undefined) expect(findPretrainedKingdom(selectedVariableCardIds)).toBeNull();
+      const response = await fetch(new URL('/api/games', baseUrl), { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ seed: 7, mode: 'local', variableCardIds: selectedVariableCardIds, startingDraftEnabled: true }) });
       if (!response.ok) throw new Error(await response.text()); const created = await response.json() as { id: string }; const record = await repository.load(created.id);
       expect(record).toMatchObject({ schemaVersion: 16, seriesId: created.id, attemptNumber: 1, previousAttemptId: null, nextAttemptId: null, startingDraftEnabled: true });
       completeSetup(record); mutate?.(record); resetRecord(record); await repository.save(record);

@@ -30,6 +30,7 @@
     "unnumberedGameResume": ["pw:DD-E2E-076"],
     "savedGameBattlefieldRouting": ["pw:DD-E2E-077"],
     "invalidBattlefieldRecovery": ["pw:DD-E2E-078"],
+    "fallbackRouteCanonicalization": ["pw:DD-E2E-078"],
     "battlefieldSelector": ["pw:DD-E2E-079"],
     "battlefieldHistoryReplacement": ["pw:DD-E2E-079"],
     "numberedBattlefieldIdentity": ["pw:DD-E2E-076", "pw:DD-E2E-079", "pw:DD-E2E-080"],
