@@ -76,7 +76,7 @@ function PlayApp() {
     finally { if (requestGeneration === generation.current) { setLoading(false); setTraining(false); } }
   }
   function setAnimateAi(enabled: boolean) { localStorage.setItem(AI_ANIMATION_KEY, String(enabled)); setAnimateAiState(enabled); }
-  function newGame() { generation.current += 1; localStorage.removeItem(ACTIVE_GAME_KEY); setInitialPresentation(null); setGame(null); setStatistics(null); setStatisticsLoading(true); setError(null); setLoading(false); setTraining(false); if (catalog) setMarket(chooseTrainedVariableCards(cryptoRandom, catalog.trainedVariableCardSets, market)); }
+  function newGame() { generation.current += 1; localStorage.removeItem(ACTIVE_GAME_KEY); setInitialPresentation(null); if (game) setMarket([...game.variableCardIds]); setGame(null); setStatistics(null); setStatisticsLoading(true); setError(null); setLoading(false); setTraining(false); }
   const gameGeneration = generation.current;
   const content = training ? <main className="training-state"><div><span className="spinner" /><h1>Training opponent…</h1><p>The AI is testing strategies for this market.</p></div></main>
     : loading || !catalog ? <main className="loading">Loading Deckfront…</main>

@@ -433,7 +433,7 @@ test('DD-E2E-042: AI-first games force draft off, show public automatic turns, a
   await expect(page.locator('[data-player-id="ochre"]')).toHaveAttribute('title', 'AI'); await expect(page.locator('[data-player-id="indigo"]')).toHaveAttribute('title', 'P1');
   expect(createRequest).toMatchObject({ mode: 'ai', humanPlayerId: 'indigo', aiDifficulty: 'hard', startingDraftEnabled: false });
   await page.getByRole('button', { name: 'End Action phase' }).click(); await page.getByRole('button', { name: 'End Buy phase' }).click(); await expect(page.getByText(/Turn 4 · P1 action/)).toBeVisible(); await page.getByRole('button', { name: 'Undo last action' }).click(); await expect(page.getByText(/Turn 2 · P1 buy/)).toBeVisible(); await page.reload(); await expect(page.getByText(/Turn 2 · P1 buy/)).toBeVisible();
-  const oldKingdom = await page.locator('.pile-grid--kingdom [data-market-card]').allTextContents(); await page.getByRole('button', { name: 'New game' }).click(); await expect(page.getByRole('button', { name: 'Start game' })).toBeVisible(); expect(await page.locator('.pile-grid--kingdom [data-market-card]').allTextContents()).not.toEqual(oldKingdom);
+  const oldKingdom = await page.locator('.pile-grid--kingdom [data-market-card]').allTextContents(); await page.getByRole('button', { name: 'New game' }).click(); await expect(page.getByRole('button', { name: 'Start game' })).toBeVisible(); expect(await page.locator('.pile-grid--kingdom [data-market-card]').allTextContents()).toEqual(oldKingdom);
 });
 
 test('DD-E2E-044: every action undoes to setup and Step can take a different direction', async ({ page, openGame }) => {
@@ -882,7 +882,7 @@ test('DD-E2E-070: text controls confirm and start a fresh attempt while Cancel p
   const openingHand = await page.locator('[data-testid="hand-grid"] [data-card-name]').evaluateAll((cards) => cards.map((card) => ({ name: card.getAttribute('data-card-name'), count: card.getAttribute('data-card-count') })));
   await page.getByRole('button', { name: 'End Action phase' }).click(); await expect(page.getByText(/Turn 1 · Player 1 buy/)).toBeVisible();
   await controls.getByRole('button', { name: 'Reset' }).click(); const confirmation = page.getByRole('dialog', { name: 'Reset this game?' });
-  await expect(confirmation).toContainText('fresh attempt with the same market'); await expect(confirmation.getByRole('button')).toHaveText(['Yes, reset', 'Cancel']);
+  await expect(confirmation).toContainText('same market and shuffle'); await expect(confirmation).toContainText('only the new attempt can count toward the sitewide record'); await expect(confirmation.getByRole('button')).toHaveText(['Yes, reset', 'Cancel']);
   await confirmation.getByRole('button', { name: 'Cancel' }).click(); await expect(confirmation).toHaveCount(0); await expect(page.getByText(/Turn 1 · Player 1 buy/)).toBeVisible(); await expect(controls.locator('button').first()).toBeEnabled();
   await controls.getByRole('button', { name: 'Reset' }).click(); await page.getByRole('button', { name: 'Yes, reset' }).click();
   await expect(page.getByText(/Turn 1 · Player 1 action/)).toBeVisible(); await expect(controls.locator('button').first()).toBeDisabled();

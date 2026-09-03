@@ -488,7 +488,7 @@ function ResetDialog({ onAccept, onCancel }: { onAccept: () => void; onCancel: (
   const ref = useRef<HTMLDialogElement>(null);
   useEffect(() => { const dialog = ref.current; if (dialog && !dialog.open) dialog.showModal(); }, []);
   return <dialog ref={ref} className="reset-dialog" aria-labelledby="reset-title" onCancel={(event) => { event.preventDefault(); onCancel(); }}>
-    <div><h2 id="reset-title">Reset this game?</h2><p>This starts a fresh attempt with the same market. Your current attempt will close.</p><footer><button className="control-button primary" onClick={onAccept}>Yes, reset</button><button className="control-button" onClick={onCancel}>Cancel</button></footer></div>
+    <div><h2 id="reset-title">Reset this game?</h2><p>This restarts the same market and shuffle. After a reset, only the new attempt can count toward the sitewide record.</p><footer><button className="control-button primary" onClick={onAccept}>Yes, reset</button><button className="control-button" onClick={onCancel}>Cancel</button></footer></div>
   </dialog>;
 }
 function ActionRail({ game, busy, playbackActive, onUndo, onReset, onNew, onCatalog }: { game: GameView; busy: boolean; playbackActive: boolean; onUndo: () => void; onReset: () => void; onNew: () => void; onCatalog: () => void }) {
