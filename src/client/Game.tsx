@@ -10,7 +10,7 @@ import { AI_SETTLE_MS, DRAW_DURATION_MS, DRAW_STAGGER_MS, FlyingCards, HUMAN_SET
 import type { Flight, PurchaseReveal } from './playback';
 import { playerLabel, playerShortLabel } from './playerLabel';
 
-interface GameProps { game: GameView; battlefieldNumber: number | null; battlefieldCount: number; initialPresentation: PresentationSequence | null; error: string | null; animateAi: boolean; onAnimateAi: (enabled: boolean) => void; onGameId: (id: string) => void; onGame: (game: GameView) => void; onError: (value: string | null) => void; onNew: () => void }
+interface GameProps { game: GameView; battlefieldNumber: number | null; initialPresentation: PresentationSequence | null; error: string | null; animateAi: boolean; onAnimateAi: (enabled: boolean) => void; onGameId: (id: string) => void; onGame: (game: GameView) => void; onError: (value: string | null) => void; onNew: () => void }
 interface CardGroup { definitionId: string; instances: CardInstance[] }
 interface AnimationDestination { kind: 'handToPlayed' | 'drawToHand'; definitionId: string }
 interface DamageFeedback { id: string; targetId: PlayerId; amount: number }
@@ -33,17 +33,17 @@ export function PreviewTable({ catalog, market, battlefieldNumber, error, animat
     <TableHeader title="Set up a match" controls={null} />
     {error ? <p role="alert" className="error">{error}</p> : null}
     <PreviewArena mode={mode} human={human} />
-    <CompactMarket cards={cards} fixedIds={catalog.fixedCardIds} variableIds={market} battlefieldNumber={battlefieldNumber} battlefieldCount={catalog.battlefields.length} onView={() => setMarketOpen(true)} />
+    <CompactMarket cards={cards} fixedIds={catalog.fixedCardIds} variableIds={market} battlefieldNumber={battlefieldNumber} onView={() => setMarketOpen(true)} />
     <EmptyPlayed />
     <section className="hand-panel table-zone"><div className="zone-title"><h2>Your hand</h2><span>Your opening hand appears here.</span></div><div className="hand-row"><p className="empty-row">Start the game to draw five cards.</p></div></section>
-    <SetupRail mode={mode} startingDraftEnabled={startingDraftEnabled} animateAi={animateAi} human={human} difficulty={difficulty} battlefieldNumber={battlefieldNumber} battlefieldCount={catalog.battlefields.length} statistics={statistics} statisticsLoading={statisticsLoading} onMode={setMode} onStartingDraft={setStartingDraftEnabled} onAnimateAi={onAnimateAi} onHuman={setHuman} onDifficulty={setDifficulty} onBattlefield={onBattlefield} onRefresh={onRefresh} onCatalog={() => setCatalogOpen(true)} onStart={() => void onStart(mode, startingDraftEnabled, mode === 'ai' ? human : undefined, mode === 'ai' ? difficulty : undefined)} />
+    <SetupRail mode={mode} startingDraftEnabled={startingDraftEnabled} animateAi={animateAi} human={human} difficulty={difficulty} battlefieldCount={catalog.battlefields.length} statistics={statistics} statisticsLoading={statisticsLoading} onMode={setMode} onStartingDraft={setStartingDraftEnabled} onAnimateAi={onAnimateAi} onHuman={setHuman} onDifficulty={setDifficulty} onBattlefield={onBattlefield} onRefresh={onRefresh} onCatalog={() => setCatalogOpen(true)} onStart={() => void onStart(mode, startingDraftEnabled, mode === 'ai' ? human : undefined, mode === 'ai' ? difficulty : undefined)} />
     {marketOpen ? <MarketDialog cards={cards} fixedIds={catalog.fixedCardIds} variableIds={market} onClose={() => setMarketOpen(false)} /> : null}
     {catalogOpen ? <CardCatalogDialog cards={catalog.cards} onClose={() => setCatalogOpen(false)} /> : null}
     {inspectedCardId && cards[inspectedCardId] ? <CardInspectDialog card={cards[inspectedCardId]} onClose={() => setInspectedCardId(null)} /> : null}
   </main>;
 }
 
-export function Game({ game, battlefieldNumber, battlefieldCount, initialPresentation, error, animateAi, onAnimateAi, onGameId, onGame, onError, onNew }: GameProps) {
+export function Game({ game, battlefieldNumber, initialPresentation, error, animateAi, onAnimateAi, onGameId, onGame, onError, onNew }: GameProps) {
   const [busy, setBusy] = useState(false);
   const [targetedCard, setTargetedCard] = useState<string | null>(null);
   const [movementCard, setMovementCard] = useState<string | null>(null);
@@ -291,7 +291,7 @@ export function Game({ game, battlefieldNumber, battlefieldCount, initialPresent
     {error ? <p role="alert" className="error">{error}</p> : null}
     <section className="arena-zone table-zone" data-winner={view.winner ?? undefined}><div className="range-label" data-testid="range">{view.range} · {Math.abs(view.fighters.ochre.position - view.fighters.indigo.position)} {Math.abs(view.fighters.ochre.position - view.fighters.indigo.position) === 1 ? 'space' : 'spaces'}{movementCard && !playbackActive ? <button className="movement-cancel" onClick={clearChoice}>Cancel movement</button> : null}</div><Board game={view} movementChoices={playbackActive ? [] : movementChoices} busy={!interactive} damageFeedback={damageFeedback} onMovement={(choice) => void act(choice)} />{victory ? <div className="victory-sweep" role="status" aria-live="polite" aria-atomic="true"><div className="victory-sweep__result"><span>{victory.kicker}</span><strong>{victory.title}</strong><small>{victory.detail}</small></div></div> : null}</section>
     {game.phase === 'startingBuild' ? <div className="build-strip"><strong>{actorName} selected</strong><div>{game.buildProposal.map((id, index) => <button key={`${id}-${index}`} aria-label={`Remove ${game.cards[id]?.name}`} onClick={() => void saveBuild(game.buildProposal.filter((_, position) => position !== index))}>{game.cards[id]?.name} ×</button>)}</div><span>{game.buildProposal.length ? 'Click a selected card to remove it.' : 'Click market piles to add cards.'}</span></div> : null}
-    <CompactMarket cards={game.cards} fixedIds={game.fixedCardIds} variableIds={game.variableCardIds} battlefieldNumber={battlefieldNumber} battlefieldCount={battlefieldCount} supply={view.supply} onView={() => setMarketOpen(true)} onCard={marketAction} enabled={(id) => !playbackActive && (game.phase === 'startingBuild' ? !busy : Boolean(buys.get(id)) && !busy)} />
+    <CompactMarket cards={game.cards} fixedIds={game.fixedCardIds} variableIds={game.variableCardIds} battlefieldNumber={battlefieldNumber} supply={view.supply} onView={() => setMarketOpen(true)} onCard={marketAction} enabled={(id) => !playbackActive && (game.phase === 'startingBuild' ? !busy : Boolean(buys.get(id)) && !busy)} />
     <section className="played-panel table-zone"><div className="zone-title"><h2>Played this turn</h2><div className="played-summary"><div className="played-resources"><strong data-testid="zone-money">{actorName} money: {actor.money}</strong><strong className="mana-counter" data-testid="zone-mana">Mana: {actor.mana}</strong></div><span>Each Treasure type shares one stack. Other cards stack only when consecutive.</span></div></div><div className="played-row" data-testid="played-row">{playedGroups.map((group) => {
       const destination = group.instances.some((card) => playedDestinationIds.has(card.id)) ? `handToPlayed-${group.definitionId}` : undefined;
       const visibleGroup = { ...group, instances: group.instances.filter((card) => !playedDestinationIds.has(card.id)) };
@@ -332,16 +332,15 @@ function PreviewArena({ mode, human }: { mode: GameMode; human: PlayerId }) {
   return <section className="arena-zone table-zone"><div className="range-label">Tactical map · Near · 1 space</div><div className="arena battlefield" role="group" aria-label="Six space line arena">{[1,2,3,4,5,6].map((space) => <div className="arena-space" key={space}><span className="arena-space__number">{space}</span><div className="arena-space__fighters">{space === 3 ? <FighterCounter playerId="ochre" health={playerStartingHealth(50, true)} position={space} label={playerLabel(labels, 'ochre')} shortLabel={playerShortLabel(labels, 'ochre')} /> : null}{space === 4 ? <FighterCounter playerId="indigo" health={50} position={space} label={playerLabel(labels, 'indigo')} shortLabel={playerShortLabel(labels, 'indigo')} /> : null}</div></div>)}</div></section>;
 }
 function EmptyPlayed() { return <section className="played-panel table-zone"><div className="zone-title"><h2>Played this turn</h2></div><div className="played-row"><p className="empty-row">Cards move here from your hand.</p></div></section>; }
-function SetupRail({ mode, startingDraftEnabled, animateAi, human, difficulty, battlefieldNumber, battlefieldCount, statistics, statisticsLoading, onMode, onStartingDraft, onAnimateAi, onHuman, onDifficulty, onBattlefield, onRefresh, onCatalog, onStart }: {
+function SetupRail({ mode, startingDraftEnabled, animateAi, human, difficulty, battlefieldCount, statistics, statisticsLoading, onMode, onStartingDraft, onAnimateAi, onHuman, onDifficulty, onBattlefield, onRefresh, onCatalog, onStart }: {
   mode: GameMode; startingDraftEnabled: boolean; animateAi: boolean; human: PlayerId; difficulty: AiDifficulty;
-  battlefieldNumber: number | null; battlefieldCount: number; statistics: GameStatistics | null; statisticsLoading: boolean;
+  battlefieldCount: number; statistics: GameStatistics | null; statisticsLoading: boolean;
   onMode: (mode: GameMode) => void; onStartingDraft: (enabled: boolean) => void; onAnimateAi: (enabled: boolean) => void; onHuman: (playerId: PlayerId) => void;
   onDifficulty: (difficulty: AiDifficulty) => void; onBattlefield: (number: number) => void; onRefresh: () => void; onCatalog: () => void; onStart: () => void;
 }) {
-  const [battlefieldInput, setBattlefieldInput] = useState(battlefieldNumber === null ? '' : String(battlefieldNumber));
+  const [battlefieldInput, setBattlefieldInput] = useState('');
   const [battlefieldError, setBattlefieldError] = useState<string | null>(null);
   const battlefieldField = useRef<HTMLInputElement>(null);
-  useEffect(() => { setBattlefieldInput(battlefieldNumber === null ? '' : String(battlefieldNumber)); }, [battlefieldNumber]);
   const selectedStatistics = statistics?.difficulties.find((entry) => entry.difficulty === difficulty);
   function loadBattlefield(event: React.FormEvent<HTMLFormElement>) {
     event.preventDefault();
@@ -351,24 +350,24 @@ function SetupRail({ mode, startingDraftEnabled, animateAi, human, difficulty, b
       battlefieldField.current?.focus();
       return;
     }
-    setBattlefieldInput(String(number)); setBattlefieldError(null); onBattlefield(number);
+    setBattlefieldInput(''); setBattlefieldError(null); onBattlefield(number);
   }
-  function refreshBattlefield() { setBattlefieldError(null); onRefresh(); }
+  function refreshBattlefield() { setBattlefieldInput(''); setBattlefieldError(null); onRefresh(); }
   return <aside className="setup-rail" aria-label="Game setup"><header><span>Game setup</span><h2>New match</h2></header><div className="setup-rail__body">
     <fieldset className="setup-group"><legend>Opponent</legend><div className="setup-options"><button type="button" aria-pressed={mode === 'local'} onClick={() => onMode('local')}>Local players</button><button type="button" aria-pressed={mode === 'ai'} onClick={() => onMode('ai')}>Play against AI</button></div></fieldset>
     {mode === 'ai' ? <><fieldset className="setup-group"><legend>Turn order</legend><div className="setup-options"><button type="button" aria-pressed={human === 'ochre'} onClick={() => onHuman('ochre')}>I go first</button><button type="button" aria-pressed={human === 'indigo'} onClick={() => onHuman('indigo')}>AI goes first</button></div></fieldset><fieldset className="setup-group"><legend>AI strength</legend><div className="setup-options setup-options--four">{AI_DIFFICULTIES.map((value) => <button type="button" key={value} aria-pressed={difficulty === value} onClick={() => onDifficulty(value)}>{value[0]!.toUpperCase() + value.slice(1)}</button>)}</div></fieldset>{statisticsLoading ? <section className="setup-statistics" aria-label={`${difficulty} sitewide results`}><header className="setup-statistics__header"><span>Sitewide record</span><span>{difficulty[0]!.toUpperCase() + difficulty.slice(1)}</span></header><p role="status">Loading results…</p></section> : selectedStatistics ? <section className="setup-statistics" aria-label={`${difficulty} sitewide results`}><header className="setup-statistics__header"><span>Sitewide record</span><span>{difficulty[0]!.toUpperCase() + difficulty.slice(1)}</span></header><div className="setup-statistics__duel"><span className="setup-statistics__side"><span>Human</span><strong>{selectedStatistics.humanWins}</strong></span><span className="setup-statistics__divider">—</span><span className="setup-statistics__side setup-statistics__side--ai"><span>AI</span><strong>{selectedStatistics.aiWins}</strong></span></div><p className="setup-statistics__games">{selectedStatistics.gamesPlayed} {selectedStatistics.gamesPlayed === 1 ? 'game' : 'games'} played</p></section> : null}<label className="setup-switch"><span><strong>Animate AI turns</strong><small>{animateAi ? 'Watch the AI play each card.' : 'Show the final result immediately.'}</small></span><input aria-label="Animate AI turns" type="checkbox" checked={animateAi} onChange={(event) => onAnimateAi(event.target.checked)} /><i aria-hidden="true" /></label></> : null}
     {mode === 'local' ? <label className="setup-switch"><span><strong>Starting draft</strong><small>{startingDraftEnabled ? 'Build a custom opening deck.' : 'Start with 7 Copper and 3 Scrap.'}</small></span><input type="checkbox" checked={startingDraftEnabled} onChange={(event) => onStartingDraft(event.target.checked)} /><i aria-hidden="true" /></label> : null}
     <form className="battlefield-selector" noValidate onSubmit={loadBattlefield}>
-      <label htmlFor="battlefield-number">Battlefield number</label>
-      <div><input ref={battlefieldField} id="battlefield-number" name="battlefield" type="number" inputMode="numeric" min={1} max={battlefieldCount} step={1} value={battlefieldInput} aria-invalid={battlefieldError ? true : undefined} aria-describedby={battlefieldError ? 'battlefield-number-error' : undefined} onChange={(event) => setBattlefieldInput(event.target.value)} /><button className="control-button" type="submit">Load battlefield</button></div>
-      {battlefieldError ? <p id="battlefield-number-error" className="field-error" role="alert">{battlefieldError}</p> : null}
+      <label htmlFor="battlefield-number">Go to battlefield</label>
+      <div><input ref={battlefieldField} id="battlefield-number" name="battlefield" type="number" inputMode="numeric" autoComplete="off" min={1} max={battlefieldCount} step={1} value={battlefieldInput} placeholder="Number" aria-invalid={battlefieldError ? true : undefined} aria-describedby={battlefieldError ? 'battlefield-number-error' : 'battlefield-number-hint'} onChange={(event) => setBattlefieldInput(event.target.value)} /><button className="control-button primary" type="submit">Load</button></div>
+      {battlefieldError ? <p id="battlefield-number-error" className="field-error" role="alert">{battlefieldError}</p> : <p id="battlefield-number-hint" className="field-hint">Enter a number from 1 to {battlefieldCount}.</p>}
     </form>
     <div className="setup-market-actions"><button className="control-button" onClick={refreshBattlefield}>Refresh market</button><button className="control-button" onClick={onCatalog}>View all cards</button></div>
   </div><button className="control-button primary setup-start" onClick={onStart}>Start game</button></aside>;
 }
-function CompactMarket({ cards, fixedIds, variableIds, battlefieldNumber, battlefieldCount, supply, onView, onCard, enabled }: {
+function CompactMarket({ cards, fixedIds, variableIds, battlefieldNumber, supply, onView, onCard, enabled }: {
   cards: Record<string, CardDefinition>; fixedIds: readonly string[]; variableIds: readonly string[];
-  battlefieldNumber: number | null; battlefieldCount: number; supply?: Record<string, number>; onView: () => void; onCard?: (id: string) => void; enabled?: (id: string) => boolean;
+  battlefieldNumber: number | null; supply?: Record<string, number>; onView: () => void; onCard?: (id: string) => void; enabled?: (id: string) => boolean;
 }) {
   const pile = (id: string, fixed: boolean) => {
     const card = cards[id]; if (!card) return null;
@@ -382,7 +381,7 @@ function CompactMarket({ cards, fixedIds, variableIds, battlefieldNumber, battle
       {outOfStock ? <span className="pile-stock-label">Out of stock</span> : null}
     </button>;
   };
-  const battlefieldHeading = battlefieldNumber === null ? 'Battlefield piles' : `Battlefield ${battlefieldNumber} of ${battlefieldCount}`;
+  const battlefieldHeading = battlefieldNumber === null ? 'Battlefield piles' : `Battlefield ${battlefieldNumber}`;
   return <section className="market-zone table-zone"><div className="zone-title"><h2>Market</h2><button className="text-button" onClick={onView}>Card reference</button></div><div className="market-layout"><section className="market-section"><h3 className="market-section__heading">Fixed piles</h3><div className="pile-grid pile-grid--fixed">{fixedIds.map((id) => pile(id, true))}</div></section><section className="market-section"><h3 className="market-section__heading">{battlefieldHeading}</h3><div className="pile-grid pile-grid--kingdom">{variableIds.map((id) => pile(id, false))}</div></section></div></section>;
 }
 

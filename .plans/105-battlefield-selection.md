@@ -27,13 +27,13 @@ The engine and strategy-search code use “kingdom” internally. Player-facing 
 7. Starting a game replaces the browser’s active-game pointer only after game creation succeeds. The old server record remains, but the normal interface has no list for returning to it. No replacement warning is added.
 8. A malformed or out-of-range `/play/...` route stays in setup, chooses a random valid battlefield, replaces the address with its canonical URL, and shows a page-level error with the valid range. It never resumes the active game during that recovery, even if the random choice matches.
 9. A path outside `/`, `/rules`, `/about`, and `/play...` behaves like bare `/play` without a battlefield-range error, then canonicalizes when a numbered battlefield is known.
-10. Setup shows a labeled battlefield-number input and `Load battlefield`. Submitting a valid number changes the market and canonical URL. Invalid input keeps the current market and URL and shows an inline field error.
-11. The existing `Refresh market` button keeps its label, chooses a different numbered battlefield, updates the selector value and URL, and clears route or field errors.
+10. Setup shows a blank `Go to battlefield` number input, a `Load` button, and the valid range. Submitting a valid number changes the market and canonical URL, then clears the input. Invalid input keeps the current market and URL and shows an inline field error.
+11. The existing `Refresh market` button keeps its label, chooses a different numbered battlefield, updates the URL, keeps the selector blank, and clears route or field errors.
 12. Loading a valid battlefield clears route or field errors. Game-creation failures continue to use the existing page-level error.
-13. The battlefield-pile heading shows `Battlefield <number> of <catalog count>` in setup and during numbered games. An unnumbered active game keeps the existing `Battlefield piles` heading without a false number.
+13. The battlefield-pile heading shows `Battlefield <number>` in setup and during numbered games. An unnumbered active game keeps the existing `Battlefield piles` heading without a false number.
 14. `New game` keeps the current market and numbered URL but clears the active-game pointer immediately. Reload from that setup page stays in setup. Reset continues to restart the same market and shuffle.
 15. URL updates use `history.replaceState`. Battlefield selection does not add setup choices to browser Back history.
-16. The first implementation uses the existing visual system and supported desktop layouts. User feedback after implementation supplies the final visual finishing touches.
+16. The selector uses the existing visual system and fits the supported desktop layouts.
 
 ## Saved-game examples
 
@@ -72,7 +72,7 @@ An active local/API game with no catalog match remains supported: it resumes onl
 
 The client setup-market module owns lookup by public battlefield number, lookup by card-set signature, random selection excluding the current battlefield, route parsing, and canonical URL generation. `PlayApp` coordinates local storage and browser history through that small interface.
 
-The catalog array length supplies the displayed count, numeric input maximum, and validation range. Do not repeat 160 in client behavior.
+The catalog array length supplies the numeric input maximum and validation range. Do not repeat 160 in client behavior.
 
 ### D5. Put selection in setup and identity in the market heading
 
@@ -88,11 +88,11 @@ Invalid `/play/...` recovery is setup-only and never resumes the pointer. `New g
 
 ### D7. Keep `Refresh market`
 
-The existing button label stays unchanged. Its current behavior still selects another random trained market; the new behavior also writes that battlefield’s canonical URL and updates the number input.
+The existing button label stays unchanged. It selects another random trained market, writes that battlefield’s canonical URL, and leaves the number input blank.
 
-### D8. Treat the first styling pass as reviewable
+### D8. Use a quiet action field
 
-The implementation fits the selector and battlefield label into the current visual system without redesigning the table. Final spacing and presentation can change after the user reviews the rendered result.
+The selector has no enclosing card surface. It uses a dark inset number field and a gold `Load` button so that the input and action have distinct roles. The input starts blank and does not mirror the current battlefield.
 
 ## Implementation
 
@@ -140,10 +140,10 @@ Verification:
 
 ### 4. Add the visible selector and battlefield label
 
-- Add an accessible number form to the setup rail with a real `Battlefield number` label, `min=1`, a maximum from the catalog count, inline validation, and a `Load battlefield` submit button.
-- Keep the existing `Refresh market` copy and make it update the selected number, URL, and error states after choosing another battlefield.
-- Show the numbered identity beside the battlefield-pile heading in preview and numbered live games. Preserve the plain heading for unnumbered live games.
-- Reuse existing control styles and add only the layout rules needed at supported desktop sizes.
+- Add an accessible number form to the setup rail with a `Go to battlefield` label, a blank dark input, `min=1`, a maximum from the catalog count, persistent range help, inline validation, and a gold `Load` submit button.
+- Keep the existing `Refresh market` copy. Make it update the URL and error states after choosing another battlefield while the selector stays blank.
+- Show `Battlefield <number>` beside the battlefield piles in preview and numbered live games. Preserve the plain heading for unnumbered live games.
+- Keep the selector visually quiet and distinct from the surrounding buttons at supported desktop sizes.
 
 Verification:
 

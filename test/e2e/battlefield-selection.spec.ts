@@ -39,12 +39,12 @@ test('DD-E2E-076: bare play resumes numbered and unnumbered games without a temp
 
   await openGame(page, undefined, battlefield40.variableCardIds);
   await expect(page).toHaveURL(/\/play\/40$/u);
-  await expect(page.getByRole('heading', { name: 'Battlefield 40 of 160' })).toBeVisible();
+  await expect(page.getByRole('heading', { name: 'Battlefield 40' })).toBeVisible();
   expect(await page.evaluate(() => (window as typeof window & { replacedPlayUrls?: string[] }).replacedPlayUrls)).toEqual(['/play/40']);
 
   await page.goto(playUrl(baseUrl, '/play/'));
   await expect(page).toHaveURL(/\/play\/40$/u);
-  await expect(page.getByRole('heading', { name: 'Battlefield 40 of 160' })).toBeVisible();
+  await expect(page.getByRole('heading', { name: 'Battlefield 40' })).toBeVisible();
   expect(await page.evaluate(() => (window as typeof window & { replacedPlayUrls?: string[] }).replacedPlayUrls)).toEqual(['/play/40']);
 
   await openGame(page);
@@ -60,7 +60,7 @@ test('DD-E2E-077: an explicit battlefield keeps a different saved game until suc
 
   await page.goto(playUrl(baseUrl, '/play/60'));
   await expect(page.getByRole('button', { name: 'Start game' })).toBeVisible();
-  await expect(page.getByRole('heading', { name: 'Battlefield 60 of 160' })).toBeVisible();
+  await expect(page.getByRole('heading', { name: 'Battlefield 60' })).toBeVisible();
   expect(await page.evaluate(() => localStorage.getItem('hexdeck.activeGameId'))).toBe(active.id);
 
   await page.goto(baseUrl);
@@ -95,11 +95,12 @@ test('DD-E2E-078: malformed and fallback routes recover with the required saved-
   await expect(page).toHaveURL(/\/play\/\d+\?source=shared#market$/u);
   expect(await page.evaluate(() => localStorage.getItem('hexdeck.activeGameId'))).toBe(active.id);
 
-  const selector = page.getByLabel('Battlefield number');
+  const selector = page.getByLabel('Go to battlefield');
   await selector.fill('40');
-  await page.getByRole('button', { name: 'Load battlefield' }).click();
+  await page.getByRole('button', { name: 'Load' }).click();
   await expect(page.getByRole('alert')).toHaveCount(0);
-  await expect(page.getByRole('heading', { name: 'Battlefield 40 of 160' })).toBeVisible();
+  await expect(selector).toHaveValue('');
+  await expect(page.getByRole('heading', { name: 'Battlefield 40' })).toBeVisible();
   await expect(page).toHaveURL(/\/play\/40\?source=shared#market$/u);
 
   await page.goto(playUrl(baseUrl, '/play/040/?source=shared#market'));
@@ -121,13 +122,14 @@ test('DD-E2E-078: malformed and fallback routes recover with the required saved-
 test('DD-E2E-079: the battlefield selector validates, refreshes, replaces history, and fits supported desktops', async ({ page, baseUrl }) => {
   await page.goto(playUrl(baseUrl, '/'));
   await page.goto(playUrl(baseUrl, '/play/1?source=selector#setup'));
-  const selector = page.getByLabel('Battlefield number');
-  await expect(selector).toHaveValue('1');
+  const selector = page.getByLabel('Go to battlefield');
+  await expect(selector).toHaveValue('');
+  await expect(page.getByText('Enter a number from 1 to 160.')).toBeVisible();
   const firstMarket = await page.locator('.pile-grid--kingdom [data-market-card]').allTextContents();
   const firstUrl = page.url();
 
   await selector.fill('0');
-  await page.getByRole('button', { name: 'Load battlefield' }).click();
+  await page.getByRole('button', { name: 'Load' }).click();
   await expect(selector).toHaveAttribute('aria-invalid', 'true');
   await expect(selector).toHaveAttribute('aria-describedby', 'battlefield-number-error');
   await expect(page.getByRole('alert')).toHaveText('Enter a battlefield number from 1 to 160.');
@@ -136,15 +138,17 @@ test('DD-E2E-079: the battlefield selector validates, refreshes, replaces histor
 
   await selector.fill('002');
   await selector.press('Enter');
-  await expect(selector).toHaveValue('2');
+  await expect(selector).toHaveValue('');
   await expect(selector).not.toHaveAttribute('aria-invalid', 'true');
-  await expect(page.getByRole('heading', { name: 'Battlefield 2 of 160' })).toBeVisible();
+  await expect(page.getByRole('heading', { name: 'Battlefield 2' })).toBeVisible();
   await expect(page).toHaveURL(/\/play\/2\?source=selector#setup$/u);
 
+  await selector.fill('9');
   await page.getByRole('button', { name: 'Refresh market' }).click();
-  await expect(selector).not.toHaveValue('2');
-  const refreshedNumber = await selector.inputValue();
-  await expect(page.getByRole('heading', { name: `Battlefield ${refreshedNumber} of 160` })).toBeVisible();
+  await expect(selector).toHaveValue('');
+  const refreshedNumber = /\/play\/(\d+)/u.exec(new URL(page.url()).pathname)?.[1];
+  expect(refreshedNumber).toBeTruthy();
+  await expect(page.getByRole('heading', { name: `Battlefield ${refreshedNumber}` })).toBeVisible();
   await expect(page).toHaveURL(new RegExp(`/play/${refreshedNumber}\\?source=selector#setup$`, 'u'));
 
   const refreshedUrl = page.url();
@@ -159,7 +163,7 @@ test('DD-E2E-079: the battlefield selector validates, refreshes, replaces histor
 
   await page.getByRole('button', { name: 'Start game' }).click();
   await expect(page.getByRole('navigation', { name: 'Game controls' })).toBeVisible();
-  await expect(page.getByRole('heading', { name: `Battlefield ${refreshedNumber} of 160` })).toBeVisible();
+  await expect(page.getByRole('heading', { name: `Battlefield ${refreshedNumber}` })).toBeVisible();
 });
 
 test('DD-E2E-080: New game keeps its numbered battlefield and reload stays in setup', async ({ page, baseUrl, openGame }) => {
@@ -168,12 +172,12 @@ test('DD-E2E-080: New game keeps its numbered battlefield and reload stays in se
   await openGame(page, undefined, battlefield40.variableCardIds);
   await page.getByRole('button', { name: 'New game' }).click();
   await expect(page.getByRole('button', { name: 'Start game' })).toBeVisible();
-  await expect(page.getByRole('heading', { name: 'Battlefield 40 of 160' })).toBeVisible();
+  await expect(page.getByRole('heading', { name: 'Battlefield 40' })).toBeVisible();
   await expect(page).toHaveURL(/\/play\/40$/u);
   expect(await page.evaluate(() => localStorage.getItem('hexdeck.activeGameId'))).toBeNull();
 
   await page.reload();
   await expect(page.getByRole('button', { name: 'Start game' })).toBeVisible();
-  await expect(page.getByRole('heading', { name: 'Battlefield 40 of 160' })).toBeVisible();
+  await expect(page.getByRole('heading', { name: 'Battlefield 40' })).toBeVisible();
   expect(await page.evaluate(() => localStorage.getItem('hexdeck.activeGameId'))).toBeNull();
 });
