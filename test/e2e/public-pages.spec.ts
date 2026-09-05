@@ -29,6 +29,9 @@ test('public routes show the approved landing page, durable content, and working
   await expect(page.getByRole('heading', { name: 'Rules', exact: true })).toBeVisible();
   await expect(page.getByRole('heading', { name: 'Your turn' })).toBeVisible();
   await expect(page.getByText('7 Copper and 3 Scrap')).toBeVisible();
+  await expect(page.getByRole('heading', { name: 'Melee (red cards)' })).toBeVisible();
+  await expect(page.getByRole('heading', { name: 'Ranged (green cards)' })).toBeVisible();
+  await expect(page.getByRole('heading', { name: 'Mage (blue cards)' })).toBeVisible();
   await expect(page.getByRole('heading', { name: 'Optional local starting draft' })).toBeVisible();
   await page.reload();
   await expect(page.getByRole('heading', { name: 'Shared market' })).toBeVisible();

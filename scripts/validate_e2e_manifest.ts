@@ -13,7 +13,8 @@ export const requiredCards = [
 export const requiredBrowserFlows = [
   'fullTablePreview', 'randomMarketRefresh', 'marketReferenceDialog', 'fixedAndVariableMarket',
   'numberedBattlefieldResume', 'unnumberedGameResume', 'savedGameBattlefieldRouting', 'invalidBattlefieldRecovery', 'fallbackRouteCanonicalization',
-  'battlefieldSelector', 'battlefieldHistoryReplacement', 'numberedBattlefieldIdentity', 'newGameBattlefieldSetup',
+  'battlefieldSelector', 'battlefieldHistoryReplacement', 'marketCostFamilyOrder', 'numberedBattlefieldIdentity',
+  'newGameBattlefieldSetup', 'newGameSetupPreferences',
   'sequentialBuilds', 'zeroPaidBuild', 'buildAddRemoveRefresh', 'buildLock', 'completeLocalTurns',
   'aiTrainingAndPublicTurns', 'aiSafeUndo', 'carriedStartingMoney', 'multiplePurchases', 'actionSupply',
   'turnCleanup', 'cardSelections', 'disabledReasons', 'sharedSpacesAndPassThrough', 'globalUndo',

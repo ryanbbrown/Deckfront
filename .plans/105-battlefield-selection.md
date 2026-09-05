@@ -14,7 +14,7 @@ The engine and strategy-search code use “kingdom” internally. Player-facing 
 - Local storage holds one active-game ID, which resumes after reload.
 - The server also accepts local games whose card set is not one of the 160 pretrained battlefields.
 - `New game` clears the active-game ID and returns to setup with the current game’s market.
-- `Refresh market` chooses a different trained market.
+- `Random battlefield` chooses a different trained battlefield.
 
 ## Product behavior
 
@@ -27,11 +27,11 @@ The engine and strategy-search code use “kingdom” internally. Player-facing 
 7. Starting a game replaces the browser’s active-game pointer only after game creation succeeds. The old server record remains, but the normal interface has no list for returning to it. No replacement warning is added.
 8. A malformed or out-of-range `/play/...` route stays in setup, chooses a random valid battlefield, replaces the address with its canonical URL, and shows a page-level error with the valid range. It never resumes the active game during that recovery, even if the random choice matches.
 9. A path outside `/`, `/rules`, `/about`, and `/play...` behaves like bare `/play` without a battlefield-range error, then canonicalizes when a numbered battlefield is known.
-10. Setup shows a blank `Go to battlefield` number input, a `Load` button, and the valid range. Submitting a valid number changes the market and canonical URL, then clears the input. Invalid input keeps the current market and URL and shows an inline field error.
-11. The existing `Refresh market` button keeps its label, chooses a different numbered battlefield, updates the URL, keeps the selector blank, and clears route or field errors.
+10. Setup shows a blank `Battlefield number` input, a `Load battlefield` button, and the valid range. Submitting a valid number changes the market and canonical URL, then clears the input. Invalid input keeps the current market and URL and shows an inline field error.
+11. The `Random battlefield` button chooses a different numbered battlefield, updates the URL, keeps the selector blank, and clears route or field errors.
 12. Loading a valid battlefield clears route or field errors. Game-creation failures continue to use the existing page-level error.
 13. The battlefield-pile heading shows `Battlefield <number>` in setup and during numbered games. An unnumbered active game keeps the existing `Battlefield piles` heading without a false number.
-14. `New game` keeps the current market and numbered URL but clears the active-game pointer immediately. Reload from that setup page stays in setup. Reset continues to restart the same market and shuffle.
+14. `New game` keeps the current market, numbered URL, opponent, starting-draft choice, AI turn order, AI strength, and AI-animation choice, but clears the active-game pointer immediately. These setup choices survive reload. Reset continues to restart the same market and shuffle.
 15. URL updates use `history.replaceState`. Battlefield selection does not add setup choices to browser Back history.
 16. The selector uses the existing visual system and fits the supported desktop layouts.
 
@@ -86,9 +86,9 @@ A direct battlefield link must show the battlefield it names. A different saved 
 
 Invalid `/play/...` recovery is setup-only and never resumes the pointer. `New game` is a separate explicit close action and continues to clear the pointer immediately.
 
-### D7. Keep `Refresh market`
+### D7. Use battlefield terminology for both selection controls
 
-The existing button label stays unchanged. It selects another random trained market, writes that battlefield’s canonical URL, and leaves the number input blank.
+`Load battlefield` selects the entered number. `Random battlefield` selects another random trained battlefield. Both write that battlefield’s canonical URL and leave the number input blank.
 
 ### D8. Use a quiet action field
 
@@ -130,6 +130,7 @@ Verification:
 - Resume an active game from an explicit route only when its public number matches.
 - Keep a different active-game pointer while the explicit route shows another battlefield’s setup.
 - Keep invalid-route recovery in setup without resuming the pointer.
+- Preserve setup choices in versioned browser storage and initialize them from a resumed game.
 - Replace the pointer only after successful creation of a new game; preserve `New game` pointer clearing and late-response generation guards.
 - Rewrite the E2E `openGame` fixture so it sets the active pointer and then navigates to bare `/play`, rather than reloading a random canonical URL.
 
@@ -140,8 +141,8 @@ Verification:
 
 ### 4. Add the visible selector and battlefield label
 
-- Add an accessible number form to the setup rail with a `Go to battlefield` label, a blank dark input, `min=1`, a maximum from the catalog count, persistent range help, inline validation, and a gold `Load` submit button.
-- Keep the existing `Refresh market` copy. Make it update the URL and error states after choosing another battlefield while the selector stays blank.
+- Add an accessible number form to the setup rail with a `Battlefield number` label, a blank dark input, `min=1`, a maximum from the catalog count, persistent range help, inline validation, and a gold `Load battlefield` submit button.
+- Add a `Random battlefield` button. Make it update the URL and error states after choosing another battlefield while the selector stays blank.
 - Show `Battlefield <number>` beside the battlefield piles in preview and numbered live games. Preserve the plain heading for unnumbered live games.
 - Keep the selector visually quiet and distinct from the surrounding buttons at supported desktop sizes.
 

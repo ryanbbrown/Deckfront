@@ -10,6 +10,17 @@ async function setupCatalog(baseUrl: string): Promise<SetupCatalog> {
 
 function playUrl(baseUrl: string, path: string): string { return new URL(path, baseUrl).href; }
 
+function expectMarketOrder(cards: Array<{ cost: number; family: string; name: string }>): void {
+  const familyOrder = ['treasure', 'engine', 'melee', 'ranged', 'mana'];
+  for (let index = 1; index < cards.length; index += 1) {
+    const previous = cards[index - 1]!; const current = cards[index]!;
+    const comparison = previous.cost - current.cost
+      || familyOrder.indexOf(previous.family) - familyOrder.indexOf(current.family)
+      || previous.name.localeCompare(current.name);
+    expect(comparison).toBeLessThanOrEqual(0);
+  }
+}
+
 async function expectSetupFits(page: Page): Promise<void> {
   const layout = await page.evaluate(() => {
     const root = document.documentElement;
@@ -95,9 +106,9 @@ test('DD-E2E-078: malformed and fallback routes recover with the required saved-
   await expect(page).toHaveURL(/\/play\/\d+\?source=shared#market$/u);
   expect(await page.evaluate(() => localStorage.getItem('hexdeck.activeGameId'))).toBe(active.id);
 
-  const selector = page.getByLabel('Go to battlefield');
+  const selector = page.getByLabel('Battlefield number');
   await selector.fill('40');
-  await page.getByRole('button', { name: 'Load' }).click();
+  await page.getByRole('button', { name: 'Load battlefield' }).click();
   await expect(page.getByRole('alert')).toHaveCount(0);
   await expect(selector).toHaveValue('');
   await expect(page.getByRole('heading', { name: 'Battlefield 40' })).toBeVisible();
@@ -119,17 +130,30 @@ test('DD-E2E-078: malformed and fallback routes recover with the required saved-
   await expect(page).toHaveURL(/\/play\/\d+\?source=fallback#setup$/u);
 });
 
-test('DD-E2E-079: the battlefield selector validates, refreshes, replaces history, and fits supported desktops', async ({ page, baseUrl }) => {
+test('DD-E2E-079: the battlefield selector validates, randomizes, sorts by cost and family, replaces history, and fits supported desktops', async ({ page, baseUrl }) => {
+  const catalog = await setupCatalog(baseUrl);
   await page.goto(playUrl(baseUrl, '/'));
   await page.goto(playUrl(baseUrl, '/play/1?source=selector#setup'));
-  const selector = page.getByLabel('Go to battlefield');
+  const selector = page.getByLabel('Battlefield number');
   await expect(selector).toHaveValue('');
   await expect(page.getByText('Enter a number from 1 to 160.')).toBeVisible();
   const firstMarket = await page.locator('.pile-grid--kingdom [data-market-card]').allTextContents();
+  const fixedIds = await page.locator('.pile-grid--fixed [data-market-definition-id]').evaluateAll((piles) => piles.map((pile) => (pile as HTMLElement).dataset.marketDefinitionId!));
+  const battlefieldIds = await page.locator('.pile-grid--kingdom [data-market-definition-id]').evaluateAll((piles) => piles.map((pile) => (pile as HTMLElement).dataset.marketDefinitionId!));
+  expectMarketOrder(fixedIds.map((id) => catalog.cards[id]!));
+  expectMarketOrder(battlefieldIds.map((id) => catalog.cards[id]!));
+
+  await page.getByRole('button', { name: 'Card reference' }).click();
+  const reference = page.getByRole('dialog', { name: 'Card reference' });
+  const referenceNames = await reference.locator('[data-card-name]').evaluateAll((cards) => cards.map((card) => (card as HTMLElement).dataset.cardName!));
+  const cardsByName = new Map(Object.values(catalog.cards).map((card) => [card.name, card]));
+  expectMarketOrder(referenceNames.slice(0, fixedIds.length).map((name) => cardsByName.get(name)!));
+  expectMarketOrder(referenceNames.slice(fixedIds.length).map((name) => cardsByName.get(name)!));
+  await reference.getByRole('button', { name: 'Close market' }).click();
   const firstUrl = page.url();
 
   await selector.fill('0');
-  await page.getByRole('button', { name: 'Load' }).click();
+  await page.getByRole('button', { name: 'Load battlefield' }).click();
   await expect(selector).toHaveAttribute('aria-invalid', 'true');
   await expect(selector).toHaveAttribute('aria-describedby', 'battlefield-number-error');
   await expect(page.getByRole('alert')).toHaveText('Enter a battlefield number from 1 to 160.');
@@ -144,7 +168,7 @@ test('DD-E2E-079: the battlefield selector validates, refreshes, replaces histor
   await expect(page).toHaveURL(/\/play\/2\?source=selector#setup$/u);
 
   await selector.fill('9');
-  await page.getByRole('button', { name: 'Refresh market' }).click();
+  await page.getByRole('button', { name: 'Random battlefield' }).click();
   await expect(selector).toHaveValue('');
   const refreshedNumber = /\/play\/(\d+)/u.exec(new URL(page.url()).pathname)?.[1];
   expect(refreshedNumber).toBeTruthy();
@@ -166,18 +190,34 @@ test('DD-E2E-079: the battlefield selector validates, refreshes, replaces histor
   await expect(page.getByRole('heading', { name: `Battlefield ${refreshedNumber}` })).toBeVisible();
 });
 
-test('DD-E2E-080: New game keeps its numbered battlefield and reload stays in setup', async ({ page, baseUrl, openGame }) => {
+test('DD-E2E-080: New game keeps its battlefield and setup settings after reload', async ({ page, baseUrl, openGame }) => {
   const catalog = await setupCatalog(baseUrl);
   const battlefield40 = catalog.battlefields.find((battlefield) => battlefield.number === 40)!;
   await openGame(page, undefined, battlefield40.variableCardIds);
   await page.getByRole('button', { name: 'New game' }).click();
   await expect(page.getByRole('button', { name: 'Start game' })).toBeVisible();
   await expect(page.getByRole('heading', { name: 'Battlefield 40' })).toBeVisible();
+  await expect(page.getByRole('button', { name: 'Local players' })).toHaveAttribute('aria-pressed', 'true');
+  await expect(page.getByRole('checkbox', { name: 'Starting draft' })).toBeChecked();
   await expect(page).toHaveURL(/\/play\/40$/u);
   expect(await page.evaluate(() => localStorage.getItem('hexdeck.activeGameId'))).toBeNull();
+
+  await page.getByRole('button', { name: 'Play against AI' }).click();
+  await page.getByRole('button', { name: 'AI goes first' }).click();
+  await page.getByRole('button', { name: 'Hard' }).click();
+  await expect(page.getByRole('checkbox', { name: 'Animate AI turns' })).not.toBeChecked();
+  await page.getByRole('button', { name: 'Start game' }).click();
+  await expect(page.getByRole('navigation', { name: 'Game controls' })).toBeVisible();
+  await page.getByRole('button', { name: 'New game' }).click();
+  await expect(page.getByRole('button', { name: 'Play against AI' })).toHaveAttribute('aria-pressed', 'true');
+  await expect(page.getByRole('button', { name: 'AI goes first' })).toHaveAttribute('aria-pressed', 'true');
+  await expect(page.getByRole('button', { name: 'Hard' })).toHaveAttribute('aria-pressed', 'true');
 
   await page.reload();
   await expect(page.getByRole('button', { name: 'Start game' })).toBeVisible();
   await expect(page.getByRole('heading', { name: 'Battlefield 40' })).toBeVisible();
+  await expect(page.getByRole('button', { name: 'Play against AI' })).toHaveAttribute('aria-pressed', 'true');
+  await expect(page.getByRole('button', { name: 'AI goes first' })).toHaveAttribute('aria-pressed', 'true');
+  await expect(page.getByRole('button', { name: 'Hard' })).toHaveAttribute('aria-pressed', 'true');
   expect(await page.evaluate(() => localStorage.getItem('hexdeck.activeGameId'))).toBeNull();
 });

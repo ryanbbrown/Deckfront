@@ -126,7 +126,7 @@ describe('approved final card values', () => {
       arcBolt: { cost: 4, headline: '3 damage', values: { damage: 3, manaCost: 1 } },
       fireball: { cost: 5, headline: '6 damage', values: { damage: 6, manaCost: 2 } },
       starfire: { cost: 6, headline: '12 damage', values: { damage: 12, manaCost: 3 } },
-      overload: { cost: 4, headline: '3 damage per mana spent', values: { perManaSpent: 3 } },
+      overload: { cost: 4, headline: '3 damage per mana spent earlier this turn', values: { perManaSpent: 3 } },
       rally: { cost: 3, headline: '2 damage', values: { damage: 2, perCopy: 2 } },
       bullRush: { cost: 3, headline: '7 damage', values: { damage: 7 } },
       aim: { cost: 4, headline: '+1 card', values: { draw: 1, bonus: 2 } },

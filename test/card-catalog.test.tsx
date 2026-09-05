@@ -38,9 +38,18 @@ describe('card catalog assets and presentation', () => {
     expect(markup).toContain('loading="eager"');
   });
 
-  it('explains tactical actions with the public Mage family name', () => {
-    const markup = renderToStaticMarkup(<CardFace card={CARDS.flurry!} />);
-    expect(markup).toContain('Tactical actions are Melee, Ranged, and Mage cards, plus non-Scrap Engine cards');
-    expect(markup).not.toContain('Mana cards');
+  it('uses Mage consistently and explains mana timing on card faces', () => {
+    const flurry = renderToStaticMarkup(<CardFace card={CARDS.flurry!} />);
+    const cascade = renderToStaticMarkup(<CardFace card={CARDS.cascade!} />);
+    const improvise = renderToStaticMarkup(<CardFace card={CARDS.improvise!} />);
+    const overload = renderToStaticMarkup(<CardFace card={CARDS.overload!} />);
+    expect(flurry).toContain('1 damage per other eligible card played this turn');
+    expect(flurry).toContain('Eligible cards are Melee, Ranged, or Mage cards, and non-Scrap Engine cards that can deal damage or move you.');
+    expect(flurry.toLowerCase()).not.toContain('tactical');
+    expect(improvise).toContain('Count the Melee, Ranged, and Mage families once each');
+    expect(cascade).toContain('each other Mage attack you played this turn');
+    expect(cascade).not.toContain('spell');
+    expect(overload).toContain('3 damage per mana spent earlier this turn');
+    expect(overload).toContain('Overload does not spend mana.');
   });
 });

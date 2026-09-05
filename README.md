@@ -42,11 +42,13 @@ Bought cards enter your discard pile. When your deck runs out, the discard pile 
 
 Position creates three ranges:
 
-- **Close:** both fighters are on the same space; Melee attacks work here.
+- **Close:** both fighters are on the same space; Melee attacks (red cards) work here.
 - **Near:** the fighters are one space apart.
 - **Far:** the fighters are two or more spaces apart.
-- **Ranged attacks:** work at Near or Far range unless a card says otherwise.
-- **Mana attacks:** work at any range, but require mana to build and spend.
+- **Ranged attacks (green cards):** work at Near or Far range unless a card says otherwise.
+- **Mage attacks (blue cards):** work at any range, but require mana to build and spend.
+
+Any card that can deal damage is an attack, including Engine cards such as Scrap. An attack still counts when it deals 0 damage.
 
 A standard deck starts with 7 Copper and 3 Scrap. Scrap costs 1 and has a 10-card fixed market pile, but card effects cannot gain it. Local matches can instead use a starting draft: before the first turn, each player spends up to 12 money on cards from the current market, then shuffles those cards with 7 Copper to form a stronger opening deck. Up to 3 unspent draft money carries into the first Buy phase. Starting with useful cards makes draft games faster.
 

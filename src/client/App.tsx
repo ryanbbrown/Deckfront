@@ -1,8 +1,10 @@
 import { useEffect, useRef, useState } from 'react';
 import type { PlayerId, RandomIndexSource } from '../game';
+import { AI_DIFFICULTIES } from '../shared/api';
 import type { AiDifficulty, GameMode, GameStatistics, GameView, PresentationSequence, SetupBattlefield, SetupCatalog } from '../shared/api';
 import { createGame, loadGame, loadSetup, loadStatistics } from './api';
 import { Game, InstructionsDialog, PreviewTable } from './Game';
+import type { SetupPreferences } from './Game';
 import { AI_ANIMATION_KEY, updateGame } from './playback';
 import {
   barePlayUrl, battlefieldRangeError, battlefieldUrl, chooseBattlefield, findBattlefieldByCards,
@@ -12,6 +14,10 @@ import { PublicSite } from './PublicPages';
 
 const ACTIVE_GAME_KEY = 'hexdeck.activeGameId';
 const INSTRUCTIONS_DISMISSED_KEY = 'deckfront.instructionsDismissed';
+const SETUP_PREFERENCES_KEY = 'deckfront.setupPreferences';
+const DEFAULT_SETUP_PREFERENCES: SetupPreferences = {
+  mode: 'local', startingDraftEnabled: false, human: 'ochre', difficulty: 'expert'
+};
 const cryptoRandom: RandomIndexSource = {
   nextInt(maxExclusive) {
     const range = 0x1_0000_0000;
@@ -39,6 +45,7 @@ function PlayApp() {
   const [training, setTraining] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [animateAi, setAnimateAiState] = useState(() => localStorage.getItem(AI_ANIMATION_KEY) !== 'false');
+  const [setupPreferences, setSetupPreferences] = useState(loadSetupPreferences);
   const [initialPresentation, setInitialPresentation] = useState<PresentationSequence | null>(null);
   const [statistics, setStatistics] = useState<GameStatistics | null>(null);
   const [statisticsLoading, setStatisticsLoading] = useState(false);
@@ -62,6 +69,7 @@ function PlayApp() {
         }
         if (cancelled) return;
         setCatalog(setup);
+        if (activeGame) rememberGamePreferences(activeGame);
         const route = parsePlayRoute(window.location.pathname, setup.battlefields);
         const activeBattlefield = activeGame ? findBattlefieldByCards(setup.battlefields, activeGame.variableCardIds) : null;
         if (route.kind === 'battlefield') {
@@ -134,13 +142,28 @@ function PlayApp() {
     setMarket([...selected.variableCardIds]); setBattlefieldNumber(selected.number); setError(null);
     replaceUrl(battlefieldUrl(selected.number, window.location));
   }
-  function refreshBattlefield() {
+  function chooseRandomBattlefield() {
     if (!catalog) return;
     const selected = chooseBattlefield(cryptoRandom, catalog.battlefields, battlefieldNumber);
     setMarket([...selected.variableCardIds]); setBattlefieldNumber(selected.number); setError(null);
     replaceUrl(battlefieldUrl(selected.number, window.location));
   }
   function setAnimateAi(enabled: boolean) { localStorage.setItem(AI_ANIMATION_KEY, String(enabled)); setAnimateAiState(enabled); }
+  function updateSetupPreferences(preferences: SetupPreferences) {
+    localStorage.setItem(SETUP_PREFERENCES_KEY, JSON.stringify({ version: 1, ...preferences }));
+    setSetupPreferences(preferences);
+  }
+  function rememberGamePreferences(currentGame: GameView) {
+    updateSetupPreferences({
+      ...setupPreferences,
+      mode: currentGame.mode,
+      startingDraftEnabled: currentGame.startingDraftEnabled,
+      ...(currentGame.mode === 'ai' ? {
+        human: currentGame.humanPlayerId ?? setupPreferences.human,
+        difficulty: currentGame.aiDifficulty ?? setupPreferences.difficulty
+      } : {})
+    });
+  }
   function newGame() {
     generation.current += 1; localStorage.removeItem(ACTIVE_GAME_KEY); setInitialPresentation(null);
     if (game && catalog) {
@@ -153,9 +176,20 @@ function PlayApp() {
   const gameGeneration = generation.current;
   const content = training ? <main className="training-state"><div><span className="spinner" /><h1>Training opponent…</h1><p>The AI is testing strategies for this market.</p></div></main>
     : loading || !catalog ? <main className="loading">Loading Deckfront…</main>
-      : !game ? <PreviewTable catalog={catalog} market={market} battlefieldNumber={battlefieldNumber} error={error} animateAi={animateAi} statistics={statistics} statisticsLoading={statisticsLoading} onAnimateAi={setAnimateAi} onBattlefield={selectBattlefield} onRefresh={refreshBattlefield} onStart={start} />
+      : !game ? <PreviewTable catalog={catalog} market={market} battlefieldNumber={battlefieldNumber} error={error} animateAi={animateAi} preferences={setupPreferences} statistics={statistics} statisticsLoading={statisticsLoading} onAnimateAi={setAnimateAi} onPreferences={updateSetupPreferences} onBattlefield={selectBattlefield} onRandomBattlefield={chooseRandomBattlefield} onStart={start} />
         : <Game game={game} battlefieldNumber={battlefieldNumber} initialPresentation={initialPresentation} error={error} animateAi={animateAi} onAnimateAi={setAnimateAi} onGameId={(id) => { if (generation.current === gameGeneration) localStorage.setItem(ACTIVE_GAME_KEY, id); }} onGame={(next) => { if (generation.current === gameGeneration) { setInitialPresentation(null); setGame(next); } }} onError={(value) => { if (generation.current === gameGeneration) setError(value); }} onNew={newGame} />;
   return <>{content}{instructionsOpen ? <InstructionsDialog onDismiss={() => setInstructionsOpen(false)} onNeverShow={() => localStorage.setItem(INSTRUCTIONS_DISMISSED_KEY, 'true')} /> : null}</>;
+}
+
+function loadSetupPreferences(): SetupPreferences {
+  try {
+    const parsed = JSON.parse(localStorage.getItem(SETUP_PREFERENCES_KEY) ?? '') as Partial<SetupPreferences> & { version?: unknown };
+    const difficulty = AI_DIFFICULTIES.find((value) => value === parsed.difficulty);
+    if (parsed.version !== 1 || (parsed.mode !== 'local' && parsed.mode !== 'ai')
+      || typeof parsed.startingDraftEnabled !== 'boolean' || (parsed.human !== 'ochre' && parsed.human !== 'indigo')
+      || !difficulty) return DEFAULT_SETUP_PREFERENCES;
+    return { mode: parsed.mode, startingDraftEnabled: parsed.startingDraftEnabled, human: parsed.human, difficulty };
+  } catch { return DEFAULT_SETUP_PREFERENCES; }
 }
 
 function replaceUrl(url: string): void {

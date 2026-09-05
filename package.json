@@ -11,6 +11,8 @@
     "build:production": "npm run build && esbuild src/server/main.ts --bundle --platform=node --format=esm --target=node22 --minify --legal-comments=none --outfile=build/server.mjs",
     "test": "vitest run --maxWorkers=4 --exclude 'test/e2e/**'",
     "test:native": "npm run goldfish:native-build --silent && vitest run test/sim/rustGoldfishConformance.test.ts test/sim/nativeStrategySearch.test.ts test/sim/orderedGoldfishBenchmark.test.ts test/sim/goldfishReservoir.test.ts",
+    "cards:wording": "tsx scripts/generate_card_wording.ts",
+    "cards:wording-check": "tsx scripts/generate_card_wording.ts --check",
     "balance:suite:manifest": "tsx scripts/generate_balance_suite_manifest.ts",
     "balance:suite:search": "tsx scripts/generate_balance_suite_covering_design.ts",
     "balance:suite:search-check": "tsx scripts/generate_balance_suite_covering_design.ts --check",

@@ -60,7 +60,7 @@ The suite gives strategy search repeated chances to use each card in different c
 - cards that are rarely bought or played;
 - one strategy family crowding out the others;
 - dominant card combinations;
-- markets that depend too heavily on the fixed economy, movement, or Mana cards;
+- markets that depend too heavily on the fixed economy, movement, or Mage cards;
 - changes that work on tuning markets but fail on held-back validation markets.
 
 The suite does not prove that every card is balanced. Coverage only creates an opportunity for a card or interaction to matter. The AI search must still find and test the relevant strategies.

@@ -288,7 +288,7 @@ h1,h2,h3,p { margin: 0; } h1,h2,h3 { font-family: Georgia, "Times New Roman", se
 .battlefield-selector input:focus-visible { outline: none; }
 .battlefield-selector input[type="number"] { appearance: textfield; }
 .battlefield-selector input::-webkit-inner-spin-button,.battlefield-selector input::-webkit-outer-spin-button { margin: 0; appearance: none; }
-.battlefield-selector .control-button { min-height: 40px; }
+.battlefield-selector .control-button { min-height: 40px; font-size: 11px; }
 .field-hint,.field-error { font-size: 10px; line-height: 1.3; }
 .field-hint { color: #82978f; }
 .field-error { color: #ffb9b2; }

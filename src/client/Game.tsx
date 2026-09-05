@@ -5,26 +5,24 @@ import { AI_DIFFICULTIES } from '../shared/api';
 import type { AiDifficulty, BrowserAction, GameMode, GameStatistics, GameUpdateView, GameView, PresentationFrame, PresentationSequence, PublicGameEvent, SelectionActionPresentation, SetupCatalog } from '../shared/api';
 import { resetGame, takeAction, undoAction, updateBuild } from './api';
 import { Board, FighterCounter } from './Board';
-import { groupCardCatalog } from './cardCatalog';
+import { CARD_FAMILY_ORDER, groupCardCatalog } from './cardCatalog';
 import { AI_SETTLE_MS, DRAW_DURATION_MS, DRAW_STAGGER_MS, FlyingCards, HUMAN_SETTLE_MS, PLAY_DURATION_MS, PURCHASE_PREVIEW_MS, PurchasePreview, gameAtFrame, updateGame, useReducedMotion, wait } from './playback';
 import type { Flight, PurchaseReveal } from './playback';
 import { playerLabel, playerShortLabel } from './playerLabel';
 
 interface GameProps { game: GameView; battlefieldNumber: number | null; initialPresentation: PresentationSequence | null; error: string | null; animateAi: boolean; onAnimateAi: (enabled: boolean) => void; onGameId: (id: string) => void; onGame: (game: GameView) => void; onError: (value: string | null) => void; onNew: () => void }
+export interface SetupPreferences { mode: GameMode; startingDraftEnabled: boolean; human: PlayerId; difficulty: AiDifficulty }
 interface CardGroup { definitionId: string; instances: CardInstance[] }
 interface AnimationDestination { kind: 'handToPlayed' | 'drawToHand'; definitionId: string }
 interface DamageFeedback { id: string; targetId: PlayerId; amount: number }
 type PlayedGroup = CardGroup;
 
-export function PreviewTable({ catalog, market, battlefieldNumber, error, animateAi, statistics, statisticsLoading, onAnimateAi, onBattlefield, onRefresh, onStart }: {
-  catalog: SetupCatalog; market: string[]; battlefieldNumber: number | null; error: string | null; animateAi: boolean; statistics: GameStatistics | null; statisticsLoading: boolean;
-  onAnimateAi: (enabled: boolean) => void; onBattlefield: (number: number) => void; onRefresh: () => void;
+export function PreviewTable({ catalog, market, battlefieldNumber, error, animateAi, preferences, statistics, statisticsLoading, onAnimateAi, onPreferences, onBattlefield, onRandomBattlefield, onStart }: {
+  catalog: SetupCatalog; market: string[]; battlefieldNumber: number | null; error: string | null; animateAi: boolean; preferences: SetupPreferences; statistics: GameStatistics | null; statisticsLoading: boolean;
+  onAnimateAi: (enabled: boolean) => void; onPreferences: (preferences: SetupPreferences) => void; onBattlefield: (number: number) => void; onRandomBattlefield: () => void;
   onStart: (mode: GameMode, startingDraftEnabled: boolean, humanPlayerId?: PlayerId, aiDifficulty?: AiDifficulty) => Promise<void>;
 }) {
-  const [mode, setMode] = useState<GameMode>('local');
-  const [startingDraftEnabled, setStartingDraftEnabled] = useState(false);
-  const [human, setHuman] = useState<PlayerId>('ochre');
-  const [difficulty, setDifficulty] = useState<AiDifficulty>('expert');
+  const { mode, startingDraftEnabled, human, difficulty } = preferences;
   const [marketOpen, setMarketOpen] = useState(false);
   const [catalogOpen, setCatalogOpen] = useState(false);
   const [inspectedCardId, setInspectedCardId] = useState<string | null>(null);
@@ -36,7 +34,7 @@ export function PreviewTable({ catalog, market, battlefieldNumber, error, animat
     <CompactMarket cards={cards} fixedIds={catalog.fixedCardIds} variableIds={market} battlefieldNumber={battlefieldNumber} onView={() => setMarketOpen(true)} />
     <EmptyPlayed />
     <section className="hand-panel table-zone"><div className="zone-title"><h2>Your hand</h2><span>Your opening hand appears here.</span></div><div className="hand-row"><p className="empty-row">Start the game to draw five cards.</p></div></section>
-    <SetupRail mode={mode} startingDraftEnabled={startingDraftEnabled} animateAi={animateAi} human={human} difficulty={difficulty} battlefieldCount={catalog.battlefields.length} statistics={statistics} statisticsLoading={statisticsLoading} onMode={setMode} onStartingDraft={setStartingDraftEnabled} onAnimateAi={onAnimateAi} onHuman={setHuman} onDifficulty={setDifficulty} onBattlefield={onBattlefield} onRefresh={onRefresh} onCatalog={() => setCatalogOpen(true)} onStart={() => void onStart(mode, startingDraftEnabled, mode === 'ai' ? human : undefined, mode === 'ai' ? difficulty : undefined)} />
+    <SetupRail mode={mode} startingDraftEnabled={startingDraftEnabled} animateAi={animateAi} human={human} difficulty={difficulty} battlefieldCount={catalog.battlefields.length} statistics={statistics} statisticsLoading={statisticsLoading} onMode={(value) => onPreferences({ ...preferences, mode: value })} onStartingDraft={(value) => onPreferences({ ...preferences, startingDraftEnabled: value })} onAnimateAi={onAnimateAi} onHuman={(value) => onPreferences({ ...preferences, human: value })} onDifficulty={(value) => onPreferences({ ...preferences, difficulty: value })} onBattlefield={onBattlefield} onRandomBattlefield={onRandomBattlefield} onCatalog={() => setCatalogOpen(true)} onStart={() => void onStart(mode, startingDraftEnabled, mode === 'ai' ? human : undefined, mode === 'ai' ? difficulty : undefined)} />
     {marketOpen ? <MarketDialog cards={cards} fixedIds={catalog.fixedCardIds} variableIds={market} onClose={() => setMarketOpen(false)} /> : null}
     {catalogOpen ? <CardCatalogDialog cards={catalog.cards} onClose={() => setCatalogOpen(false)} /> : null}
     {inspectedCardId && cards[inspectedCardId] ? <CardInspectDialog card={cards[inspectedCardId]} onClose={() => setInspectedCardId(null)} /> : null}
@@ -332,11 +330,11 @@ function PreviewArena({ mode, human }: { mode: GameMode; human: PlayerId }) {
   return <section className="arena-zone table-zone"><div className="range-label">Tactical map · Near · 1 space</div><div className="arena battlefield" role="group" aria-label="Six space line arena">{[1,2,3,4,5,6].map((space) => <div className="arena-space" key={space}><span className="arena-space__number">{space}</span><div className="arena-space__fighters">{space === 3 ? <FighterCounter playerId="ochre" health={playerStartingHealth(50, true)} position={space} label={playerLabel(labels, 'ochre')} shortLabel={playerShortLabel(labels, 'ochre')} /> : null}{space === 4 ? <FighterCounter playerId="indigo" health={50} position={space} label={playerLabel(labels, 'indigo')} shortLabel={playerShortLabel(labels, 'indigo')} /> : null}</div></div>)}</div></section>;
 }
 function EmptyPlayed() { return <section className="played-panel table-zone"><div className="zone-title"><h2>Played this turn</h2></div><div className="played-row"><p className="empty-row">Cards move here from your hand.</p></div></section>; }
-function SetupRail({ mode, startingDraftEnabled, animateAi, human, difficulty, battlefieldCount, statistics, statisticsLoading, onMode, onStartingDraft, onAnimateAi, onHuman, onDifficulty, onBattlefield, onRefresh, onCatalog, onStart }: {
+function SetupRail({ mode, startingDraftEnabled, animateAi, human, difficulty, battlefieldCount, statistics, statisticsLoading, onMode, onStartingDraft, onAnimateAi, onHuman, onDifficulty, onBattlefield, onRandomBattlefield, onCatalog, onStart }: {
   mode: GameMode; startingDraftEnabled: boolean; animateAi: boolean; human: PlayerId; difficulty: AiDifficulty;
   battlefieldCount: number; statistics: GameStatistics | null; statisticsLoading: boolean;
   onMode: (mode: GameMode) => void; onStartingDraft: (enabled: boolean) => void; onAnimateAi: (enabled: boolean) => void; onHuman: (playerId: PlayerId) => void;
-  onDifficulty: (difficulty: AiDifficulty) => void; onBattlefield: (number: number) => void; onRefresh: () => void; onCatalog: () => void; onStart: () => void;
+  onDifficulty: (difficulty: AiDifficulty) => void; onBattlefield: (number: number) => void; onRandomBattlefield: () => void; onCatalog: () => void; onStart: () => void;
 }) {
   const [battlefieldInput, setBattlefieldInput] = useState('');
   const [battlefieldError, setBattlefieldError] = useState<string | null>(null);
@@ -352,17 +350,17 @@ function SetupRail({ mode, startingDraftEnabled, animateAi, human, difficulty, b
     }
     setBattlefieldInput(''); setBattlefieldError(null); onBattlefield(number);
   }
-  function refreshBattlefield() { setBattlefieldInput(''); setBattlefieldError(null); onRefresh(); }
+  function chooseRandomBattlefield() { setBattlefieldInput(''); setBattlefieldError(null); onRandomBattlefield(); }
   return <aside className="setup-rail" aria-label="Game setup"><header><span>Game setup</span><h2>New match</h2></header><div className="setup-rail__body">
     <fieldset className="setup-group"><legend>Opponent</legend><div className="setup-options"><button type="button" aria-pressed={mode === 'local'} onClick={() => onMode('local')}>Local players</button><button type="button" aria-pressed={mode === 'ai'} onClick={() => onMode('ai')}>Play against AI</button></div></fieldset>
     {mode === 'ai' ? <><fieldset className="setup-group"><legend>Turn order</legend><div className="setup-options"><button type="button" aria-pressed={human === 'ochre'} onClick={() => onHuman('ochre')}>I go first</button><button type="button" aria-pressed={human === 'indigo'} onClick={() => onHuman('indigo')}>AI goes first</button></div></fieldset><fieldset className="setup-group"><legend>AI strength</legend><div className="setup-options setup-options--four">{AI_DIFFICULTIES.map((value) => <button type="button" key={value} aria-pressed={difficulty === value} onClick={() => onDifficulty(value)}>{value[0]!.toUpperCase() + value.slice(1)}</button>)}</div></fieldset>{statisticsLoading ? <section className="setup-statistics" aria-label={`${difficulty} sitewide results`}><header className="setup-statistics__header"><span>Sitewide record</span><span>{difficulty[0]!.toUpperCase() + difficulty.slice(1)}</span></header><p role="status">Loading results…</p></section> : selectedStatistics ? <section className="setup-statistics" aria-label={`${difficulty} sitewide results`}><header className="setup-statistics__header"><span>Sitewide record</span><span>{difficulty[0]!.toUpperCase() + difficulty.slice(1)}</span></header><div className="setup-statistics__duel"><span className="setup-statistics__side"><span>Human</span><strong>{selectedStatistics.humanWins}</strong></span><span className="setup-statistics__divider">—</span><span className="setup-statistics__side setup-statistics__side--ai"><span>AI</span><strong>{selectedStatistics.aiWins}</strong></span></div><p className="setup-statistics__games">{selectedStatistics.gamesPlayed} {selectedStatistics.gamesPlayed === 1 ? 'game' : 'games'} played</p></section> : null}<label className="setup-switch"><span><strong>Animate AI turns</strong><small>{animateAi ? 'Watch the AI play each card.' : 'Show the final result immediately.'}</small></span><input aria-label="Animate AI turns" type="checkbox" checked={animateAi} onChange={(event) => onAnimateAi(event.target.checked)} /><i aria-hidden="true" /></label></> : null}
     {mode === 'local' ? <label className="setup-switch"><span><strong>Starting draft</strong><small>{startingDraftEnabled ? 'Build a custom opening deck.' : 'Start with 7 Copper and 3 Scrap.'}</small></span><input type="checkbox" checked={startingDraftEnabled} onChange={(event) => onStartingDraft(event.target.checked)} /><i aria-hidden="true" /></label> : null}
     <form className="battlefield-selector" noValidate onSubmit={loadBattlefield}>
-      <label htmlFor="battlefield-number">Go to battlefield</label>
-      <div><input ref={battlefieldField} id="battlefield-number" name="battlefield" type="number" inputMode="numeric" autoComplete="off" min={1} max={battlefieldCount} step={1} value={battlefieldInput} placeholder="Number" aria-invalid={battlefieldError ? true : undefined} aria-describedby={battlefieldError ? 'battlefield-number-error' : 'battlefield-number-hint'} onChange={(event) => setBattlefieldInput(event.target.value)} /><button className="control-button primary" type="submit">Load</button></div>
+      <label htmlFor="battlefield-number">Battlefield number</label>
+      <div><input ref={battlefieldField} id="battlefield-number" name="battlefield" type="number" inputMode="numeric" autoComplete="off" min={1} max={battlefieldCount} step={1} value={battlefieldInput} placeholder="Number" aria-invalid={battlefieldError ? true : undefined} aria-describedby={battlefieldError ? 'battlefield-number-error' : 'battlefield-number-hint'} onChange={(event) => setBattlefieldInput(event.target.value)} /><button className="control-button primary" type="submit">Load battlefield</button></div>
       {battlefieldError ? <p id="battlefield-number-error" className="field-error" role="alert">{battlefieldError}</p> : <p id="battlefield-number-hint" className="field-hint">Enter a number from 1 to {battlefieldCount}.</p>}
     </form>
-    <div className="setup-market-actions"><button className="control-button" onClick={refreshBattlefield}>Refresh market</button><button className="control-button" onClick={onCatalog}>View all cards</button></div>
+    <div className="setup-market-actions"><button className="control-button" onClick={chooseRandomBattlefield}>Random battlefield</button><button className="control-button" onClick={onCatalog}>View all cards</button></div>
   </div><button className="control-button primary setup-start" onClick={onStart}>Start game</button></aside>;
 }
 function CompactMarket({ cards, fixedIds, variableIds, battlefieldNumber, supply, onView, onCard, enabled }: {
@@ -382,7 +380,16 @@ function CompactMarket({ cards, fixedIds, variableIds, battlefieldNumber, supply
     </button>;
   };
   const battlefieldHeading = battlefieldNumber === null ? 'Battlefield piles' : `Battlefield ${battlefieldNumber}`;
-  return <section className="market-zone table-zone"><div className="zone-title"><h2>Market</h2><button className="text-button" onClick={onView}>Card reference</button></div><div className="market-layout"><section className="market-section"><h3 className="market-section__heading">Fixed piles</h3><div className="pile-grid pile-grid--fixed">{fixedIds.map((id) => pile(id, true))}</div></section><section className="market-section"><h3 className="market-section__heading">{battlefieldHeading}</h3><div className="pile-grid pile-grid--kingdom">{variableIds.map((id) => pile(id, false))}</div></section></div></section>;
+  return <section className="market-zone table-zone"><div className="zone-title"><h2>Market</h2><button className="text-button" onClick={onView}>Card reference</button></div><div className="market-layout"><section className="market-section"><h3 className="market-section__heading">Fixed piles</h3><div className="pile-grid pile-grid--fixed">{sortMarketCardIds(fixedIds, cards).map((id) => pile(id, true))}</div></section><section className="market-section"><h3 className="market-section__heading">{battlefieldHeading}</h3><div className="pile-grid pile-grid--kingdom">{sortMarketCardIds(variableIds, cards).map((id) => pile(id, false))}</div></section></div></section>;
+}
+
+export function sortMarketCardIds(ids: readonly string[], cards: Record<string, CardDefinition>): string[] {
+  return [...ids].sort((leftId, rightId) => {
+    const left = cards[leftId]!; const right = cards[rightId]!;
+    return left.cost - right.cost
+      || CARD_FAMILY_ORDER.indexOf(left.family) - CARD_FAMILY_ORDER.indexOf(right.family)
+      || left.name.localeCompare(right.name);
+  });
 }
 
 function cardIdAt(target: Element): string | undefined {
@@ -420,9 +427,9 @@ export function InstructionsDialog({ onDismiss, onNeverShow }: { onDismiss: () =
           <div className="instructions-map" role="img" aria-label="A battlefield with six spaces; fighters are on spaces 2 and 5"><span>1</span><span>2<i className="instructions-fighter instructions-fighter--ochre" /></span><span>3</span><span>4</span><span>5<i className="instructions-fighter instructions-fighter--indigo" /></span><span>6</span></div>
           <p className="instructions-map-caption">Move across six spaces to enter the range your cards need.</p>
           <div className="range-rules">
-            <article className="range-rule range-rule--melee"><span aria-hidden="true">⚔</span><div><h4>Melee · Close</h4><p>You and your opponent must be on the same space.</p></div></article>
-            <article className="range-rule range-rule--ranged"><span aria-hidden="true">➶</span><div><h4>Ranged · Near or Far</h4><p>You and your opponent must be on different spaces.</p></div></article>
-            <article className="range-rule range-rule--mana"><span aria-hidden="true">✦</span><div><h4>Mage · Any range</h4><p>Carry up to 2 unspent mana from turn to turn.</p></div></article>
+            <article className="range-rule range-rule--melee"><span aria-hidden="true">⚔</span><div><h4>Melee · Close (red cards)</h4><p>You and your opponent must be on the same space.</p></div></article>
+            <article className="range-rule range-rule--ranged"><span aria-hidden="true">➶</span><div><h4>Ranged · Near or Far (green cards)</h4><p>You and your opponent must be on different spaces.</p></div></article>
+            <article className="range-rule range-rule--mana"><span aria-hidden="true">✦</span><div><h4>Mage · Any range (blue cards)</h4><p>Carry up to 2 unspent mana from turn to turn.</p></div></article>
           </div>
         </section>
       </div>
@@ -458,7 +465,7 @@ function ModalDialog({ className, surfaceClassName, titleId, kicker, title, clos
 }
 
 function MarketDialog({ cards, fixedIds, variableIds, onClose }: { cards: Record<string, CardDefinition>; fixedIds: readonly string[]; variableIds: readonly string[]; onClose: () => void }) {
-  const ids = [...fixedIds, ...variableIds];
+  const ids = [...sortMarketCardIds(fixedIds, cards), ...sortMarketCardIds(variableIds, cards)];
   return <ModalDialog className="market-dialog" surfaceClassName="market-dialog__surface" titleId="market-dialog-title" kicker="Complete market" title="Card reference" closeLabel="Close market" onClose={onClose}><div className="market-dialog__grid">{ids.map((id) => <article key={id} className={`card full-card reference-card card--${cards[id]!.family}`} data-card-name={cards[id]!.name}><CardFace card={cards[id]!} /></article>)}</div></ModalDialog>;
 }
 
